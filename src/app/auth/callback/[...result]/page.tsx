@@ -25,8 +25,15 @@ export default function AmberCallbackDynamic() {
   const [message, setMessage] = useState('Processing Amber authentication...');
   const [pubkey, setPubkey] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  // Set mounted state to prevent hydration mismatches
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
+    if (!mounted) return; // Wait for component to mount
     const processAmberResponse = async () => {
       try {
         const debugInfo = { 
@@ -113,7 +120,7 @@ export default function AmberCallbackDynamic() {
     };
 
     processAmberResponse();
-  }, [params, searchParams]);
+  }, [mounted, params, searchParams]);
 
   const copyToClipboard = async (text: string) => {
     try {
