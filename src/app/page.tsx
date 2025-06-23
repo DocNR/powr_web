@@ -39,16 +39,24 @@ export default function Home() {
   const [bunkerUrl, setBunkerUrl] = useState('');
   const [isConnecting, setIsConnecting] = useState(false);
   const [hasNip07, setHasNip07] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  // Set mounted state to prevent hydration mismatches
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Initialize NDK on app start (following Chachi pattern)
   useEffect(() => {
+    if (!mounted) return; // Wait for component to mount
+    
     const initializeApp = async () => {
       try {
         console.log('[App] Initializing NDK...');
         await initializeNDK();
         console.log('[App] NDK initialized successfully');
         
-        // Check for NIP-07 extension
+        // Check for NIP-07 extension (only after mounting)
         const hasExtension = typeof window !== 'undefined' && 
                             typeof window.nostr !== 'undefined';
         setHasNip07(hasExtension);
@@ -66,7 +74,7 @@ export default function Home() {
     };
 
     initializeApp();
-  }, [checkAmberAuth]); // Include checkAmberAuth in dependencies
+  }, [mounted, checkAmberAuth]); // Include mounted and checkAmberAuth in dependencies
 
   const handleNip07Login = async () => {
     setIsConnecting(true);
