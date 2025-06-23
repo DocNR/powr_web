@@ -39,12 +39,12 @@ export default function AmberCallbackDynamic() {
         const debugInfo = { 
           params, 
           searchParams: Object.fromEntries(searchParams.entries()),
-          currentUrl: typeof window !== 'undefined' ? window.location.href : 'SSR'
+          currentUrl: mounted ? window.location.href : 'SSR'
         };
         console.log('[Amber Callback] Received params:', debugInfo);
         
         // Also log to server console for debugging
-        if (typeof window !== 'undefined') {
+        if (mounted) {
           fetch('/api/debug-log', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -66,7 +66,7 @@ export default function AmberCallbackDynamic() {
         
         // Method 2: Extract from full URL if rewrite didn't capture properly
         if (!result || result.length < 10) {
-          const currentUrl = typeof window !== 'undefined' ? window.location.href : '';
+          const currentUrl = mounted ? window.location.href : '';
           const match = currentUrl.match(/\/auth\/callback([a-fA-F0-9]{64})/);
           if (match) {
             result = match[1];
@@ -168,7 +168,7 @@ export default function AmberCallbackDynamic() {
   };
 
   return (
-    <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-muted p-6 md:p-10">
+    <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-muted p-6 md:p-10" suppressHydrationWarning>
       <div className="flex w-full max-w-md flex-col gap-6">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 self-center font-medium">
@@ -263,7 +263,7 @@ export default function AmberCallbackDynamic() {
                   {JSON.stringify({
                     params: params,
                     searchParams: Object.fromEntries(searchParams.entries()),
-                    currentUrl: typeof window !== 'undefined' ? window.location.href : 'SSR'
+                    currentUrl: mounted ? window.location.href : 'SSR'
                   }, null, 2)}
                 </pre>
               </details>
