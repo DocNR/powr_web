@@ -29,8 +29,8 @@ export const accountsAtom = atomWithStorage<Account[]>(
       length: 0,
       key: () => null
     } as Storage;
-  }),
-  { getOnInit: true }
+  })
+  // Remove getOnInit: true to prevent hydration mismatch
 );
 
 export const methodAtom = atomWithStorage<LoginMethod | null>(
@@ -49,8 +49,8 @@ export const methodAtom = atomWithStorage<LoginMethod | null>(
       length: 0,
       key: () => null
     } as Storage;
-  }),
-  { getOnInit: true }
+  })
+  // Remove getOnInit: true to prevent hydration mismatch
 );
 
 // Derived atoms for convenience
