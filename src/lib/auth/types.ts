@@ -7,7 +7,7 @@
  * NO private key management for maximum security.
  */
 
-export type LoginMethod = 'nip07' | 'nip46';
+export type LoginMethod = 'nip07' | 'nip46' | 'amber';
 
 export interface Account {
   method: LoginMethod;
@@ -32,7 +32,7 @@ export interface AuthenticationState {
 }
 
 export interface AuthenticationError {
-  code: 'NIP07_NOT_AVAILABLE' | 'NIP07_PERMISSION_DENIED' | 'NIP46_INVALID_URL' | 'NIP46_CONNECTION_FAILED' | 'UNKNOWN_ERROR';
+  code: 'NIP07_NOT_AVAILABLE' | 'NIP07_PERMISSION_DENIED' | 'NIP46_INVALID_URL' | 'NIP46_CONNECTION_FAILED' | 'AMBER_NOT_INSTALLED' | 'AMBER_CONNECTION_ERROR' | 'AMBER_INVALID_PUBKEY' | 'AMBER_LOGIN_FAILED' | 'UNKNOWN_ERROR';
   message: string;
   details?: Record<string, unknown>;
 }

@@ -21,7 +21,8 @@ import {
   useAccount, 
   useIsAuthenticated, 
   useLoginWithNip07,
-  useLoginWithNip46
+  useLoginWithNip46,
+  useCheckAmberAuth
 } from '@/lib/auth/hooks';
 import { initializeNDK } from '@/lib/ndk';
 import { Dumbbell, Cable, Loader2 } from 'lucide-react';
@@ -33,6 +34,7 @@ export default function Home() {
   const isAuthenticated = useIsAuthenticated();
   const loginWithNip07 = useLoginWithNip07();
   const loginWithNip46 = useLoginWithNip46();
+  const checkAmberAuth = useCheckAmberAuth();
   
   const [bunkerUrl, setBunkerUrl] = useState('');
   const [isConnecting, setIsConnecting] = useState(false);
@@ -50,6 +52,12 @@ export default function Home() {
         const hasExtension = typeof window !== 'undefined' && 
                             typeof window.nostr !== 'undefined';
         setHasNip07(hasExtension);
+        
+        // Check for Amber authentication in localStorage
+        const amberAuthSuccess = await checkAmberAuth();
+        if (amberAuthSuccess) {
+          console.log('[App] Amber authentication restored successfully');
+        }
         
         console.log('[App] NDK initialization complete');
       } catch (error) {
@@ -136,6 +144,55 @@ export default function Home() {
                         <a href="https://github.com/fiatjaf/nos2x" className="underline">nos2x</a> for the best experience
                       </p>
                     )}
+                  </div>
+                  
+                  {/* Connect with Amber */}
+                  <div className="flex flex-col gap-2">
+                    <Button 
+                      variant="outline" 
+                      className="w-full bg-amber-50 hover:bg-amber-100 border-amber-200 text-amber-800" 
+                      onClick={async () => {
+                        try {
+                          // NIP-55: Android Signer Application integration
+                          // Use nostrsigner: scheme for direct Amber integration
+                          
+                          const params = new URLSearchParams();
+                          params.append('compressionType', 'none');
+                          params.append('returnType', 'signature');
+                          params.append('type', 'get_public_key');
+                          
+                          // Use the current origin (works for both localhost and network IP)
+                          const callbackUrl = `${window.location.origin}/auth/callback`;
+                          params.append('callbackUrl', callbackUrl);
+                          
+                          console.log('[Amber Connect] Using callback URL:', callbackUrl);
+                          
+                          // Create NIP-55 URL for Amber
+                          const amberUrl = `nostrsigner:?${params.toString()}`;
+                          
+                          console.log('[Amber Connect] Opening Amber with NIP-55 URL:', amberUrl);
+                          
+                          // Launch Amber app using NIP-55 protocol
+                          window.location.href = amberUrl;
+                          
+                        } catch (error) {
+                          console.error('[Amber Connect] Error:', error);
+                        }
+                      }}
+                      disabled={isConnecting}
+                    >
+                      {isConnecting ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        '📱'
+                      )}
+                      Connect with Amber
+                    </Button>
+                    <p className="text-xs text-muted-foreground text-center">
+                      Opens Amber app for secure mobile signing. Install from{' '}
+                      <a href="https://github.com/greenart7c3/Amber/releases" className="underline">GitHub</a> or{' '}
+                      <a href="https://f-droid.org/packages/com.greenart7c3.nostrsigner/" className="underline">F-Droid</a>
+                    </p>
                   </div>
                   
                   {/* Divider */}

@@ -27,14 +27,10 @@ import {
   canSignAtom
 } from './atoms';
 import type { Account, LoginMethod, AuthenticationError, Nip46Settings, ValidationResult } from './types';
-import { getNDKInstance } from '../ndk';
+import { ensureNDKInitialized } from '../ndk';
 
-function getNDK(): NDK {
-  const ndk = getNDKInstance();
-  if (!ndk) {
-    throw new Error('NDK instance not initialized. Call initializeNDK first.');
-  }
-  return ndk;
+async function getNDK(): Promise<NDK> {
+  return await ensureNDKInitialized();
 }
 
 // Convenience hooks for accessing auth state
@@ -57,8 +53,8 @@ export function useCanSign(): boolean {
 export function useLogout() {
   const [, resetAuthState] = useAtom(resetAuthStateAtom);
   
-  return () => {
-    const ndk = getNDK();
+  return async () => {
+    const ndk = await getNDK();
     ndk.signer = undefined;
     resetAuthState();
   };
@@ -85,7 +81,7 @@ export function useNip07Login() {
         };
       }
 
-      const ndk = getNDK();
+      const ndk = await getNDK();
       const signer = new NDKNip07Signer();
       
       // Test the connection and get user
@@ -232,7 +228,7 @@ export function useNip46Login() {
         };
       }
 
-      const ndk = getNDK();
+      const ndk = await getNDK();
       
       // Get connection settings
       const settings = await getNostrConnectSettings(ndk, remoteSignerURL);
@@ -361,6 +357,84 @@ export function useAutoLogin() {
   };
 }
 
+/**
+ * Amber Authentication (NIP-55)
+ */
+export function useAmberLogin() {
+  const [, setAccount] = useAtom(accountAtom);
+  const [accounts, setAccounts] = useAtom(accountsAtom);
+  const [, setLoginMethod] = useAtom(methodAtom);
+
+  return async (pubkey: string): Promise<{ success: boolean; error?: AuthenticationError }> => {
+    try {
+      // Validate pubkey format
+      if (!/^[a-fA-F0-9]{64}$/.test(pubkey)) {
+        return {
+          success: false,
+          error: {
+            code: 'AMBER_INVALID_PUBKEY',
+            message: 'Invalid public key format received from Amber',
+          }
+        };
+      }
+
+      // Get additional user info
+      const npub = nip19.npubEncode(pubkey);
+
+      const account: Account = {
+        method: 'amber' as LoginMethod,
+        pubkey,
+        npub,
+      };
+
+      // Update state
+      setAccount(account);
+      setAccounts([account, ...accounts.filter(a => a.pubkey !== pubkey)]);
+      setLoginMethod('amber');
+
+      console.log('[Amber Login] Successfully authenticated with pubkey:', pubkey);
+      return { success: true };
+
+    } catch (err) {
+      console.error('[Amber Login]', err);
+      return {
+        success: false,
+        error: {
+          code: 'AMBER_LOGIN_FAILED',
+          message: 'Failed to process Amber authentication',
+          details: { originalError: err }
+        }
+      };
+    }
+  };
+}
+
+/**
+ * Check for existing Amber authentication on app startup
+ */
+export function useCheckAmberAuth() {
+  const amberLogin = useAmberLogin();
+
+  return async (): Promise<boolean> => {
+    try {
+      const amberPubkey = localStorage.getItem('amber_pubkey');
+      const authMethod = localStorage.getItem('auth_method');
+
+      if (amberPubkey && authMethod === 'amber') {
+        console.log('[Amber Auth Check] Found existing Amber authentication');
+        const result = await amberLogin(amberPubkey);
+        return result.success;
+      }
+
+      return false;
+    } catch (error) {
+      console.error('[Amber Auth Check] Error:', error);
+      return false;
+    }
+  };
+}
+
 // Export aliases for compatibility with page component
 export const useLoginWithNip07 = useNip07Login;
 export const useLoginWithNip46 = useNip46Login;
+export const useLoginWithAmber = useAmberLogin;

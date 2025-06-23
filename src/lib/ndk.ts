@@ -16,17 +16,18 @@ const DEFAULT_RELAYS = [
   'wss://relay.nostr.band',    // Good search capabilities
 ];
 
-// Global NDK instance for authentication integration
+// Global NDK instance - initialized immediately (official NDK pattern)
 let globalNDK: NDK | null = null;
+let initializationPromise: Promise<NDK> | null = null;
 
 /**
- * Initialize NDK instance with IndexedDB cache adapter
+ * Initialize NDK singleton immediately (official NDK pattern)
  * 
  * Key architectural decision: Using ONLY NDK cache for persistence.
  * No custom database, no field mapping, no sync complexity.
  */
-export const initializeNDK = async (): Promise<NDK> => {
-  console.log('[NDK] Initializing NDK with IndexedDB cache...');
+const createNDKSingleton = async (): Promise<NDK> => {
+  console.log('[NDK] Initializing NDK singleton with IndexedDB cache...');
   
   try {
     // Create IndexedDB cache adapter for browser persistence
@@ -57,7 +58,7 @@ export const initializeNDK = async (): Promise<NDK> => {
     
     console.log('[NDK] Successfully connected to relays');
     
-    // Store global reference for authentication integration
+    // Store global reference
     globalNDK = ndk;
     
     return ndk;
@@ -69,11 +70,38 @@ export const initializeNDK = async (): Promise<NDK> => {
 };
 
 /**
- * Get the global NDK instance (for authentication integration)
+ * Get the global NDK instance (official NDK pattern)
+ * Initializes on first access if not already initialized
  */
 export const getNDKInstance = (): NDK | null => {
+  // If in browser and not initialized, start initialization
+  if (typeof window !== 'undefined' && !globalNDK && !initializationPromise) {
+    initializationPromise = createNDKSingleton();
+    initializationPromise.catch(console.error);
+  }
+  
   return globalNDK;
 };
+
+/**
+ * Ensure NDK is initialized (for authentication hooks)
+ */
+export const ensureNDKInitialized = async (): Promise<NDK> => {
+  if (globalNDK) {
+    return globalNDK;
+  }
+  
+  if (!initializationPromise) {
+    initializationPromise = createNDKSingleton();
+  }
+  
+  return await initializationPromise;
+};
+
+/**
+ * Legacy function for compatibility
+ */
+export const initializeNDK = ensureNDKInitialized;
 
 /**
  * Set the global NDK instance (for testing or manual setup)
