@@ -1,7 +1,7 @@
-# Web Private Key Security Rule
+# Web Authentication Security Rule
 
 ## Brief overview
-This rule establishes comprehensive security guidelines for handling private keys, sensitive data, and authentication in the POWR Workout PWA, ensuring all cryptographic operations follow web browser security best practices.
+This rule establishes comprehensive security guidelines for NIP-07 and NIP-46 authentication in the POWR Workout PWA, ensuring maximum security by avoiding private key management entirely.
 
 ## Core Security Principles
 

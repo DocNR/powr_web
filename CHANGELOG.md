@@ -1,0 +1,156 @@
+---
+title: POWR Workout PWA Changelog
+description: Record of all notable changes to the POWR Workout PWA project
+status: verified
+last_updated: 2025-06-22
+last_verified: 2025-06-22
+related_code: 
+  - /src/lib/auth/
+  - /src/components/auth/
+  - /src/components/dashboard/
+  - /.clinerules/
+category: reference
+formatting_rules:
+  - "Follow Keep a Changelog format (https://keepachangelog.com/)"
+  - "Use semantic versioning for releases"
+  - "Group changes by Added, Changed, Deprecated, Removed, Fixed, Security"
+  - "Include dates in YYYY-MM-DD format"
+  - "Link to commits and issues where applicable"
+  - "Keep entries concise but descriptive"
+  - "Most recent changes at the top"
+---
+
+# Changelog
+
+All notable changes to the POWR Workout PWA will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+### Added
+- Industry-standard changelog following Keep a Changelog format
+- Comprehensive documentation maintenance rules and standards
+
+### Changed
+- Authentication system simplified to support only NIP-07 and NIP-46 for maximum security
+- Updated security documentation to reflect NIP-07/NIP-46 only approach
+
+### Security
+- Removed private key management for enhanced security posture
+- Eliminated PBKDF2 encryption utilities (no longer needed)
+
+## [0.1.0] - 2025-06-22
+
+### Added
+- **Multi-Method Nostr Authentication System**
+  - NIP-07 browser extension support (Alby, nos2x)
+  - NIP-46 remote signing with bunker URL support
+  - Jotai atomic state management following Chachi PWA patterns
+  - NDK singleton pattern with IndexedDB cache integration
+
+- **Professional UI/UX Design**
+  - Beautiful violet theme with custom color palette
+  - shadcn/ui component library integration
+  - Dark/light mode toggle with next-themes
+  - Responsive dashboard with stats cards and quick actions
+  - Professional navigation with hamburger menu
+
+- **Authentication Components**
+  - `LoginDialog` component with multi-method support
+  - Secure authentication hooks and utilities
+  - Account management with Jotai atoms
+  - Browser extension detection and fallback handling
+
+- **Dashboard Interface**
+  - Workout statistics cards (hours trained, workouts this week)
+  - Quick action buttons (Start Workout, Browse Templates, View History, Create Template)
+  - Recent workouts list with mock data
+  - Professional header with branding and user controls
+
+- **Development Infrastructure**
+  - Comprehensive `.clinerules/` development standards
+  - NDK best practices and anti-pattern prevention
+  - Web security guidelines and threat model documentation
+  - Task creation and completion workflow standards
+  - Service layer architecture patterns
+
+- **Dependencies**
+  - `@nostr-dev-kit/ndk` - Nostr protocol integration
+  - `jotai` - Atomic state management
+  - `next-themes` - Theme switching functionality
+  - `@radix-ui/*` - Accessible UI primitives
+  - `lucide-react` - Professional icon library
+  - `tailwindcss` - Utility-first CSS framework
+
+### Changed
+- Updated Next.js to version 15 with App Router
+- Configured Tailwind CSS 4 with custom violet theme variables
+- Enhanced TypeScript configuration for strict type checking
+
+### Fixed
+- Text contrast issues on "Start Workout" button subtext in light mode
+- Proper theme switching between dark and light modes
+- Responsive layout issues on mobile devices
+
+### Security
+- Implemented NIP-07 first authentication strategy
+- Added comprehensive web security threat model
+- Established secure NDK integration patterns
+- Created browser-specific security guidelines
+
+## [0.0.1] - 2025-06-22
+
+### Added
+- Initial Next.js 15 project setup
+- Basic project structure and configuration
+- Git repository initialization
+
+---
+
+## Release Notes
+
+### Version 0.1.0 - "Foundation Release"
+
+This initial release establishes the core authentication and UI foundation for the POWR Workout PWA. The focus is on creating a secure, professional, and user-friendly base that validates NDK-first architecture patterns for future golf app migration.
+
+**Key Achievements:**
+- ✅ Secure multi-method authentication (NIP-07 + NIP-46 only)
+- ✅ Professional violet-themed UI with perfect accessibility
+- ✅ Comprehensive development standards and documentation
+- ✅ NDK-first architecture validation
+- ✅ Ready for golf app migration patterns
+
+**Security Highlights:**
+- Zero private key management in the application
+- Browser extension first approach (NIP-07)
+- Remote signing support (NIP-46) for advanced users
+- Comprehensive threat model and security guidelines
+
+**Development Standards:**
+- Complete `.clinerules/` framework for consistent development
+- Industry-standard documentation practices
+- Automated formatting and import management
+- Task creation and completion workflows
+
+---
+
+## Contributing
+
+When adding entries to this changelog:
+
+1. **Follow the format**: Use the categories (Added, Changed, Deprecated, Removed, Fixed, Security)
+2. **Be descriptive**: Explain what changed and why it matters to users
+3. **Include context**: Reference related files, commits, or issues
+4. **Update dates**: Use YYYY-MM-DD format consistently
+5. **Group logically**: Related changes should be grouped together
+6. **User-focused**: Write from the perspective of what users will experience
+
+## Links
+
+- [Keep a Changelog](https://keepachangelog.com/)
+- [Semantic Versioning](https://semver.org/)
+- [Project Repository](https://github.com/your-org/powr-web)
+- [Documentation](./docs/)
+- [Development Rules](./.clinerules/)
