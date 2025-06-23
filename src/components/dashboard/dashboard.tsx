@@ -1,0 +1,64 @@
+'use client';
+
+import { Header } from './header';
+import { StatsCards } from './stats-cards';
+import { QuickActions } from './quick-actions';
+import { RecentWorkouts } from './recent-workouts';
+
+// Mock data for now - this will be replaced with real data from NDK
+const mockStats = {
+  totalWorkouts: 12,
+  currentStreak: 3,
+  totalHours: 18,
+  thisWeek: 4,
+};
+
+const mockWorkouts = [
+  {
+    id: '1',
+    name: 'Upper Body Strength',
+    date: '2025-06-22',
+    duration: 45,
+    exercises: 6,
+  },
+  {
+    id: '2',
+    name: 'Cardio & Core',
+    date: '2025-06-21',
+    duration: 30,
+    exercises: 4,
+  },
+  {
+    id: '3',
+    name: 'Full Body Workout',
+    date: '2025-06-20',
+    duration: 60,
+    exercises: 8,
+  },
+];
+
+export function Dashboard() {
+  return (
+    <div className="min-h-screen bg-background">
+      <Header />
+      <main className="container mx-auto p-6 space-y-6">
+        {/* Welcome Section */}
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-muted-foreground">
+            Welcome back! Here&apos;s your workout overview.
+          </p>
+        </div>
+
+        {/* Stats Cards */}
+        <StatsCards {...mockStats} />
+
+        {/* Main Content Grid */}
+        <div className="grid gap-6 md:grid-cols-2">
+          <QuickActions />
+          <RecentWorkouts workouts={mockWorkouts} />
+        </div>
+      </main>
+    </div>
+  );
+}

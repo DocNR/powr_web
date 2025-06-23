@@ -1,0 +1,277 @@
+'use client';
+
+/**
+ * Login Dialog Component for POWR Workout PWA
+ * 
+ * Simplified secure authentication supporting ONLY:
+ * - NIP-07 (browser extensions)
+ * - NIP-46 (remote signing)
+ * 
+ * Based on Chachi PWA patterns with enhanced UX.
+ * No private key management for maximum security.
+ */
+
+import { useState, ReactNode, useEffect } from 'react';
+import { LogIn, Puzzle, Cable, RotateCw, AlertTriangle } from 'lucide-react';
+
+// UI Components
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+
+// Authentication hooks
+import { 
+  useNip07Login, 
+  useNip46Login, 
+  useNip07Available,
+  useIsAuthenticated 
+} from '@/lib/auth/hooks';
+import type { AuthenticationError } from '@/lib/auth/types';
+
+interface LoginDialogProps {
+  trigger?: ReactNode;
+  isCompact?: boolean;
+  onSuccess?: () => void;
+}
+
+export function LoginDialog({ trigger, isCompact = false, onSuccess }: LoginDialogProps) {
+  const [remoteSigner, setRemoteSigner] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [error, setError] = useState<AuthenticationError | null>(null);
+  const [open, setOpen] = useState(false);
+
+  const nip07Login = useNip07Login();
+  const nip46Login = useNip46Login();
+  const nip07Available = useNip07Available();
+  const isAuthenticated = useIsAuthenticated();
+
+  // Close dialog when authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      setOpen(false);
+      onSuccess?.();
+    }
+  }, [isAuthenticated, onSuccess]);
+
+  // Clear error when dialog opens
+  useEffect(() => {
+    if (open) {
+      setError(null);
+    }
+  }, [open]);
+
+  async function handleNip07Login() {
+    try {
+      setIsLoggingIn(true);
+      setError(null);
+      
+      const result = await nip07Login();
+      
+      if (!result.success && result.error) {
+        setError(result.error);
+      }
+    } catch (err) {
+      console.error('[Login Dialog] NIP-07 error:', err);
+      setError({
+        code: 'UNKNOWN_ERROR',
+        message: 'An unexpected error occurred. Please try again.',
+      });
+    } finally {
+      setIsLoggingIn(false);
+    }
+  }
+
+  async function handleNip46Login() {
+    if (!remoteSigner.trim()) {
+      setError({
+        code: 'NIP46_INVALID_URL',
+        message: 'Please enter a bunker URL or NIP-05 identifier.',
+      });
+      return;
+    }
+
+    try {
+      setIsLoggingIn(true);
+      setError(null);
+      
+      const result = await nip46Login(remoteSigner.trim());
+      
+      if (!result.success && result.error) {
+        setError(result.error);
+      }
+    } catch (err) {
+      console.error('[Login Dialog] NIP-46 error:', err);
+      setError({
+        code: 'UNKNOWN_ERROR',
+        message: 'An unexpected error occurred. Please try again.',
+      });
+    } finally {
+      setIsLoggingIn(false);
+    }
+  }
+
+  function onOpenChange(newOpen: boolean) {
+    if (!newOpen) {
+      setRemoteSigner('');
+      setIsLoggingIn(false);
+      setError(null);
+    }
+    setOpen(newOpen);
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogTrigger asChild>
+        {trigger || (
+          <Button
+            aria-label="Login to POWR"
+            className={isCompact ? 'size-8' : 'w-full'}
+          >
+            {isCompact ? (
+              <LogIn className="size-5" />
+            ) : (
+              <span>Login</span>
+            )}
+          </Button>
+        )}
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Login to POWR</DialogTitle>
+          <DialogDescription>
+            Connect your Nostr identity to start tracking workouts securely.
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="flex flex-col gap-6">
+          {/* Error Display */}
+          {error && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                {error.message}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* NIP-07 Browser Extension */}
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-1">
+              <Label className="text-sm font-medium">
+                Browser Extension (Recommended)
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Most secure option - your keys never leave the extension
+              </p>
+            </div>
+            
+            <Button
+              variant={nip07Available ? "default" : "outline"}
+              disabled={isLoggingIn || !nip07Available}
+              onClick={handleNip07Login}
+              className="w-full"
+            >
+              {isLoggingIn ? (
+                <RotateCw className="animate-spin size-4 mr-2" />
+              ) : (
+                <Puzzle className="size-4 mr-2" />
+              )}
+              {nip07Available ? 'Connect Extension' : 'No Extension Detected'}
+            </Button>
+            
+            {!nip07Available && (
+              <p className="text-xs text-muted-foreground">
+                Install{' '}
+                <a 
+                  href="https://getalby.com" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:underline"
+                >
+                  Alby
+                </a>
+                {' '}or{' '}
+                <a 
+                  href="https://github.com/fiatjaf/nos2x" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:underline"
+                >
+                  nos2x
+                </a>
+                {' '}for the best experience
+              </p>
+            )}
+          </div>
+
+          {/* Divider */}
+          <div className="text-center">
+            <span className="text-xs uppercase text-muted-foreground">
+              Or continue with
+            </span>
+          </div>
+
+          {/* NIP-46 Remote Signing */}
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="remote-signer" className="text-sm font-medium">
+                Remote Signer
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Connect to a remote signing service or bunker
+              </p>
+            </div>
+            
+            <div className="flex gap-2">
+              <Input
+                id="remote-signer"
+                placeholder="bunker://"
+                value={remoteSigner}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRemoteSigner(e.target.value)}
+                disabled={isLoggingIn}
+                className="flex-1"
+                onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                  if (e.key === 'Enter' && remoteSigner.trim()) {
+                    handleNip46Login();
+                  }
+                }}
+              />
+              <Button
+                variant="outline"
+                disabled={isLoggingIn || !remoteSigner.trim()}
+                onClick={handleNip46Login}
+              >
+                {isLoggingIn ? (
+                  <RotateCw className="animate-spin size-4" />
+                ) : (
+                  <Cable className="size-4" />
+                )}
+              </Button>
+            </div>
+            
+            <p className="text-xs text-muted-foreground">
+              Examples: bunker://pubkey@relay.com or user@nsecbunker.com
+            </p>
+          </div>
+
+          {/* Security Notice */}
+          <div className="bg-muted/50 p-3 rounded-lg">
+            <p className="text-xs text-muted-foreground">
+              🔒 <strong>Security First:</strong> POWR never stores your private keys. 
+              We only support external signers for maximum security.
+            </p>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
