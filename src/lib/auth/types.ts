@@ -3,6 +3,7 @@
  * 
  * Based on Chachi PWA patterns with enhanced security for web browsers.
  * Supports ONLY NIP-07 (browser extensions) and NIP-46 (remote signing).
+ * Compatible with Amber (Android), nsecBunker, and other NIP-46 signers.
  * NO private key management for maximum security.
  */
 

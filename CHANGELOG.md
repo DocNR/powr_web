@@ -32,10 +32,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Industry-standard changelog following Keep a Changelog format
 - Comprehensive documentation maintenance rules and standards
+- **Amber External Signer Support** - Full compatibility with Amber Android signer
+- Enhanced NIP-46 remote signing with better user experience
 
 ### Changed
 - Authentication system simplified to support only NIP-07 and NIP-46 for maximum security
 - Updated security documentation to reflect NIP-07/NIP-46 only approach
+- Improved remote signer UI with Amber-specific guidance and examples
+- Enhanced bunker URL placeholder with realistic format
 
 ### Security
 - Removed private key management for enhanced security posture

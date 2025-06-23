@@ -234,7 +234,7 @@ export function LoginDialog({ trigger, isCompact = false, onSuccess }: LoginDial
             <div className="flex gap-2">
               <Input
                 id="remote-signer"
-                placeholder="bunker://"
+                placeholder="bunker://pubkey?relay=wss://relay.com&secret=..."
                 value={remoteSigner}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRemoteSigner(e.target.value)}
                 disabled={isLoggingIn}
@@ -259,7 +259,7 @@ export function LoginDialog({ trigger, isCompact = false, onSuccess }: LoginDial
             </div>
             
             <p className="text-xs text-muted-foreground">
-              Examples: bunker://pubkey@relay.com or user@nsecbunker.com
+              Compatible with <strong>Amber</strong> (Android), nsecBunker, and other NIP-46 signers
             </p>
           </div>
 
