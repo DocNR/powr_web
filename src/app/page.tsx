@@ -66,7 +66,7 @@ export default function Home() {
     };
 
     initializeApp();
-  }, []); // Empty dependency array - only run once on mount
+  }, [checkAmberAuth]); // Include checkAmberAuth in dependencies
 
   const handleNip07Login = async () => {
     setIsConnecting(true);
