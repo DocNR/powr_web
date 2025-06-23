@@ -22,7 +22,7 @@ import {
   useIsAuthenticated, 
   useLoginWithNip07,
   useLoginWithNip46,
-  useCheckAmberAuth
+  useLogout
 } from '@/lib/auth/hooks';
 import { initializeNDK } from '@/lib/ndk';
 import { Dumbbell, Cable, Loader2 } from 'lucide-react';
@@ -34,7 +34,7 @@ export default function Home() {
   const isAuthenticated = useIsAuthenticated();
   const loginWithNip07 = useLoginWithNip07();
   const loginWithNip46 = useLoginWithNip46();
-  const checkAmberAuth = useCheckAmberAuth();
+  const logout = useLogout();
   
   const [bunkerUrl, setBunkerUrl] = useState('');
   const [isConnecting, setIsConnecting] = useState(false);
@@ -61,11 +61,17 @@ export default function Home() {
                             typeof window.nostr !== 'undefined';
         setHasNip07(hasExtension);
         
-        // Check for Amber authentication in localStorage
-        const amberAuthSuccess = await checkAmberAuth();
-        if (amberAuthSuccess) {
-          console.log('[App] Amber authentication restored successfully');
-        }
+        // Debug: Check what's in localStorage
+        const amberPubkey = localStorage.getItem('amber_pubkey');
+        const authMethod = localStorage.getItem('auth_method');
+        console.log('[App] localStorage check:', { amberPubkey, authMethod });
+        
+        // Only check Amber auth if we actually want to restore it
+        // For now, let's skip auto-restore to debug the issue
+        // const amberAuthSuccess = await checkAmberAuth();
+        // if (amberAuthSuccess) {
+        //   console.log('[App] Amber authentication restored successfully');
+        // }
         
         console.log('[App] NDK initialization complete');
       } catch (error) {
@@ -74,7 +80,7 @@ export default function Home() {
     };
 
     initializeApp();
-  }, [mounted, checkAmberAuth]); // Include mounted and checkAmberAuth in dependencies
+  }, [mounted]); // Remove checkAmberAuth dependency temporarily
 
   const handleNip07Login = async () => {
     setIsConnecting(true);
@@ -101,8 +107,28 @@ export default function Home() {
   };
 
   if (isAuthenticated && account) {
-    // Beautiful Dashboard
-    return <Dashboard />;
+    // Beautiful Dashboard with debug logout
+    return (
+      <div>
+        <div className="fixed top-4 right-4 z-50">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={async () => {
+              console.log('[Debug] Logging out...');
+              // Clear localStorage
+              localStorage.removeItem('amber_pubkey');
+              localStorage.removeItem('auth_method');
+              await logout();
+              console.log('[Debug] Logout complete');
+            }}
+          >
+            🚪 Debug Logout
+          </Button>
+        </div>
+        <Dashboard />
+      </div>
+    );
   }
 
   // Login-03 Style Authentication Page
