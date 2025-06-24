@@ -16,6 +16,17 @@ formatting_rules:
 
 ## 🔴 Critical Priority
 
+### PWA Installation Issues
+- [ ] **PWA Installation Debugging** (L)
+  - Issue: PWA installation not working despite 4+ hours of troubleshooting
+  - All technical requirements appear met (favicon, icons, manifest, service worker)
+  - May require production HTTPS environment for proper testing
+  - Consider using PWA testing tools or different browsers
+  - Alternative: Focus on web app functionality, defer PWA installation
+  - **Context**: Spent significant time on favicon, icon sizes, manifest configuration
+  - **Files Modified**: layout.tsx, manifest.json, service worker, all icon files
+  - **Status**: Technical implementation complete, installation still failing
+
 ### Core Workout Features (MVP)
 - [ ] **NIP-101e Workout Event Publishing** (L)
   - Create workout event generation system

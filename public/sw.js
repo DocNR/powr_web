@@ -1,12 +1,19 @@
-const CACHE_NAME = 'powr-workout-pwa-v3';
+const CACHE_NAME = 'powr-workout-pwa-v6';
 const urlsToCache = [
   '/',
-  '/manifest.webmanifest',
-  '/apple-touch-icon-180x180.png',
-  '/apple-touch-icon.png',
+  '/manifest.json',
+  '/browserconfig.xml',
+  '/icon-48.png',
+  '/icon-72.png',
+  '/icon-96.png',
+  '/icon-144.png',
   '/icon-192.png',
+  '/icon-256.png',
   '/icon-512.png',
-  '/icon-180.png'
+  '/apple-touch-icon-152x152.png',
+  '/apple-touch-icon-167x167.png',
+  '/apple-touch-icon-180x180.png',
+  '/apple-touch-icon.png'
 ];
 
 

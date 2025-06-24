@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   // Allow cross-origin requests from local network IP for iOS testing
-  allowedDevOrigins: ['192.168.6.90:3000'],
+  allowedDevOrigins: ['192.168.6.90:3000', '192.168.6.90:3001'],
   
   async rewrites() {
     return [
