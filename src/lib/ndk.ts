@@ -42,19 +42,22 @@ const createNDKSingleton = async (): Promise<NDK> => {
     
     console.log('[NDK] IndexedDB cache adapter created');
     
-    // Create NDK instance with browser-optimized settings
+    // Create NDK instance with browser-optimized settings (based on noga app)
     const ndk = new NDK({
       cacheAdapter,
       explicitRelayUrls: DEFAULT_RELAYS,
       enableOutboxModel: true,      // Enable outbox model for better relay discovery
-      autoConnectUserRelays: true,  // Connect to user's preferred relays
-      autoFetchUserMutelist: false, // Don't auto-fetch mute lists (not needed for MVP)
+      // CRITICAL: These validation ratio settings from noga app fix connection issues
+      initialValidationRatio: 0.0,  // Don't wait for multiple relays to validate
+      lowestValidationRatio: 0.0,   // Accept events from first responding relay
+      autoConnectUserRelays: false, // Prevent auto connections that block
+      autoFetchUserMutelist: false, // Prevent auto fetches that block
       clientName: 'workout-pwa',
     });
     
-    // Connect to relays
+    // Connect to relays with timeout to prevent hanging
     console.log('[NDK] Connecting to relays...');
-    await ndk.connect();
+    await connectWithTimeout(ndk, 10000); // 10 second timeout
     
     console.log('[NDK] Successfully connected to relays');
     
@@ -67,6 +70,31 @@ const createNDKSingleton = async (): Promise<NDK> => {
     console.error('[NDK] Failed to initialize:', error);
     throw error;
   }
+};
+
+/**
+ * Connect to NDK with timeout to prevent hanging on slow/down relays
+ */
+const connectWithTimeout = async (ndk: NDK, timeoutMs: number): Promise<void> => {
+  return new Promise((resolve) => {
+    // Set up timeout
+    const timeout = setTimeout(() => {
+      console.warn(`[NDK] Connection timeout after ${timeoutMs}ms - proceeding with available relays`);
+      resolve(); // Resolve anyway - NDK can work with partial connections
+    }, timeoutMs);
+
+    // Attempt connection
+    ndk.connect()
+      .then(() => {
+        clearTimeout(timeout);
+        resolve();
+      })
+      .catch((error) => {
+        clearTimeout(timeout);
+        console.warn('[NDK] Connection error - proceeding with available relays:', error);
+        resolve(); // Resolve anyway - NDK can work with partial connections
+      });
+  });
 };
 
 /**
