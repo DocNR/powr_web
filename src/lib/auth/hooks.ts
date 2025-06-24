@@ -52,11 +52,27 @@ export function useCanSign(): boolean {
 
 export function useLogout() {
   const [, resetAuthState] = useAtom(resetAuthStateAtom);
+  const [loginMethod] = useAtom(methodAtom);
   
   return async () => {
+    console.log('[Logout] Starting logout process...');
+    
     const ndk = await getNDK();
+    
+    // Clear NDK signer completely
     ndk.signer = undefined;
+    
+    // Reset all authentication state
     resetAuthState();
+    
+    console.log('[Logout] Logout complete - all state cleared');
+    
+    // For NIP-07 extensions, refresh page to clear extension cache
+    // This solves the extension caching issue where UI changes don't sync with API
+    if (typeof window !== 'undefined' && window.nostr && loginMethod === 'nip07') {
+      console.log('[Logout] Refreshing page to clear NIP-07 extension cache...');
+      window.location.reload();
+    }
   };
 }
 
@@ -70,6 +86,8 @@ export function useNip07Login() {
 
   return async (): Promise<{ success: boolean; error?: AuthenticationError }> => {
     try {
+      console.log('[NIP-07 Login] Starting fresh authentication...');
+      
       // Check if NIP-07 is available
       if (typeof window === 'undefined' || !window.nostr) {
         return {
@@ -81,7 +99,28 @@ export function useNip07Login() {
         };
       }
 
+      // Force fresh query from extension (don't use cached data)
+      let currentPubkey: string;
+      try {
+        currentPubkey = await window.nostr.getPublicKey();
+        console.log('[NIP-07 Login] Fresh pubkey from extension:', currentPubkey.slice(0, 16) + '...');
+      } catch (extensionError) {
+        console.error('[NIP-07 Login] Extension query failed:', extensionError);
+        return {
+          success: false,
+          error: {
+            code: 'NIP07_PERMISSION_DENIED',
+            message: 'Extension access denied. Please check permissions and try again.',
+          }
+        };
+      }
+
       const ndk = await getNDK();
+      
+      // Clear any existing signer first
+      ndk.signer = undefined;
+      
+      // Create fresh signer
       const signer = new NDKNip07Signer();
       
       // Test the connection and get user
@@ -97,6 +136,11 @@ export function useNip07Login() {
         };
       }
 
+      // Verify the pubkey matches what we got directly
+      if (user.pubkey !== currentPubkey) {
+        console.warn('[NIP-07 Login] Pubkey mismatch - signer:', user.pubkey.slice(0, 16), 'direct:', currentPubkey.slice(0, 16));
+      }
+
       // Set the signer on NDK
       ndk.signer = signer;
 
@@ -108,6 +152,8 @@ export function useNip07Login() {
         pubkey: user.pubkey,
         npub,
       };
+
+      console.log('[NIP-07 Login] Successfully authenticated as:', user.pubkey.slice(0, 16) + '...');
 
       // Update state
       setAccount(account);

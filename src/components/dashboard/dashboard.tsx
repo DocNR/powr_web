@@ -4,6 +4,8 @@ import { Header } from './header';
 import { StatsCards } from './stats-cards';
 import { QuickActions } from './quick-actions';
 import { RecentWorkouts } from './recent-workouts';
+import { WorkoutPublisher } from '@/components/test/WorkoutPublisher';
+import { WorkoutReader } from '@/components/test/WorkoutReader';
 
 // Mock data for now - this will be replaced with real data from NDK
 const mockStats = {
@@ -57,6 +59,21 @@ export function Dashboard() {
         <div className="grid gap-6 md:grid-cols-2">
           <QuickActions />
           <RecentWorkouts workouts={mockWorkouts} />
+        </div>
+
+        {/* NDK Cache Validation Test Components */}
+        <div className="space-y-6">
+          <div className="space-y-2">
+            <h2 className="text-2xl font-bold tracking-tight">NDK Cache Validation</h2>
+            <p className="text-muted-foreground">
+              Test components for validating NDK-first architecture. Phase 1 of sprint validation.
+            </p>
+          </div>
+          
+          <div className="grid gap-6 lg:grid-cols-2">
+            <WorkoutPublisher />
+            <WorkoutReader />
+          </div>
         </div>
       </main>
     </div>

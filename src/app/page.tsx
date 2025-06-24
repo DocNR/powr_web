@@ -27,7 +27,7 @@ import {
 import { initializeNDK } from '@/lib/ndk';
 import { Dumbbell, Cable, Loader2 } from 'lucide-react';
 import { useState } from 'react';
-import { Dashboard } from '@/components/dashboard/dashboard';
+import { AppLayout } from '@/components/layout/AppLayout';
 
 export default function Home() {
   const account = useAccount();
@@ -66,13 +66,6 @@ export default function Home() {
         const authMethod = localStorage.getItem('auth_method');
         console.log('[App] localStorage check:', { amberPubkey, authMethod });
         
-        // Only check Amber auth if we actually want to restore it
-        // For now, let's skip auto-restore to debug the issue
-        // const amberAuthSuccess = await checkAmberAuth();
-        // if (amberAuthSuccess) {
-        //   console.log('[App] Amber authentication restored successfully');
-        // }
-        
         console.log('[App] NDK initialization complete');
       } catch (error) {
         console.error('[App] Initialization failed:', error);
@@ -80,7 +73,45 @@ export default function Home() {
     };
 
     initializeApp();
-  }, [mounted]); // Remove checkAmberAuth dependency temporarily
+  }, [mounted]);
+
+  // Universal NIP-07 Extension Change Detection (works for ALL extensions)
+  useEffect(() => {
+    if (!mounted || !hasNip07 || !isAuthenticated || !account) return;
+
+    const lastKnownPubkey = account.pubkey;
+    
+    const checkExtensionChange = async () => {
+      try {
+        if (window.nostr && typeof window.nostr.getPublicKey === 'function') {
+          const currentPubkey = await window.nostr.getPublicKey();
+          
+          if (currentPubkey !== lastKnownPubkey) {
+            console.log('[Extension Change] Detected account switch!');
+            console.log('[Extension Change] Old:', lastKnownPubkey.slice(0, 16) + '...');
+            console.log('[Extension Change] New:', currentPubkey.slice(0, 16) + '...');
+            
+            // Auto-logout (page refresh will handle the clean state)
+            console.log('[Extension Change] Auto-switching to new account...');
+            await logout();
+          }
+        }
+      } catch (error) {
+        // Extension might deny permission or be unavailable - that's OK
+        console.log('[Extension Change] Check failed (normal if user denies):', error instanceof Error ? error.message : String(error));
+      }
+    };
+
+    // Check every 3 seconds for extension changes (less frequent to avoid spam)
+    const interval = setInterval(checkExtensionChange, 3000);
+    
+    console.log('[Extension Change] Started monitoring for account changes');
+    
+    return () => {
+      clearInterval(interval);
+      console.log('[Extension Change] Stopped monitoring');
+    };
+  }, [mounted, hasNip07, isAuthenticated, account, logout]);
 
   const handleNip07Login = async () => {
     setIsConnecting(true);
@@ -107,10 +138,10 @@ export default function Home() {
   };
 
   if (isAuthenticated && account) {
-    // Beautiful Dashboard with debug logout
+    // Beautiful App with Navigation
     return (
       <div>
-        <div className="fixed top-4 right-4 z-50">
+        <div className="fixed top-20 right-4 z-[60]">
           <Button 
             variant="outline" 
             size="sm"
@@ -126,7 +157,7 @@ export default function Home() {
             🚪 Debug Logout
           </Button>
         </div>
-        <Dashboard />
+        <AppLayout />
       </div>
     );
   }
