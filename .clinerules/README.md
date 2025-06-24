@@ -28,9 +28,16 @@
 - **Post-Task**: [post-task-completion-workflow.md](./post-task-completion-workflow.md) - Documentation and commit workflow
 
 ### 🔧 "Code Quality Issues" / Development Workflow
-**Symptoms**: Import problems, formatting issues, git workflow questions
+**Symptoms**: Import problems, formatting issues, git workflow questions, over-engineering
+- **Simplicity**: [simple-solutions-first.md](./simple-solutions-first.md) - Prevents over-engineering and complex workarounds
 - **Imports**: [auto-formatter-imports.md](./auto-formatter-imports.md) - Auto-formatter workflow
 - **Research**: [research-before-implementation.md](./research-before-implementation.md) - API research patterns
+
+### 🎨 "Building UI Components" / Interface Development
+**Symptoms**: Custom component creation, styling inconsistencies, accessibility concerns
+- **Primary**: [shadcn-ui-component-library.md](./shadcn-ui-component-library.md) - UI component library standards
+- **Consistency**: Use shadcn/ui before building custom components
+- **Accessibility**: Built-in a11y compliance through Radix UI primitives
 
 ### 💪 "Working with Workout Events" / Nostr Integration
 **Symptoms**: NIP-101e events, workout data validation, event publishing
@@ -40,10 +47,11 @@
 ## Rule Categories
 
 ### 🎯 **Critical Rules** (Read First)
-1. **[xstate-anti-pattern-prevention.md](./xstate-anti-pattern-prevention.md)** - Prevents expensive workarounds
-2. **[web-private-key-security.md](./web-private-key-security.md)** - Web security requirements
-3. **[task-creation-process.md](./task-creation-process.md)** - Project workflow
-4. **[research-before-implementation.md](./research-before-implementation.md)** - API research patterns
+1. **[simple-solutions-first.md](./simple-solutions-first.md)** - Prevents over-engineering and complex workarounds
+2. **[xstate-anti-pattern-prevention.md](./xstate-anti-pattern-prevention.md)** - Prevents expensive workarounds
+3. **[web-private-key-security.md](./web-private-key-security.md)** - Web security requirements
+4. **[task-creation-process.md](./task-creation-process.md)** - Project workflow
+5. **[research-before-implementation.md](./research-before-implementation.md)** - API research patterns
 
 ### 🔧 **Technical Implementation**
 5. **[ndk-best-practices.md](./ndk-best-practices.md)** - Official NDK patterns and best practices
@@ -51,6 +59,7 @@
 7. **[service-layer-architecture.md](./service-layer-architecture.md)** - Service extraction for web
 8. **[xstate-external-service-integration.md](./xstate-external-service-integration.md)** - External service patterns
 9. **[nip-101e-standards.md](./nip-101e-standards.md)** - Workout event standards
+10. **[shadcn-ui-component-library.md](./shadcn-ui-component-library.md)** - UI component library standards
 
 ### 📝 **Documentation & Workflow**
 11. **[documentation-maintenance.md](./documentation-maintenance.md)** - Doc standards
@@ -73,6 +82,9 @@
 | "Working with workout data" / "NIP-101e events" | nip-101e-standards.md |
 | "Need to create a service" / "Extract business logic" | service-layer-architecture.md |
 | "Using NDK hooks" / "Data fetching patterns" | ndk-best-practices.md |
+| "This feels complex" / "Should I build a service for this?" | simple-solutions-first.md |
+| "Building UI components" / "Need a form/button/modal" | shadcn-ui-component-library.md |
+| "Custom component creation" / "Styling inconsistencies" | shadcn-ui-component-library.md |
 
 ### Red Flag Keywords → Immediate Rules to Check
 
@@ -86,6 +98,7 @@
 | "workout events", "NIP-101e", "exercise data" | nip-101e-standards.md |
 | "imports removed", "auto-format" | auto-formatter-imports.md |
 | "useSubscribe", "loading states", "React Context" | ndk-best-practices.md |
+| "workaround", "hack", "temporary fix" | simple-solutions-first.md |
 
 ## Cost-Saving Lessons Learned
 

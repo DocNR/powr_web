@@ -15,54 +15,60 @@ This rule establishes comprehensive standards for NIP-101e event generation, par
 
 #### ✅ REQUIRED Patterns
 ```typescript
-// Exercise names - Use spaces, no underscores or special characters
-["name", "Push ups"]                        // ✅ Correct (name only)
-["name", "Barbell Squat"]                   // ✅ Correct (name only)
-["name", "Dead Lift"]                       // ✅ Correct (name only)
+// Exercise references - Follow NIP-01 addressable event format
+["exercise", "33401:pubkey:exercise-d-tag", "relay-url", "weight", "reps", "rpe", "set_type"]
 
-// Template references - Follow NIP-01 addressable event format
-["template", "33402:pubkey:template-d-tag"] // ✅ Correct format (pubkey, not eventId)
+// Template references - Follow NIP-01 addressable event format  
+["template", "33402:pubkey:template-d-tag", "relay-url"] // ✅ Correct format (pubkey, not eventId)
 
-// Dates - ISO-8601 format only
-["date", "2025-06-21"]                      // ✅ Correct
+// Workout Record (Kind 1301) Required Tags
+["d", "workout-uuid"]                       // ✅ Unique workout identifier
+["title", "Morning Strength"]               // ✅ Workout name
+["type", "strength"]                        // ✅ strength|circuit|emom|amrap
+["start", "1706454000"]                     // ✅ Unix timestamp
+["end", "1706455800"]                       // ✅ Unix timestamp  
+["completed", "true"]                       // ✅ true|false
 
-// Individual exercise sets - Exercise name, set number, reps, weight (all as strings)
-["set", "Push ups", "1", "10", "0"]         // ✅ Correct (exercise, set 1, 10 reps, 0 weight)
-["set", "Barbell Squat", "2", "8", "135"]   // ✅ Correct (exercise, set 2, 8 reps, 135 lbs)
+// Exercise sets - Each set is a separate exercise tag
+["exercise", "33401:pubkey:pushups", "", "0", "10", "7", "normal"]     // ✅ Bodyweight exercise
+["exercise", "33401:pubkey:squats", "", "60", "5", "8", "normal"]      // ✅ Weighted exercise
+["exercise", "33401:pubkey:squats", "", "60", "5", "8", "normal"]      // ✅ Second set same exercise
 
-// Standard Nostr user tags
-["p", "userPubkey"]                         // ✅ Correct
+// Standard parameters (weight, reps, rpe, set_type)
+// weight: kg (empty string for bodyweight, negative for assisted)
+// reps: count
+// rpe: 0-10 (Rate of Perceived Exertion)
+// set_type: warmup|normal|drop|failure
 
-// Total duration in seconds
-["duration", "1800"]                        // ✅ Correct (30 minutes)
-
-// Muscle groups targeted
-["muscle", "chest"]                         // ✅ Correct
-["muscle", "legs"]                          // ✅ Correct
+// Standard Nostr hashtags
+["t", "fitness"]                            // ✅ Correct
+["t", "strength"]                           // ✅ Correct
 ```
 
 #### ❌ FORBIDDEN Patterns
 ```typescript
-// Exercise names with underscores or special characters
-["name", "Push_ups"]                        // ❌ FORBIDDEN
-["name", "Push-ups"]                        // ❌ FORBIDDEN
-["name", "Push/ups"]                        // ❌ FORBIDDEN
+// Wrong tag names (NIP-101e uses 'exercise', not 'set')
+["set", "Push ups", "1", "10", "0"]         // ❌ FORBIDDEN - Use 'exercise' tag
+["name", "Push ups"]                        // ❌ FORBIDDEN - Exercise names in templates only
+
+// Malformed exercise references
+["exercise", "exercise-id-only"]            // ❌ Missing kind and pubkey
+["exercise", "33401:eventId:d-tag"]         // ❌ Wrong - eventId not pubkey (violates NIP-01)
+["exercise", "33401:pubkey"]                // ❌ Missing d-tag
+["exercise", "33401::local:d-tag"]          // ❌ Double colon, "local" not pubkey
 
 // Malformed template references
+["template", "33402::local:d-tag"]          // ❌ Double colon, "local" not pubkey
 ["template", "template-id-only"]            // ❌ Missing kind and pubkey
-["template", "33402:eventId:d-tag"]         // ❌ Wrong - eventId not pubkey (violates NIP-01)
 ["template", "33402:pubkey"]                // ❌ Missing d-tag
 
-// Custom user tags (use standard Nostr format)
-["user", "pubkey", "name", "weight"]        // ❌ Non-standard format
+// Invalid parameter counts
+["exercise", "33401:pubkey:d-tag", ""]      // ❌ Missing weight, reps, rpe, set_type
+["exercise", "33401:pubkey:d-tag", "", "10"] // ❌ Missing rpe, set_type
 
-// Invalid date formats
-["date", "06/21/2025"]                      // ❌ Wrong format
-["date", "June 21, 2025"]                   // ❌ Wrong format
-
-// Inconsistent set data
-["set", "Push ups", "1", "10"]              // ❌ Missing weight parameter
-["set", "1", "10", "0"]                     // ❌ Missing exercise name
+// Invalid date formats (use Unix timestamps)
+["date", "06/21/2025"]                      // ❌ Wrong format - use start/end timestamps
+["date", "June 21, 2025"]                   // ❌ Wrong format - use start/end timestamps
 ```
 
 ### Event Generation Workflow
@@ -260,11 +266,13 @@ function generateWorkoutTags(workoutData: ValidatedWorkoutData): string[][] {
   workoutData.exercises.forEach(exercise => {
     exercise.sets.forEach((set, setIndex) => {
       tags.push([
-        'set', 
-        exercise.name, 
-        (setIndex + 1).toString(), 
-        set.reps.toString(), 
-        set.weight.toString()
+        'exercise', 
+        `33401:${exercise.authorPubkey}:${exercise.dTag}`,
+        '', // relay-url
+        set.weight.toString(), 
+        set.reps.toString(),
+        set.rpe?.toString() || '7',
+        set.setType || 'normal'
       ]);
     });
   });
@@ -427,23 +435,24 @@ describe('NIP-101e Event Generation', () => {
     expect(templateTag[1]).toMatch(/^33402:[a-f0-9]{64}:[a-zA-Z0-9\-]+$/);
   });
   
-  it('should include all required set data', () => {
+  it('should include all required exercise data', () => {
     const workoutData = {
       exercises: [{
-        name: 'Push ups',
+        authorPubkey: 'test-pubkey',
+        dTag: 'pushups',
         sets: [
-          { reps: 10, weight: 0 },
-          { reps: 8, weight: 0 }
+          { reps: 10, weight: 0, rpe: 7, setType: 'normal' },
+          { reps: 8, weight: 0, rpe: 8, setType: 'normal' }
         ]
       }]
     };
     
     const event = generateWorkoutEvent(workoutData);
-    const setTags = event.tags.filter(t => t[0] === 'set');
+    const exerciseTags = event.tags.filter(t => t[0] === 'exercise');
     
-    expect(setTags).toHaveLength(2);
-    expect(setTags[0]).toEqual(['set', 'Push ups', '1', '10', '0']);
-    expect(setTags[1]).toEqual(['set', 'Push ups', '2', '8', '0']);
+    expect(exerciseTags).toHaveLength(2);
+    expect(exerciseTags[0]).toEqual(['exercise', '33401:test-pubkey:pushups', '', '0', '10', '7', 'normal']);
+    expect(exerciseTags[1]).toEqual(['exercise', '33401:test-pubkey:pushups', '', '0', '8', '8', 'normal']);
   });
 });
 
