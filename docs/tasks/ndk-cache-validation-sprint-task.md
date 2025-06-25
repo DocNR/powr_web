@@ -38,56 +38,57 @@ Validate that NDK's IndexedDB cache can serve as the primary persistence layer f
    - Display retrieved workout data in simple list format
    - Verify data integrity matches published events
 
-### Phase 2: Cache Persistence & Offline Behavior (Day 2) 🎯 CURRENT PHASE
-4. [ ] **IndexedDB Verification** (30 minutes) - NEXT UP
+### Phase 2: Cache Persistence & Offline Behavior (Day 2) ✅ COMPLETED
+4. [x] **IndexedDB Verification** (30 minutes) ✅
    - Manual testing with browser DevTools
-   - Verify NDK cache database structure
+   - Verify NDK cache database structure (7 object stores documented)
    - Confirm events persist in IndexedDB after publishing
    - Document cache schema and data organization
 
-5. [ ] **Offline Publishing Queue Testing** (2 hours)
+5. [x] **Offline Publishing Queue Testing** (2 hours) ✅
    - Test network disconnect scenarios (DevTools offline mode)
-   - Verify events queue locally when offline
+   - Verify events queue locally when offline (unpublishedEvents table)
    - Test browser close/reopen with queued events
    - Validate automatic publishing when network returns
    - Test multiple events queued while offline
 
-6. [ ] **Cross-Session Persistence Testing** (1 hour)
+6. [x] **Cross-Session Persistence Testing** (1 hour) ✅
    - Publish events and close browser completely
    - Reopen browser and verify events still accessible
    - Test page refresh scenarios
-   - Measure cache loading performance
+   - Measure cache loading performance (405-444ms for 46+ events)
 
-### Phase 3: Advanced Validation & Performance (Day 3)
-7. [ ] **Duplicate Event Handling** (1 hour)
+### Phase 3: Advanced Validation & Performance (Day 3) 🎯 CURRENT PHASE
+7. [ ] **Duplicate Event Handling** (1 hour) - NEXT UP
    - Test publishing same event multiple times
    - Verify NDK deduplication works correctly
    - Test network retry scenarios
    - Ensure no data corruption from duplicates
 
 8. [ ] **Cache Size Limits & Performance** (1.5 hours)
-   - Publish 50+ workout events
+   - Publish 50+ workout events (currently at 46+ events)
    - Monitor IndexedDB storage usage
    - Test query performance with large datasets
    - Document performance degradation points
    - Test browser storage limit behavior
 
-9. [ ] **NIP-51 List Integration** (1.5 hours)
+9. [ ] **NIP-51 List Integration & Business Model Foundation** (1.5 hours)
    - Create workout history lists (kind 30003 bookmark sets)
-   - Test list-based workout organization
+   - Test list-based workout organization for free tier
    - Verify list updates and synchronization
    - Test list persistence across sessions
+   - Document analytics service integration points for premium tier
 
 ## Success Criteria
 
 ### Must Achieve (Critical - 100% required)
 - [x] **Publish workout records successfully** using corrected NIP-101e format ✅
 - [x] **Read own workout events reliably** from NDK cache ✅
-- [ ] **Offline persistence works** - events saved locally when no network
-- [ ] **Cross-session persistence** - events survive browser close/reopen
+- [x] **Offline persistence works** - events saved locally when no network ✅
+- [x] **Cross-session persistence** - events survive browser close/reopen ✅
 
 ### Should Achieve (High Priority - 80% required)
-- [ ] **Auto-sync when back online** - queued events publish automatically
+- [x] **Auto-sync when back online** - queued events publish automatically ✅
 - [x] **Performance targets met** - <1s publish, <500ms queries for 50 events ✅
 - [ ] **Duplicate event handling** - no corruption from network retries
 - [x] **NIP-101e compliance validated** - all events pass specification ✅

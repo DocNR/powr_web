@@ -10,6 +10,7 @@
 import React from 'react';
 import { WorkoutPublisher } from '@/components/test/WorkoutPublisher';
 import { WorkoutReader } from '@/components/test/WorkoutReader';
+import { WorkoutListManager } from '@/components/test/WorkoutListManager';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { TestTube, Database, Wifi, WifiOff } from 'lucide-react';
@@ -45,16 +46,23 @@ export function TestTab() {
         </AlertDescription>
       </Alert>
 
-      {/* Test Components Grid */}
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Workout Publisher */}
-        <div className="space-y-4">
-          <WorkoutPublisher />
-        </div>
+      {/* Test Components */}
+      <div className="space-y-6">
+        <div className="grid gap-6 md:grid-cols-2">
+          {/* Workout Publisher */}
+          <div className="space-y-4">
+            <WorkoutPublisher />
+          </div>
 
-        {/* Workout Reader */}
-        <div className="space-y-4">
-          <WorkoutReader />
+          {/* Workout Reader */}
+          <div className="space-y-4">
+            <WorkoutReader />
+          </div>
+        </div>
+        
+        {/* NIP-51 List Management */}
+        <div className="w-full">
+          <WorkoutListManager />
         </div>
       </div>
 

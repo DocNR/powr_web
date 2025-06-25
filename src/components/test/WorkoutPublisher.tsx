@@ -129,7 +129,7 @@ export function WorkoutPublisher() {
     }
   };
 
-  const handlePublishTest = async (testType: 'circuit' | 'strength' | 'failed' | 'bulk') => {
+  const handlePublishTest = async (testType: 'circuit' | 'strength' | 'failed' | 'bulk' | 'duplicate') => {
     if (!account?.pubkey) {
       console.error('[WorkoutPublisher] No authenticated user');
       return;
@@ -152,6 +152,28 @@ export function WorkoutPublisher() {
           if (i < bulkWorkouts.length - 1) {
             await new Promise(resolve => setTimeout(resolve, 100));
           }
+        }
+      } else if (testType === 'duplicate') {
+        // Test duplicate event handling - publish same event 5 times
+        console.log('[WorkoutPublisher] Testing duplicate event handling - publishing same event 5 times...');
+        const duplicateWorkout = generateTestWorkoutRecord(account.pubkey);
+        
+        // Add special tag to identify this as a duplicate test
+        duplicateWorkout.tags.push(['test-type', 'duplicate-validation']);
+        duplicateWorkout.tags.push(['duplicate-test-id', Date.now().toString()]);
+        
+        console.log('[WorkoutPublisher] Duplicate test workout data:', duplicateWorkout);
+        
+        for (let i = 0; i < 5; i++) {
+          console.log(`[WorkoutPublisher] Publishing duplicate attempt ${i + 1}/5...`);
+          const result = await publishWorkoutEvent(duplicateWorkout);
+          results.push({
+            ...result,
+            error: result.error ? `Attempt ${i + 1}: ${result.error}` : undefined
+          });
+          
+          // Small delay between duplicate attempts
+          await new Promise(resolve => setTimeout(resolve, 200));
         }
       } else {
         // Single workout test
@@ -230,37 +252,48 @@ export function WorkoutPublisher() {
         </div>
 
         {/* Test Buttons */}
-        <div className="grid grid-cols-2 gap-2">
-          <Button 
-            onClick={() => handlePublishTest('circuit')}
-            disabled={isPublishing}
-            variant="outline"
-          >
-            Test Circuit Workout
-          </Button>
+        <div className="space-y-2">
+          <div className="grid grid-cols-2 gap-2">
+            <Button 
+              onClick={() => handlePublishTest('circuit')}
+              disabled={isPublishing}
+              variant="outline"
+            >
+              Test Circuit Workout
+            </Button>
+            
+            <Button 
+              onClick={() => handlePublishTest('strength')}
+              disabled={isPublishing}
+              variant="outline"
+            >
+              Test Strength Workout
+            </Button>
+            
+            <Button 
+              onClick={() => handlePublishTest('failed')}
+              disabled={isPublishing}
+              variant="outline"
+            >
+              Test Failed Workout
+            </Button>
+            
+            <Button 
+              onClick={() => handlePublishTest('bulk')}
+              disabled={isPublishing}
+              variant="secondary"
+            >
+              Bulk Test (10 workouts)
+            </Button>
+          </div>
           
           <Button 
-            onClick={() => handlePublishTest('strength')}
+            onClick={() => handlePublishTest('duplicate')}
             disabled={isPublishing}
-            variant="outline"
+            variant="destructive"
+            className="w-full"
           >
-            Test Strength Workout
-          </Button>
-          
-          <Button 
-            onClick={() => handlePublishTest('failed')}
-            disabled={isPublishing}
-            variant="outline"
-          >
-            Test Failed Workout
-          </Button>
-          
-          <Button 
-            onClick={() => handlePublishTest('bulk')}
-            disabled={isPublishing}
-            variant="secondary"
-          >
-            Bulk Test (10 workouts)
+            🔄 Duplicate Test (5x same event)
           </Button>
         </div>
 
@@ -327,7 +360,9 @@ export function WorkoutPublisher() {
             <li>Open browser DevTools Console for detailed logging</li>
             <li>Test different workout types to validate NIP-101e compliance</li>
             <li>Use bulk test to validate performance with multiple events</li>
+            <li><strong>Duplicate test:</strong> Publishes same event 5x to test NDK deduplication</li>
             <li>Check IndexedDB in DevTools → Application → Storage</li>
+            <li>Monitor `events` and `unpublishedEvents` tables during duplicate test</li>
           </ul>
         </div>
       </CardContent>
