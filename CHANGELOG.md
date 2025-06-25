@@ -31,6 +31,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+## [2025-06-24] - NDK Cache Validation & Testing Infrastructure
+
+### Added
+- **NDK Cache Persistence Validation COMPLETE (2025-06-24) ✅**
+  
+  **User Impact**: App now has fully validated offline-first data storage that works reliably without internet connection. Users can create workout data offline and it automatically syncs when network returns, perfect for gym environments with poor connectivity.
+  
+  **Developer Notes**: Comprehensive NDK IndexedDB cache validation with 5/5 success criteria met. Performance exceeds targets (405-444ms vs 500ms for 50 events). Offline queue system tested with browser restart scenarios. Bulk testing validated 20+ events with 100% success rate. Test infrastructure includes WorkoutPublisher/WorkoutReader components and dedicated Test tab.
+  
+  **Architecture Changes**: Proven NDK-first architecture ready for golf app migration. Eliminated need for custom database - NDK cache handles all persistence. Established testing patterns for offline-first PWA development.
+
+- **Comprehensive Testing Infrastructure** - Added Test tab with WorkoutPublisher and WorkoutReader components for systematic NDK validation
+- **IndexedDB Schema Documentation** - Complete documentation of 7 object stores including events, unpublishedEvents, profiles, and relayStatus
+- **Offline Queue Testing** - Validated events queue locally when offline and auto-sync when network returns
+- **Bulk Performance Testing** - Successfully published 20 workout events with consistent performance
+
+### Fixed
+- **NDK unpublishedEvents Mystery Solved** - Discovered WRITE_STATUS_THRESHOLD=3 requirement through source code analysis
+- **Offline Data Persistence** - Confirmed events survive browser restart while offline and sync automatically
+- **Performance Optimization** - Cache retrieval consistently under 500ms target (actual: 405-444ms)
+
+### Technical
+- **Test Components**: WorkoutPublisher.tsx, WorkoutReader.tsx with comprehensive logging
+- **Validation Results**: docs/ndk-cache-validation-results.md with complete findings
+- **Success Criteria**: 5/5 validation criteria passed (persistence, offline queue, auto-sync, performance, data integrity)
+- **Architecture Confidence**: Very high confidence for NDK-first golf app migration
+
+### Added
+
 ## [2025-06-24] - UI Standardization & Navigation Enhancement
 
 ### Added

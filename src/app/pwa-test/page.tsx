@@ -1,6 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 
 export default function PWATestPage() {
   const [manifestData, setManifestData] = useState<Record<string, unknown> | null>(null);
@@ -49,34 +52,42 @@ export default function PWATestPage() {
       
       <div className="space-y-6">
         {/* Manifest Test */}
-        <div className="border rounded-lg p-6">
-          <h2 className="text-xl font-semibold mb-4">Manifest Test</h2>
-          {manifestError ? (
-            <div className="text-red-600">
-              <p className="font-medium">❌ Manifest Error:</p>
-              <p>{manifestError}</p>
-            </div>
-          ) : manifestData ? (
-            <div className="text-green-600">
-              <p className="font-medium">✅ Manifest Loaded Successfully</p>
-              <pre className="mt-2 text-sm bg-gray-100 p-2 rounded overflow-auto">
-                {JSON.stringify(manifestData, null, 2)}
-              </pre>
-            </div>
-          ) : (
-            <p>Loading manifest...</p>
-          )}
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Manifest Test</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {manifestError ? (
+              <div className="text-destructive">
+                <p className="font-medium">❌ Manifest Error:</p>
+                <p>{manifestError}</p>
+              </div>
+            ) : manifestData ? (
+              <div className="text-green-600 dark:text-green-400">
+                <p className="font-medium">✅ Manifest Loaded Successfully</p>
+                <pre className="mt-2 text-sm bg-muted p-2 rounded overflow-auto">
+                  {JSON.stringify(manifestData, null, 2)}
+                </pre>
+              </div>
+            ) : (
+              <p>Loading manifest...</p>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Service Worker Test */}
-        <div className="border rounded-lg p-6">
-          <h2 className="text-xl font-semibold mb-4">Service Worker Test</h2>
-          <p className="font-medium">
-            Status: <span className={serviceWorkerStatus === 'registered' ? 'text-green-600' : 'text-red-600'}>
-              {serviceWorkerStatus}
-            </span>
-          </p>
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Service Worker Test</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="font-medium">
+              Status: <Badge variant={serviceWorkerStatus === 'registered' ? 'default' : 'destructive'}>
+                {serviceWorkerStatus}
+              </Badge>
+            </p>
+          </CardContent>
+        </Card>
 
         {/* Icons Test */}
         <div className="border rounded-lg p-6">
@@ -91,10 +102,12 @@ export default function PWATestPage() {
               { src: '/icon-512.png', size: '512x512' },
             ].map((icon) => (
               <div key={icon.src} className="text-center">
-                <img 
+                <Image 
                   src={icon.src} 
                   alt={`Icon ${icon.size}`}
-                  className="w-16 h-16 mx-auto mb-2 border rounded"
+                  width={64}
+                  height={64}
+                  className="mx-auto mb-2 border rounded"
                   onError={(e) => {
                     (e.target as HTMLImageElement).style.border = '2px solid red';
                   }}

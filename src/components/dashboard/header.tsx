@@ -11,9 +11,10 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Dumbbell, Menu, User, LogOut, Settings } from 'lucide-react';
+import { Menu, User, LogOut, Settings } from 'lucide-react';
 import { useAccount, useLogout } from '@/lib/auth/hooks';
 import { ModeToggle } from '@/components/mode-toggle';
+import { Logo } from '@/components/ui/logo';
 
 export function Header() {
   const account = useAccount();
@@ -41,9 +42,7 @@ export function Header() {
         {/* Logo - Center */}
         <div className="flex flex-1 items-center justify-center md:justify-start">
           <Link className="flex items-center space-x-3" href="/">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <Dumbbell className="h-5 w-5" />
-            </div>
+            <Logo width={32} height={32} className="rounded-lg" />
             <span className="text-xl font-bold tracking-tight">POWR</span>
           </Link>
         </div>
@@ -93,9 +92,7 @@ function MobileNav() {
       {/* Logo Section */}
       <div className="mb-8">
         <Link href="/" className="flex items-center space-x-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <Dumbbell className="h-5 w-5" />
-          </div>
+          <Logo width={32} height={32} className="rounded-lg" />
           <span className="text-xl font-bold tracking-tight">POWR</span>
         </Link>
       </div>

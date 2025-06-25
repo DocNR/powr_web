@@ -4,7 +4,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { Dumbbell } from 'lucide-react';
+import { Logo } from '@/components/ui/logo';
 
 interface DesktopSidebarProps {
   activeTab: string;
@@ -25,9 +25,7 @@ export function DesktopSidebar({ activeTab, onTabChange, tabs }: DesktopSidebarP
       <div className="flex flex-col h-full">
         {/* Logo */}
         <div className="flex items-center gap-2 p-6 border-b border-border">
-          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
-            <Dumbbell className="size-5" />
-          </div>
+          <Logo width={32} height={32} className="rounded-md" />
           <span className="text-xl font-semibold">POWR</span>
         </div>
 

@@ -7,6 +7,7 @@ import { WorkoutsTab } from '@/components/tabs/WorkoutsTab';
 import { ActiveTab } from '@/components/tabs/ActiveTab';
 import { ProgressTab } from '@/components/tabs/ProgressTab';
 import { ProfileTab } from '@/components/tabs/ProfileTab';
+import { TestTab } from '@/components/tabs/TestTab';
 
 export function TabRouter() {
   const { activeTab } = useNavigation();
@@ -36,6 +37,8 @@ export function TabRouter() {
         return <ProgressTab />;
       case 'profile':
         return <ProfileTab />;
+      case 'test':
+        return <TestTab />;
       default:
         return <HomeTab />;
     }

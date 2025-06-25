@@ -255,8 +255,10 @@ export function LoginDialog({ trigger, isCompact = false, onSuccess }: LoginDial
             >
               {isLoggingIn ? (
                 <RotateCw className="animate-spin size-4 mr-2" />
-              ) : (
+              ) : nip07Available ? (
                 <Puzzle className="size-4 mr-2" />
+              ) : (
+                <AlertTriangle className="size-4 mr-2" />
               )}
               {nip07Available ? 'Connect Extension' : 'No Extension Detected'}
             </Button>
@@ -268,7 +270,7 @@ export function LoginDialog({ trigger, isCompact = false, onSuccess }: LoginDial
                   href="https://getalby.com" 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="text-blue-600 hover:underline"
+                  className="text-primary hover:underline"
                 >
                   Alby
                 </a>
@@ -277,7 +279,7 @@ export function LoginDialog({ trigger, isCompact = false, onSuccess }: LoginDial
                   href="https://github.com/fiatjaf/nos2x" 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="text-blue-600 hover:underline"
+                  className="text-primary hover:underline"
                 >
                   nos2x
                 </a>
@@ -301,7 +303,7 @@ export function LoginDialog({ trigger, isCompact = false, onSuccess }: LoginDial
               variant="outline"
               disabled={isLoggingIn}
               onClick={handleAmberConnect}
-              className="w-full bg-amber-50 hover:bg-amber-100 border-amber-200 text-amber-800"
+              className="w-full"
             >
               <Smartphone className="size-4 mr-2" />
               Connect with Amber
@@ -313,7 +315,7 @@ export function LoginDialog({ trigger, isCompact = false, onSuccess }: LoginDial
                 href="https://github.com/greenart7c3/Amber/releases" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="text-amber-600 hover:underline"
+                className="text-primary hover:underline"
               >
                 GitHub
               </a>
@@ -322,7 +324,7 @@ export function LoginDialog({ trigger, isCompact = false, onSuccess }: LoginDial
                 href="https://f-droid.org/packages/com.greenart7c3.nostrsigner/" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="text-amber-600 hover:underline"
+                className="text-primary hover:underline"
               >
                 F-Droid
               </a>

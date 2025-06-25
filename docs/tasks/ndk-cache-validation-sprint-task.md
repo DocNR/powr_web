@@ -38,8 +38,8 @@ Validate that NDK's IndexedDB cache can serve as the primary persistence layer f
    - Display retrieved workout data in simple list format
    - Verify data integrity matches published events
 
-### Phase 2: Cache Persistence & Offline Behavior (Day 2)
-4. [ ] **IndexedDB Verification** (30 minutes)
+### Phase 2: Cache Persistence & Offline Behavior (Day 2) 🎯 CURRENT PHASE
+4. [ ] **IndexedDB Verification** (30 minutes) - NEXT UP
    - Manual testing with browser DevTools
    - Verify NDK cache database structure
    - Confirm events persist in IndexedDB after publishing

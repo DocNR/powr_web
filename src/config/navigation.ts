@@ -1,4 +1,4 @@
-import { Home, Dumbbell, TrendingUp, User, Zap } from 'lucide-react';
+import { Home, Dumbbell, TrendingUp, User, Zap, TestTube } from 'lucide-react';
 import { NavigationTab } from '@/types/navigation';
 
 export const navigationTabs: NavigationTab[] = [
@@ -27,6 +27,11 @@ export const navigationTabs: NavigationTab[] = [
     id: 'profile',
     label: 'Profile',
     icon: User,
+  },
+  {
+    id: 'test',
+    label: 'Test',
+    icon: TestTube,
   },
 ];
 

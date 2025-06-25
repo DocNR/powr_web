@@ -28,6 +28,7 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
+      { url: "/assets/logos/powr-logo.svg", type: "image/svg+xml" },
       { url: "/icon-48.png", sizes: "48x48", type: "image/png" },
       { url: "/icon-72.png", sizes: "72x72", type: "image/png" },
       { url: "/icon-96.png", sizes: "96x96", type: "image/png" },

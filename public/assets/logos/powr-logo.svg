@@ -1,0 +1,12 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="240" fill="#6366f1" stroke="#ffffff" stroke-width="8"/>
+  
+  <!-- POWR text -->
+  <text x="256" y="280" font-family="system-ui, -apple-system, sans-serif" font-size="96" font-weight="bold" text-anchor="middle" fill="#ffffff">
+    POWR
+  </text>
+  
+  <!-- Lightning bolt accent -->
+  <path d="M200 180 L240 140 L220 140 L260 100 L280 140 L260 140 L300 180 L260 160 L280 160 L240 200 L220 160 L240 160 Z" fill="#ffffff" opacity="0.8"/>
+</svg>
