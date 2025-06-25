@@ -25,8 +25,9 @@ import {
   useLogout
 } from '@/lib/auth/hooks';
 import { initializeNDK } from '@/lib/ndk';
-import { Dumbbell, Cable, Loader2 } from 'lucide-react';
+import { Cable, Loader2, Smartphone, Gamepad2 } from 'lucide-react';
 import { useState } from 'react';
+import { Logo } from '@/components/ui/logo';
 import { AppLayout } from '@/components/layout/AppLayout';
 
 export default function Home() {
@@ -168,9 +169,7 @@ export default function Home() {
       <div className="flex w-full max-w-sm flex-col gap-6">
         {/* Logo */}
         <a href="#" className="flex items-center gap-2 self-center font-medium">
-          <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
-            <Dumbbell className="size-4" />
-          </div>
+          <Logo width={24} height={24} className="rounded-md" />
           POWR
         </a>
         
@@ -215,7 +214,7 @@ export default function Home() {
                   <div className="flex flex-col gap-2">
                     <Button 
                       variant="outline" 
-                      className="w-full bg-amber-50 hover:bg-amber-100 border-amber-200 text-amber-800" 
+                      className="w-full" 
                       onClick={async () => {
                         try {
                           // NIP-55: Android Signer Application integration
@@ -249,7 +248,7 @@ export default function Home() {
                       {isConnecting ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       ) : (
-                        '📱'
+                        <Smartphone className="mr-2 h-4 w-4" />
                       )}
                       Connect with Amber
                     </Button>
@@ -265,37 +264,6 @@ export default function Home() {
                     <span className="text-xs uppercase text-muted-foreground">
                       Or continue with
                     </span>
-                  </div>
-                  
-                  {/* Demo Login for Testing UI */}
-                  <div className="flex flex-col gap-2">
-                    <Button 
-                      variant="outline" 
-                      className="w-full" 
-                      onClick={async () => {
-                        // Demo login using working bunker URL
-                        const demoBunkerUrl = 'bunker://b187f4fa71daeed34a709dcb0e0b5a317b2408a739327f1e549b7bd8011362d0?relay=wss%3A%2F%2Fpromenade.fiatjaf.com';
-                        setIsConnecting(true);
-                        try {
-                          await loginWithNip46(demoBunkerUrl);
-                        } catch (error) {
-                          console.error('Demo login failed:', error);
-                        } finally {
-                          setIsConnecting(false);
-                        }
-                      }}
-                      disabled={isConnecting}
-                    >
-                      {isConnecting ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : (
-                        '🎭'
-                      )}
-                      Demo Login (Working Bunker)
-                    </Button>
-                    <p className="text-xs text-muted-foreground text-center">
-                      Uses real bunker URL for testing dashboard
-                    </p>
                   </div>
                   
                   {/* NIP-46 Remote Signer */}
@@ -329,6 +297,37 @@ export default function Home() {
                       </p>
                     </div>
                   </div>
+                  
+                  {/* Demo Login for Testing UI */}
+                  <div className="flex flex-col gap-2">
+                    <Button 
+                      variant="outline" 
+                      className="w-full" 
+                      onClick={async () => {
+                        // Demo login using working bunker URL
+                        const demoBunkerUrl = 'bunker://b187f4fa71daeed34a709dcb0e0b5a317b2408a739327f1e549b7bd8011362d0?relay=wss%3A%2F%2Fpromenade.fiatjaf.com';
+                        setIsConnecting(true);
+                        try {
+                          await loginWithNip46(demoBunkerUrl);
+                        } catch (error) {
+                          console.error('Demo login failed:', error);
+                        } finally {
+                          setIsConnecting(false);
+                        }
+                      }}
+                      disabled={isConnecting}
+                    >
+                      {isConnecting ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Gamepad2 className="mr-2 h-4 w-4" />
+                      )}
+                      Demo Login (Working Bunker)
+                    </Button>
+                    <p className="text-xs text-muted-foreground text-center">
+                      Uses real bunker URL for testing dashboard
+                    </p>
+                  </div>
                 </div>
               </form>
             </CardContent>
@@ -336,7 +335,9 @@ export default function Home() {
           
           {/* Security Notice */}
           <div className="text-balance text-center text-xs text-muted-foreground [&_a]:underline [&_a]:underline-offset-4 [&_a]:hover:text-primary">
-            🔒 <strong>Security First:</strong> POWR never stores your private keys. We only support external signers for maximum security.
+            <div className="flex items-center justify-center gap-2">
+              <span>POWR never stores your private keys.</span>
+            </div>
           </div>
         </div>
       </div>

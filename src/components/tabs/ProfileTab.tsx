@@ -16,10 +16,10 @@ export function ProfileTab() {
   };
 
   return (
-    <div className="space-y-6">
+    <>
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Profile</h1>
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold tracking-tight">Profile</h1>
           <p className="text-muted-foreground">Manage your account and preferences</p>
         </div>
       </div>
@@ -138,6 +138,6 @@ export function ProfileTab() {
           </CardContent>
         </Card>
       )}
-    </div>
+    </>
   );
 }
