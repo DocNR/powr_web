@@ -41,11 +41,11 @@ const mockWorkouts = [
 
 export function HomeTab() {
   return (
-    <div className="container mx-auto p-4 sm:p-6 space-y-6 max-w-7xl">
+    <>
       {/* Welcome Section */}
       <div className="space-y-2">
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight break-words">Dashboard</h1>
-        <p className="text-muted-foreground text-sm sm:text-base">
+        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+        <p className="text-muted-foreground">
           Welcome back! Here&apos;s your workout overview.
         </p>
       </div>
@@ -54,25 +54,25 @@ export function HomeTab() {
       <StatsCards {...mockStats} />
 
       {/* Main Content Grid */}
-      <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-2">
         <QuickActions />
         <RecentWorkouts workouts={mockWorkouts} />
       </div>
 
       {/* NDK Cache Validation Test Components */}
-      <div className="space-y-4 sm:space-y-6">
+      <div className="space-y-6">
         <div className="space-y-2">
-          <h2 className="text-xl sm:text-2xl font-bold tracking-tight break-words">NDK Cache Validation</h2>
-          <p className="text-muted-foreground text-sm sm:text-base break-words">
+          <h2 className="text-2xl font-bold tracking-tight">NDK Cache Validation</h2>
+          <p className="text-muted-foreground">
             Test components for validating NDK-first architecture. Phase 1 of sprint validation.
           </p>
         </div>
         
-        <div className="grid gap-4 sm:gap-6 xl:grid-cols-2">
+        <div className="grid gap-6 lg:grid-cols-2">
           <WorkoutPublisher />
           <WorkoutReader />
         </div>
       </div>
-    </div>
+    </>
   );
 }
