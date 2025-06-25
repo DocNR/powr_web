@@ -6,10 +6,10 @@ import { TrendingUp, Calendar, Target, Award } from 'lucide-react';
 
 export function ProgressTab() {
   return (
-    <div className="space-y-6">
+    <>
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Progress</h1>
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold tracking-tight">Progress</h1>
           <p className="text-muted-foreground">Track your fitness journey and achievements</p>
         </div>
       </div>
@@ -148,6 +148,6 @@ export function ProgressTab() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </>
   );
 }

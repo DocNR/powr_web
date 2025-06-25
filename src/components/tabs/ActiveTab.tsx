@@ -7,10 +7,10 @@ import { Play, Timer } from 'lucide-react';
 
 export function ActiveTab() {
   return (
-    <div className="space-y-6">
+    <>
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Active Workout</h1>
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold tracking-tight">Active Workout</h1>
           <p className="text-muted-foreground">Track your current workout session</p>
         </div>
         <Button>
@@ -73,6 +73,6 @@ export function ActiveTab() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </>
   );
 }
