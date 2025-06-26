@@ -43,6 +43,13 @@
 **Symptoms**: NIP-101e events, workout data validation, event publishing
 - **Primary**: [nip-101e-standards.md](./nip-101e-standards.md) - Workout event standards
 - **Publishing**: [workout-event-publishing.md](./workout-event-publishing.md) - Event publishing patterns
+- **Verification**: [nostr-event-verification.md](./nostr-event-verification.md) - NAK/websocat verification commands
+
+### 🔍 "Verifying Published Content" / Event Validation
+**Symptoms**: Need to check Nostr events, NAK command issues, event not found errors
+- **Primary**: [nostr-event-verification.md](./nostr-event-verification.md) - Proven NAK and websocat commands
+- **Standards**: [nip-101e-standards.md](./nip-101e-standards.md) - Event structure compliance
+- **Research**: [research-before-implementation.md](./research-before-implementation.md) - Nostr MCP for protocol docs
 
 ## Rule Categories
 
@@ -65,7 +72,8 @@
 11. **[documentation-maintenance.md](./documentation-maintenance.md)** - Doc standards
 12. **[auto-formatter-imports.md](./auto-formatter-imports.md)** - Import workflow
 13. **[post-task-completion-workflow.md](./post-task-completion-workflow.md)** - Post-task workflow
-14. **[workout-event-publishing.md](./workout-event-publishing.md)** - Event publishing patterns
+14. **[nostr-event-verification.md](./nostr-event-verification.md)** - NAK/websocat verification commands
+15. **[workout-event-publishing.md](./workout-event-publishing.md)** - Event publishing patterns
 
 ## AI Assistant Quick Reference
 
@@ -86,6 +94,8 @@
 | "This feels complex" / "Should I build a service for this?" | simple-solutions-first.md |
 | "Building UI components" / "Need a form/button/modal" | shadcn-ui-component-library.md |
 | "Custom component creation" / "Styling inconsistencies" | shadcn-ui-component-library.md |
+| "Need to verify published events" / "Check Nostr content" | nostr-event-verification.md |
+| "NAK commands failing" / "Event not found" | nostr-event-verification.md |
 
 ### Red Flag Keywords → Immediate Rules to Check
 
@@ -100,6 +110,8 @@
 | "imports removed", "auto-format" | auto-formatter-imports.md |
 | "useSubscribe", "loading states", "React Context" | ndk-best-practices.md |
 | "workaround", "hack", "temporary fix" | simple-solutions-first.md |
+| "verify events", "NAK", "websocat", "event not found" | nostr-event-verification.md |
+| "published content", "dependency chain", "collection references" | nostr-event-verification.md |
 
 ## Cost-Saving Lessons Learned
 
@@ -176,6 +188,6 @@ Before any XState work:
 
 ---
 
-**Last Updated**: 2025-06-21
+**Last Updated**: 2025-06-25
 **Project**: POWR Workout PWA
 **Next Review**: When adding new rule categories or after major architectural changes
