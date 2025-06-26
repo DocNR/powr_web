@@ -13,6 +13,7 @@
 
 ### 1. Use MCP Tools First
 - **repo-explorer**: Search actual source code for API patterns and add research directories
+- **nostr**: Access official Nostr documentation, NIPs, and protocol specifications
 - **web-fetch**: Check official documentation
 - **search-files**: Look for existing usage patterns in related projects
 
@@ -24,6 +25,7 @@ Before writing implementation code, verify:
 - [ ] Actual API method names and signatures
 - [ ] Configuration options that actually exist
 - [ ] Best practices from source code examples
+- [ ] **For Nostr/NIP-101e**: Current protocol specifications and event structures
 
 ### 3. Evidence-Based Implementation
 - Quote actual source code examples when possible
@@ -209,6 +211,51 @@ const cacheAdapter = new NDKCacheAdapterDexie({
   profileCacheSize: 1000,    // Verified option
   saveSig: true,             // Verified option
 });
+```
+
+## Example: NIP-101e Research Process
+
+### 1. Check Current Protocol Specification
+```typescript
+use_mcp_tool({
+  server_name: "nostr",
+  tool_name: "read_nip",
+  arguments: {
+    nip: "101e"
+  }
+});
+// Result: Current NIP-101e fitness event specification
+```
+
+### 2. Verify Event Kind Requirements
+```typescript
+use_mcp_tool({
+  server_name: "nostr",
+  tool_name: "read_kind",
+  arguments: {
+    kind: 1301
+  }
+});
+// Result: Workout record event structure and requirements
+```
+
+### 3. Implementation Based on Research
+```typescript
+// Based on nostr MCP research:
+// - Kind 1301: Workout record events
+// - Required tags: d, start, end, completed
+// - Exercise tags: exercise, weight, reps, rpe, set_type
+const workoutEvent = {
+  kind: 1301,
+  tags: [
+    ['d', workoutId],                    // Verified required
+    ['start', startTimestamp],           // Verified required  
+    ['end', endTimestamp],               // Verified required
+    ['completed', 'true'],               // Verified required
+    ['exercise', exerciseRef, '', '60', '5', '8', 'normal'] // Verified format
+  ],
+  content: JSON.stringify(workoutData)
+};
 ```
 
 ## Enforcement

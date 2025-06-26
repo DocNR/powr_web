@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { useTheme } from 'next-themes';
+import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 
 interface LogoProps {
@@ -13,9 +14,15 @@ interface LogoProps {
 
 export function Logo({ width = 120, height = 40, className, priority = false }: LogoProps) {
   const { theme, systemTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
   
-  // Determine if we're in dark mode
-  const isDark = theme === 'dark' || (theme === 'system' && systemTheme === 'dark');
+  // Only run on client side to prevent hydration mismatch
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  
+  // Determine if we're in dark mode, but only after mounting
+  const isDark = mounted && (theme === 'dark' || (theme === 'system' && systemTheme === 'dark'));
   
   // For dark mode, we'll need a white version of the logo
   // For now, we'll use the black version and invert it in dark mode
@@ -30,7 +37,7 @@ export function Logo({ width = 120, height = 40, className, priority = false }: 
       priority={priority}
       className={cn(
         'object-contain',
-        isDark && 'invert', // Invert colors in dark mode
+        isDark && 'invert', // Invert colors in dark mode (only after mounting)
         className
       )}
     />

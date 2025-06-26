@@ -319,3 +319,442 @@ export function generateBulkTestWorkouts(userPubkey: string, count: number = 10)
   
   return workouts;
 }
+
+// ===== PHASE 1: EXERCISE TEMPLATE GENERATION =====
+
+/**
+ * Generate exercise template (kind 33401) following simplified structure
+ */
+export function generateExerciseTemplate(userPubkey: string, exerciseData: {
+  id: string;
+  name: string;
+  instructions: string;
+  equipment: string;
+  difficulty: string;
+  muscleGroups: string[];
+  imageUrl?: string;
+}) {
+  return {
+    kind: WORKOUT_EVENT_KINDS.EXERCISE_TEMPLATE,
+    content: exerciseData.instructions,
+    tags: [
+      ['d', exerciseData.id],
+      ['title', exerciseData.name],
+      ['format', 'weight', 'reps', 'rpe', 'set_type'],
+      ['format_units', 'kg', 'count', '0-10', 'warmup|normal|drop|failure'],
+      ['equipment', exerciseData.equipment],
+      ['difficulty', exerciseData.difficulty],
+      ...(exerciseData.imageUrl ? [['image', exerciseData.imageUrl]] : []),
+      // Muscle group tags
+      ...exerciseData.muscleGroups.map(muscle => ['t', muscle]),
+      ['t', 'fitness'],
+    ],
+    created_at: Math.floor(Date.now() / 1000),
+    pubkey: userPubkey,
+  };
+}
+
+/**
+ * Generate all 12 bodyweight exercises for Phase 1
+ */
+export function generateAllBodyweightExercises(userPubkey: string) {
+  const exercises = [
+    // Push Category (4 exercises)
+    {
+      id: 'pushup-standard',
+      name: 'Standard Pushup',
+      instructions: 'Start in plank position. Lower body to ground. Push back up.',
+      equipment: 'bodyweight',
+      difficulty: 'beginner',
+      muscleGroups: ['chest', 'triceps', 'push'],
+      imageUrl: 'https://cdn.powr.app/exercises/pushup-standard.jpg'
+    },
+    {
+      id: 'pike-pushup',
+      name: 'Pike Pushup',
+      instructions: 'Start in downward dog position. Lower head toward ground. Push back up.',
+      equipment: 'bodyweight',
+      difficulty: 'intermediate',
+      muscleGroups: ['shoulders', 'triceps', 'push'],
+      imageUrl: 'https://cdn.powr.app/exercises/pike-pushup.jpg'
+    },
+    {
+      id: 'tricep-dips',
+      name: 'Tricep Dips',
+      instructions: 'Sit on chair edge. Lower body down. Push back up using triceps.',
+      equipment: 'bodyweight',
+      difficulty: 'beginner',
+      muscleGroups: ['triceps', 'chest', 'push'],
+      imageUrl: 'https://cdn.powr.app/exercises/tricep-dips.jpg'
+    },
+    {
+      id: 'wall-handstand',
+      name: 'Wall Handstand',
+      instructions: 'Place hands on ground near wall. Walk feet up wall. Hold position.',
+      equipment: 'bodyweight',
+      difficulty: 'advanced',
+      muscleGroups: ['shoulders', 'core', 'push'],
+      imageUrl: 'https://cdn.powr.app/exercises/wall-handstand.jpg'
+    },
+    
+    // Pull Category (4 exercises)
+    {
+      id: 'pullups',
+      name: 'Pull-ups',
+      instructions: 'Hang from bar. Pull body up until chin over bar. Lower down.',
+      equipment: 'bodyweight',
+      difficulty: 'intermediate',
+      muscleGroups: ['back', 'biceps', 'pull'],
+      imageUrl: 'https://cdn.powr.app/exercises/pullups.jpg'
+    },
+    {
+      id: 'chinups',
+      name: 'Chin-ups',
+      instructions: 'Hang from bar with underhand grip. Pull up until chin over bar.',
+      equipment: 'bodyweight',
+      difficulty: 'intermediate',
+      muscleGroups: ['back', 'biceps', 'pull'],
+      imageUrl: 'https://cdn.powr.app/exercises/chinups.jpg'
+    },
+    {
+      id: 'inverted-rows',
+      name: 'Inverted Rows',
+      instructions: 'Lie under table. Pull chest to table edge. Lower down.',
+      equipment: 'bodyweight',
+      difficulty: 'beginner',
+      muscleGroups: ['back', 'rhomboids', 'pull'],
+      imageUrl: 'https://cdn.powr.app/exercises/inverted-rows.jpg'
+    },
+    {
+      id: 'door-pulls',
+      name: 'Door Pulls',
+      instructions: 'Hold door frame. Lean back. Pull body toward door.',
+      equipment: 'bodyweight',
+      difficulty: 'beginner',
+      muscleGroups: ['back', 'biceps', 'pull'],
+      imageUrl: 'https://cdn.powr.app/exercises/door-pulls.jpg'
+    },
+    
+    // Legs Category (4 exercises)
+    {
+      id: 'bodyweight-squats',
+      name: 'Bodyweight Squats',
+      instructions: 'Stand with feet shoulder-width apart. Lower down. Stand back up.',
+      equipment: 'bodyweight',
+      difficulty: 'beginner',
+      muscleGroups: ['legs', 'glutes', 'legs'],
+      imageUrl: 'https://cdn.powr.app/exercises/bodyweight-squats.jpg'
+    },
+    {
+      id: 'lunges',
+      name: 'Lunges',
+      instructions: 'Step forward into lunge position. Push back to standing.',
+      equipment: 'bodyweight',
+      difficulty: 'beginner',
+      muscleGroups: ['legs', 'glutes', 'legs'],
+      imageUrl: 'https://cdn.powr.app/exercises/lunges.jpg'
+    },
+    {
+      id: 'single-leg-squats',
+      name: 'Single-Leg Squats',
+      instructions: 'Stand on one leg. Lower down on single leg. Stand back up.',
+      equipment: 'bodyweight',
+      difficulty: 'advanced',
+      muscleGroups: ['legs', 'balance', 'legs'],
+      imageUrl: 'https://cdn.powr.app/exercises/single-leg-squats.jpg'
+    },
+    {
+      id: 'calf-raises',
+      name: 'Calf Raises',
+      instructions: 'Stand on toes. Raise up as high as possible. Lower down.',
+      equipment: 'bodyweight',
+      difficulty: 'beginner',
+      muscleGroups: ['calves', 'legs'],
+      imageUrl: 'https://cdn.powr.app/exercises/calf-raises.jpg'
+    }
+  ];
+
+  return exercises.map(exercise => generateExerciseTemplate(userPubkey, exercise));
+}
+
+// ===== PHASE 1: WORKOUT TEMPLATE GENERATION =====
+
+/**
+ * Generate workout template (kind 33402)
+ */
+export function generateWorkoutTemplate(userPubkey: string, workoutData: {
+  id: string;
+  name: string;
+  description: string;
+  exercises: Array<{
+    exerciseId: string;
+    sets: number;
+    reps: number;
+    weight?: number;
+  }>;
+  estimatedDuration: number;
+  difficulty?: string;
+}) {
+  return {
+    kind: WORKOUT_EVENT_KINDS.WORKOUT_TEMPLATE,
+    content: workoutData.description,
+    tags: [
+      ['d', workoutData.id],
+      ['title', workoutData.name],
+      // Exercise references with sets/reps
+      ...workoutData.exercises.map(ex => [
+        'exercise',
+        `33401:${userPubkey}:${ex.exerciseId}`,
+        ex.sets.toString(),
+        ex.reps.toString(),
+        (ex.weight || 0).toString()
+      ]),
+      ['duration', workoutData.estimatedDuration.toString()],
+      ...(workoutData.difficulty ? [['difficulty', workoutData.difficulty]] : []),
+      ['t', 'fitness'],
+    ],
+    created_at: Math.floor(Date.now() / 1000),
+    pubkey: userPubkey,
+  };
+}
+
+/**
+ * Generate all 3 test workout templates for Phase 1
+ */
+export function generateAllWorkoutTemplates(userPubkey: string) {
+  return [
+    // Push Workout
+    generateWorkoutTemplate(userPubkey, {
+      id: 'push-workout-bodyweight',
+      name: 'POWR Test Push Workout',
+      description: 'Upper body push exercises for strength building',
+      exercises: [
+        { exerciseId: 'pushup-standard', sets: 3, reps: 10 },
+        { exerciseId: 'pike-pushup', sets: 3, reps: 8 },
+        { exerciseId: 'tricep-dips', sets: 3, reps: 12 },
+        { exerciseId: 'wall-handstand', sets: 3, reps: 5 }
+      ],
+      estimatedDuration: 1800, // 30 minutes
+      difficulty: 'intermediate'
+    }),
+    
+    // Pull Workout
+    generateWorkoutTemplate(userPubkey, {
+      id: 'pull-workout-bodyweight',
+      name: 'POWR Test Pull Workout',
+      description: 'Upper body pull exercises for back and bicep strength',
+      exercises: [
+        { exerciseId: 'pullups', sets: 3, reps: 5 },
+        { exerciseId: 'chinups', sets: 3, reps: 6 },
+        { exerciseId: 'inverted-rows', sets: 3, reps: 10 },
+        { exerciseId: 'door-pulls', sets: 3, reps: 12 }
+      ],
+      estimatedDuration: 2100, // 35 minutes
+      difficulty: 'intermediate'
+    }),
+    
+    // Legs Workout
+    generateWorkoutTemplate(userPubkey, {
+      id: 'legs-workout-bodyweight',
+      name: 'POWR Test Legs Workout',
+      description: 'Lower body exercises for leg and glute strength',
+      exercises: [
+        { exerciseId: 'bodyweight-squats', sets: 3, reps: 15 },
+        { exerciseId: 'lunges', sets: 3, reps: 12 },
+        { exerciseId: 'single-leg-squats', sets: 3, reps: 8 },
+        { exerciseId: 'calf-raises', sets: 3, reps: 20 }
+      ],
+      estimatedDuration: 1500, // 25 minutes
+      difficulty: 'beginner'
+    })
+  ];
+}
+
+// ===== PHASE 1: COLLECTION GENERATION =====
+
+/**
+ * Generate NIP-51 collection (kind 30003)
+ */
+export function generateCollection(userPubkey: string, collectionData: {
+  id: string;
+  name: string;
+  description: string;
+  contentRefs: Array<{
+    kind: number;
+    pubkey: string;
+    dTag: string;
+  }>;
+}) {
+  return {
+    kind: 30003, // NIP-51 collection kind
+    content: collectionData.description,
+    tags: [
+      ['d', collectionData.id],
+      ['title', collectionData.name],
+      // Content references using 'a' tags
+      ...collectionData.contentRefs.map(ref => [
+        'a',
+        `${ref.kind}:${ref.pubkey}:${ref.dTag}`
+      ]),
+      ['t', 'fitness'],
+    ],
+    created_at: Math.floor(Date.now() / 1000),
+    pubkey: userPubkey,
+  };
+}
+
+/**
+ * Generate exercise library collection
+ */
+export function generateExerciseLibraryCollection(userPubkey: string) {
+  const exerciseIds = [
+    'pushup-standard', 'pike-pushup', 'tricep-dips', 'wall-handstand',
+    'pullups', 'chinups', 'inverted-rows', 'door-pulls',
+    'bodyweight-squats', 'lunges', 'single-leg-squats', 'calf-raises'
+  ];
+
+  return generateCollection(userPubkey, {
+    id: 'exercise-library',
+    name: 'POWR Test Exercise Library',
+    description: 'Complete bodyweight exercise library for strength training',
+    contentRefs: exerciseIds.map(id => ({
+      kind: 33401,
+      pubkey: userPubkey,
+      dTag: id
+    }))
+  });
+}
+
+/**
+ * Generate workout collection
+ */
+export function generateWorkoutCollection(userPubkey: string) {
+  return generateCollection(userPubkey, {
+    id: 'strength-bodyweight',
+    name: 'POWR Test Strength Bodyweight Collection',
+    description: 'Complete bodyweight strength training workouts',
+    contentRefs: [
+      { kind: 33402, pubkey: userPubkey, dTag: 'push-workout-bodyweight' },
+      { kind: 33402, pubkey: userPubkey, dTag: 'pull-workout-bodyweight' },
+      { kind: 33402, pubkey: userPubkey, dTag: 'legs-workout-bodyweight' }
+    ]
+  });
+}
+
+// ===== VALIDATION FUNCTIONS =====
+
+/**
+ * Validate exercise template event
+ */
+export function validateExerciseEvent(event: WorkoutEvent): ValidationResult {
+  const errors: string[] = [];
+  
+  if (event.kind !== WORKOUT_EVENT_KINDS.EXERCISE_TEMPLATE) {
+    errors.push('Invalid kind for exercise template (must be 33401)');
+  }
+  
+  if (!event.content || typeof event.content !== 'string') {
+    errors.push('Missing exercise instructions in content');
+  }
+  
+  const tagMap = new Map(event.tags.map((tag: string[]) => [tag[0], tag]));
+  
+  const requiredTags = ['d', 'title', 'equipment', 'difficulty'];
+  for (const requiredTag of requiredTags) {
+    if (!tagMap.has(requiredTag)) {
+      errors.push(`Missing required tag: ${requiredTag}`);
+    }
+  }
+  
+  return { valid: errors.length === 0, errors };
+}
+
+/**
+ * Validate workout template event
+ */
+export function validateWorkoutTemplateEvent(event: WorkoutEvent): ValidationResult {
+  const errors: string[] = [];
+  
+  if (event.kind !== WORKOUT_EVENT_KINDS.WORKOUT_TEMPLATE) {
+    errors.push('Invalid kind for workout template (must be 33402)');
+  }
+  
+  const exerciseTags = event.tags.filter((tag: string[]) => tag[0] === 'exercise');
+  if (exerciseTags.length === 0) {
+    errors.push('Workout template must include at least one exercise');
+  }
+  
+  for (const exerciseTag of exerciseTags) {
+    if (exerciseTag.length < 5) {
+      errors.push(`Invalid exercise tag format: ${exerciseTag.join(',')}`);
+    }
+    
+    const exerciseRef = exerciseTag[1];
+    if (!exerciseRef.match(/^33401:[a-zA-Z0-9-]+:[a-zA-Z0-9-]+$/)) {
+      errors.push(`Invalid exercise reference format: ${exerciseRef}`);
+    }
+  }
+  
+  return { valid: errors.length === 0, errors };
+}
+
+/**
+ * Validate collection event
+ */
+export function validateCollectionEvent(event: WorkoutEvent): ValidationResult {
+  const errors: string[] = [];
+  
+  if (event.kind !== 30003) {
+    errors.push('Invalid kind for collection (must be 30003)');
+  }
+  
+  const contentTags = event.tags.filter((tag: string[]) => tag[0] === 'a');
+  if (contentTags.length === 0) {
+    errors.push('Collection must include at least one content reference');
+  }
+  
+  for (const contentTag of contentTags) {
+    if (contentTag.length < 2) {
+      errors.push(`Invalid content reference format: ${contentTag.join(',')}`);
+    }
+    
+    const contentRef = contentTag[1];
+    if (!contentRef.match(/^\d+:[a-zA-Z0-9-]+:[a-zA-Z0-9-]+$/)) {
+      errors.push(`Invalid content reference format: ${contentRef}`);
+    }
+  }
+  
+  return { valid: errors.length === 0, errors };
+}
+
+/**
+ * Universal event validator
+ */
+export function validateEvent(event: WorkoutEvent): ValidationResult {
+  // Basic validation
+  if (!event.pubkey || typeof event.pubkey !== 'string') {
+    return { valid: false, errors: ['Missing or invalid pubkey'] };
+  }
+  
+  if (!event.created_at || typeof event.created_at !== 'number') {
+    return { valid: false, errors: ['Missing or invalid created_at timestamp'] };
+  }
+  
+  if (!Array.isArray(event.tags)) {
+    return { valid: false, errors: ['Missing or invalid tags array'] };
+  }
+  
+  // Kind-specific validation
+  switch (event.kind) {
+    case WORKOUT_EVENT_KINDS.EXERCISE_TEMPLATE:
+      return validateExerciseEvent(event);
+    case WORKOUT_EVENT_KINDS.WORKOUT_TEMPLATE:
+      return validateWorkoutTemplateEvent(event);
+    case WORKOUT_EVENT_KINDS.WORKOUT_RECORD:
+      return validateWorkoutEvent(event);
+    case 30003:
+      return validateCollectionEvent(event);
+    default:
+      return { valid: false, errors: [`Unknown event kind: ${event.kind}`] };
+  }
+}

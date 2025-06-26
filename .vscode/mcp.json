@@ -1,0 +1,9 @@
+{
+  "servers": {
+    "nostr": {
+      "type": "stdio",
+      "command": "/Users/danielwyler/.nvm/versions/node/v18.20.5/lib/node_modules/@nostrbook/mcp/dist/mcp",
+      "args": []
+    }
+  }
+}

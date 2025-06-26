@@ -18,7 +18,11 @@ import {
   generateTestStrengthWorkout, 
   generateTestFailedWorkout,
   generateBulkTestWorkouts,
-  validateWorkoutEvent,
+  validateEvent,
+  generateAllBodyweightExercises,
+  generateAllWorkoutTemplates,
+  generateExerciseLibraryCollection,
+  generateWorkoutCollection,
   type WorkoutEvent 
 } from '@/lib/workout-events';
 import { NDKEvent } from '@nostr-dev-kit/ndk';
@@ -40,8 +44,8 @@ export function WorkoutPublisher() {
     try {
       console.log('[WorkoutPublisher] Publishing workout event:', workoutData);
       
-      // Validate event format first
-      const validation = validateWorkoutEvent(workoutData);
+      // Validate event format using universal validator
+      const validation = validateEvent(workoutData);
       if (!validation.valid) {
         console.error('[WorkoutPublisher] Validation failed:', validation.errors);
         return {
@@ -126,6 +130,86 @@ export function WorkoutPublisher() {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error'
       };
+    }
+  };
+
+  // Phase 1: Content Creation Handlers
+  const handlePhase1ContentCreation = async (contentType: 'exercises' | 'exercise-library' | 'workout-templates' | 'workout-collection') => {
+    if (!account?.pubkey) {
+      console.error('[WorkoutPublisher] No authenticated user');
+      return;
+    }
+
+    setIsPublishing(true);
+    const results: PublishResult[] = [];
+
+    try {
+      switch (contentType) {
+        case 'exercises':
+          console.log('[WorkoutPublisher] Phase 1A: Publishing 12 bodyweight exercises...');
+          const exercises = generateAllBodyweightExercises(account.pubkey);
+          
+          for (let i = 0; i < exercises.length; i++) {
+            const result = await publishWorkoutEvent(exercises[i]);
+            results.push({
+              ...result,
+              error: result.error ? `Exercise ${i + 1}: ${result.error}` : undefined
+            });
+            
+            // Small delay between exercises
+            if (i < exercises.length - 1) {
+              await new Promise(resolve => setTimeout(resolve, 200));
+            }
+          }
+          break;
+
+        case 'exercise-library':
+          console.log('[WorkoutPublisher] Phase 1A: Publishing exercise library collection...');
+          const exerciseLibrary = generateExerciseLibraryCollection(account.pubkey);
+          const libraryResult = await publishWorkoutEvent(exerciseLibrary);
+          results.push(libraryResult);
+          break;
+
+        case 'workout-templates':
+          console.log('[WorkoutPublisher] Phase 1B: Publishing 3 workout templates...');
+          const workoutTemplates = generateAllWorkoutTemplates(account.pubkey);
+          
+          for (let i = 0; i < workoutTemplates.length; i++) {
+            const result = await publishWorkoutEvent(workoutTemplates[i]);
+            results.push({
+              ...result,
+              error: result.error ? `Template ${i + 1}: ${result.error}` : undefined
+            });
+            
+            // Small delay between templates
+            if (i < workoutTemplates.length - 1) {
+              await new Promise(resolve => setTimeout(resolve, 200));
+            }
+          }
+          break;
+
+        case 'workout-collection':
+          console.log('[WorkoutPublisher] Phase 1C: Publishing workout collection...');
+          const workoutCollection = generateWorkoutCollection(account.pubkey);
+          const collectionResult = await publishWorkoutEvent(workoutCollection);
+          results.push(collectionResult);
+          break;
+
+        default:
+          throw new Error(`Unknown content type: ${contentType}`);
+      }
+
+      setPublishResults(prev => [...results, ...prev]);
+
+    } catch (error) {
+      console.error('[WorkoutPublisher] Phase 1 content creation failed:', error);
+      results.push({
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+      setPublishResults(prev => [...results, ...prev]);
+    } finally {
+      setIsPublishing(false);
     }
   };
 
@@ -295,6 +379,46 @@ export function WorkoutPublisher() {
           >
             🔄 Duplicate Test (5x same event)
           </Button>
+        </div>
+
+        {/* Phase 1: Content Creation Buttons */}
+        <div className="border-t pt-4">
+          <h4 className="text-sm font-medium mb-2">🚀 Phase 1: Test Content Creation</h4>
+          <div className="space-y-2">
+            <div className="grid grid-cols-2 gap-2">
+              <Button 
+                onClick={() => handlePhase1ContentCreation('exercises')}
+                disabled={isPublishing}
+                variant="default"
+              >
+                📝 Create 12 Exercises
+              </Button>
+              
+              <Button 
+                onClick={() => handlePhase1ContentCreation('exercise-library')}
+                disabled={isPublishing}
+                variant="default"
+              >
+                📚 Exercise Library
+              </Button>
+              
+              <Button 
+                onClick={() => handlePhase1ContentCreation('workout-templates')}
+                disabled={isPublishing}
+                variant="default"
+              >
+                🏋️ 3 Workout Templates
+              </Button>
+              
+              <Button 
+                onClick={() => handlePhase1ContentCreation('workout-collection')}
+                disabled={isPublishing}
+                variant="default"
+              >
+                📦 Workout Collection
+              </Button>
+            </div>
+          </div>
         </div>
 
         {/* Results Management */}

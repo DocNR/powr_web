@@ -80,6 +80,7 @@
 | "Imports keep getting removed" / "Auto-formatter issues" | auto-formatter-imports.md |
 | "How should I commit this?" / "What's the commit format?" | post-task-completion-workflow.md |
 | "Working with workout data" / "NIP-101e events" | nip-101e-standards.md |
+| "Need Nostr documentation" / "Protocol compliance" | research-before-implementation.md (Nostr MCP) |
 | "Need to create a service" / "Extract business logic" | service-layer-architecture.md |
 | "Using NDK hooks" / "Data fetching patterns" | ndk-best-practices.md |
 | "This feels complex" / "Should I build a service for this?" | simple-solutions-first.md |

@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Menu, User, LogOut, Settings } from 'lucide-react';
 import { useAccount, useLogout } from '@/lib/auth/hooks';
 import { ModeToggle } from '@/components/mode-toggle';
@@ -35,6 +35,12 @@ export function Header() {
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="pr-0 bg-background border-border">
+            <SheetHeader>
+              <SheetTitle>Navigation Menu</SheetTitle>
+              <SheetDescription>
+                Access different sections of the POWR workout app
+              </SheetDescription>
+            </SheetHeader>
             <MobileNav />
           </SheetContent>
         </Sheet>
