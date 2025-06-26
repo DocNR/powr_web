@@ -11,6 +11,7 @@ import React from 'react';
 import { WorkoutPublisher } from '@/components/test/WorkoutPublisher';
 import { WorkoutReader } from '@/components/test/WorkoutReader';
 import { WorkoutListManager } from '@/components/test/WorkoutListManager';
+import WorkoutLifecycleMachineTest from '@/components/test/WorkoutLifecycleMachineTest';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { TestTube, Database, Wifi, WifiOff } from 'lucide-react';
@@ -63,6 +64,11 @@ export function TestTab() {
         {/* NIP-51 List Management */}
         <div className="w-full">
           <WorkoutListManager />
+        </div>
+        
+        {/* XState Workout Machine Test */}
+        <div className="w-full">
+          <WorkoutLifecycleMachineTest />
         </div>
       </div>
 

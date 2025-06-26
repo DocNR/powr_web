@@ -76,9 +76,12 @@ export default function Home() {
     initializeApp();
   }, [mounted]);
 
-  // Universal NIP-07 Extension Change Detection (works for ALL extensions)
+  // NIP-07 Extension Change Detection (ONLY for extension users)
   useEffect(() => {
-    if (!mounted || !hasNip07 || !isAuthenticated || !account) return;
+    // Only monitor extension changes if user logged in with NIP-07
+    if (!mounted || !hasNip07 || !isAuthenticated || !account || account.method !== 'nip07') {
+      return;
+    }
 
     const lastKnownPubkey = account.pubkey;
     
@@ -106,7 +109,7 @@ export default function Home() {
     // Check every 3 seconds for extension changes (less frequent to avoid spam)
     const interval = setInterval(checkExtensionChange, 3000);
     
-    console.log('[Extension Change] Started monitoring for account changes');
+    console.log('[Extension Change] Started monitoring for account changes (NIP-07 users only)');
     
     return () => {
       clearInterval(interval);
@@ -140,27 +143,7 @@ export default function Home() {
 
   if (isAuthenticated && account) {
     // Beautiful App with Navigation
-    return (
-      <div>
-        <div className="fixed top-20 right-4 z-[60]">
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={async () => {
-              console.log('[Debug] Logging out...');
-              // Clear localStorage
-              localStorage.removeItem('amber_pubkey');
-              localStorage.removeItem('auth_method');
-              await logout();
-              console.log('[Debug] Logout complete');
-            }}
-          >
-            🚪 Debug Logout
-          </Button>
-        </div>
-        <AppLayout />
-      </div>
-    );
+    return <AppLayout />;
   }
 
   // Login-03 Style Authentication Page

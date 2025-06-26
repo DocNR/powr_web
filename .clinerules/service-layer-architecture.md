@@ -1,38 +1,31 @@
-# Service Layer Architecture Rule
+# Service Layer Architecture Rule (NDK-First)
 
 ## Brief overview
-This rule establishes patterns for creating and using service layers in the POWR Workout PWA, enabling clean separation of business logic from XState machines and React components while maintaining web-specific optimizations.
+This rule establishes patterns for creating and using service layers in NDK-first applications, enabling clean separation of business logic from XState machines and React components while leveraging NDK's built-in cache and subscription optimizations.
 
-## Service Layer Principles for Web
+## Service Layer Principles for NDK-First Architecture
 
 ### Core Concepts
-- **Business Logic Separation**: Extract complex operations from XState machines and React components
-- **Reusability**: Services can be used across multiple machines and components
-- **Testability**: Isolated business logic is easier to unit test
-- **Web Optimization**: Services designed for browser environments and NDK cache integration
-- **Type Safety**: Full TypeScript support with proper interfaces
+- **Business Logic Only**: Services handle calculations, transformations, and validations - NOT data fetching
+- **NDK Cache First**: Let NDK handle all data operations through components and hooks
+- **Zero Database Complexity**: No custom persistence logic in services
+- **Singleton Pattern**: Simple service modules without dependency injection complexity
+- **XState Integration**: Services called directly in actors, not injected as dependencies
 
 ### When to Create Services
-- **Complex Business Logic**: Operations that involve multiple steps or calculations
-- **NDK Cache Operations**: Workout data retrieval, exercise template management
-- **Data Transformation**: Converting between Nostr events and application models
-- **External API Integration**: Fitness APIs, social features, analytics
-- **Reusable Operations**: Logic used by multiple machines or components
+- **Complex Calculations**: Analytics, statistics, performance metrics
+- **Data Transformation**: Converting between Nostr events and display models
+- **Business Logic**: Workout validation, progression algorithms, form calculations
+- **Reusable Operations**: Logic used across multiple machines and components
+- **NOT for Data Fetching**: NDK cache handles all persistence and retrieval
 
-## Service Architecture Patterns
+## NDK-First Service Architecture Patterns
 
-### Pattern 1: Business Logic Service (No Data Fetching)
+### Pattern 1: Pure Business Logic Service (Recommended)
 ```typescript
-// ✅ CORRECT: Pure business logic service - no data fetching
-export interface WorkoutAnalyticsService {
-  calculateWorkoutStats(workouts: WorkoutEvent[]): WorkoutStats;
-  generateWorkoutSummary(workout: WorkoutEvent): WorkoutSummary;
-  validateWorkoutData(workoutData: any): ValidationResult;
-  transformWorkoutForDisplay(workout: WorkoutEvent): DisplayWorkout;
-}
-
-export class WorkoutAnalyticsService implements WorkoutAnalyticsService {
-  calculateWorkoutStats(workouts: WorkoutEvent[]): WorkoutStats {
+// ✅ CORRECT: Pure business logic - no NDK operations
+export class WorkoutAnalyticsService {
+  calculateWorkoutStats(workouts: ParsedWorkoutEvent[]): WorkoutStats {
     const totalWorkouts = workouts.length;
     const totalDuration = workouts.reduce((sum, w) => sum + w.duration, 0);
     const averageDuration = totalDuration / totalWorkouts;
@@ -40,8 +33,9 @@ export class WorkoutAnalyticsService implements WorkoutAnalyticsService {
     const exerciseFrequency = new Map<string, number>();
     workouts.forEach(workout => {
       workout.exercises.forEach(exercise => {
-        const count = exerciseFrequency.get(exercise.name) || 0;
-        exerciseFrequency.set(exercise.name, count + 1);
+        const exerciseId = exercise.reference.split(':')[2]; // Extract d-tag
+        const count = exerciseFrequency.get(exerciseId) || 0;
+        exerciseFrequency.set(exerciseId, count + 1);
       });
     });
 
@@ -52,105 +46,112 @@ export class WorkoutAnalyticsService implements WorkoutAnalyticsService {
       mostFrequentExercises: Array.from(exerciseFrequency.entries())
         .sort(([,a], [,b]) => b - a)
         .slice(0, 5)
-        .map(([name, count]) => ({ name, count }))
-    };
-  }
-
-  generateWorkoutSummary(workout: WorkoutEvent): WorkoutSummary {
-    const totalSets = workout.exercises.reduce((sum, ex) => sum + ex.sets.length, 0);
-    const totalReps = workout.exercises.reduce((sum, ex) => 
-      sum + ex.sets.reduce((setSum, set) => setSum + set.reps, 0), 0);
-    const totalWeight = workout.exercises.reduce((sum, ex) =>
-      sum + ex.sets.reduce((setSum, set) => setSum + (set.weight * set.reps), 0), 0);
-
-    return {
-      duration: workout.duration,
-      totalSets,
-      totalReps,
-      totalWeight,
-      exerciseCount: workout.exercises.length,
-      muscleGroups: [...new Set(workout.exercises.flatMap(ex => ex.muscleGroups))]
+        .map(([exerciseId, count]) => ({ exerciseId, count }))
     };
   }
 
   validateWorkoutData(workoutData: any): ValidationResult {
-    // Pure validation logic - no external dependencies
     if (!workoutData.exercises || workoutData.exercises.length === 0) {
       return { valid: false, error: 'Workout must have at least one exercise' };
+    }
+    
+    if (workoutData.exercises.some((ex: any) => !ex.reference)) {
+      return { valid: false, error: 'All exercises must have valid references' };
     }
     
     return { valid: true };
   }
 
-  transformWorkoutForDisplay(workout: WorkoutEvent): DisplayWorkout {
-    // Pure transformation logic
+  generateNIP101eEvent(workoutData: CompletedWorkout, userPubkey: string): WorkoutEventData {
     return {
-      id: workout.tagId(),
-      title: workout.title || 'Untitled Workout',
-      date: new Date(workout.created_at * 1000).toLocaleDateString(),
-      duration: this.formatDuration(workout.duration),
-      exercises: workout.exercises.map(ex => ({
-        name: ex.name,
-        setCount: ex.sets.length,
-        totalReps: ex.sets.reduce((sum, set) => sum + set.reps, 0)
-      }))
+      kind: 1301,
+      content: `Completed ${workoutData.exercises.length} exercises`,
+      tags: [
+        ['d', workoutData.id],
+        ['title', workoutData.title],
+        ['start', workoutData.startTime.toString()],
+        ['end', workoutData.endTime.toString()],
+        ['completed', 'true'],
+        // All completed sets as exercise tags
+        ...workoutData.completedSets.map(set => [
+          'exercise',
+          set.exerciseRef,
+          '',
+          set.weight.toString(),
+          set.reps.toString(),
+          set.rpe.toString(),
+          set.setType || 'normal'
+        ])
+      ],
+      created_at: Math.floor(Date.now() / 1000),
+      pubkey: userPubkey
     };
   }
-
-  private formatDuration(seconds: number): string {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
-  }
 }
+
+// Export singleton instance
+export const workoutAnalyticsService = new WorkoutAnalyticsService();
 ```
 
-### Pattern 2: Component + Service Integration
+### Pattern 2: NDK Operations in Components (Data Layer)
 ```typescript
-// ✅ CORRECT: Component handles data, service handles logic
-import { useSubscribe } from '@nostr-dev-kit/ndk-hooks';
-import { WorkoutAnalyticsService } from '@/lib/services/workoutAnalyticsService';
+// ✅ CORRECT: Components handle NDK, services handle logic
+import { useSubscribe } from '@nostr-dev-kit/ndk-react';
+import { workoutAnalyticsService } from '@/lib/services/workoutAnalytics';
 
 const WorkoutDashboard = () => {
-  // Component-level subscription (NDK optimizes automatically)
-  const { events: workouts } = useSubscribe<WorkoutEvent>([
-    { kinds: [1301], authors: [userPubkey], limit: 50 }
-  ]);
+  const { user } = useNDKSession();
+  
+  // NDK handles data fetching and caching automatically
+  const { events: workoutEvents } = useSubscribe({
+    filters: [{ kinds: [1301], authors: [user.pubkey], limit: 50 }],
+    opts: { cacheUsage: NDKSubscriptionCacheUsage.CACHE_FIRST }
+  });
+  
+  // Parse events to application models
+  const workouts = useMemo(() => 
+    workoutEvents.map(parseWorkoutEvent), 
+    [workoutEvents]
+  );
   
   // Service handles business logic only
-  const analyticsService = new WorkoutAnalyticsService();
-  const stats = analyticsService.calculateWorkoutStats(workouts);
+  const stats = useMemo(() => 
+    workoutAnalyticsService.calculateWorkoutStats(workouts),
+    [workouts]
+  );
   
   return (
     <div>
       <h2>Workout Statistics</h2>
       <p>Total Workouts: {stats.totalWorkouts}</p>
-      <p>Average Duration: {stats.averageDuration} minutes</p>
-      <div>
-        <h3>Most Frequent Exercises:</h3>
-        {stats.mostFrequentExercises.map(({ name, count }) => (
-          <div key={name}>{name}: {count} times</div>
-        ))}
-      </div>
+      <p>Average Duration: {Math.round(stats.averageDuration / 60)} minutes</p>
+      <WorkoutFrequencyChart exercises={stats.mostFrequentExercises} />
     </div>
   );
 };
 
-// Multiple components can subscribe to same data - NDK merges efficiently
-const WorkoutList = () => {
-  const { events: workouts } = useSubscribe<WorkoutEvent>([
-    { kinds: [1301], authors: [userPubkey], limit: 50 }
-  ]);
+// Multiple components can subscribe to same data - NDK optimizes automatically
+const WorkoutHistory = () => {
+  const { user } = useNDKSession();
   
-  const analyticsService = new WorkoutAnalyticsService();
+  // Same filter = NDK shares subscription and cache
+  const { events: workoutEvents } = useSubscribe({
+    filters: [{ kinds: [1301], authors: [user.pubkey], limit: 50 }],
+    opts: { cacheUsage: NDKSubscriptionCacheUsage.CACHE_FIRST }
+  });
+  
+  const workouts = useMemo(() => 
+    workoutEvents.map(parseWorkoutEvent),
+    [workoutEvents]
+  );
   
   return (
     <div>
       {workouts.map(workout => {
-        const summary = analyticsService.generateWorkoutSummary(workout);
+        const summary = workoutAnalyticsService.generateWorkoutSummary(workout);
         return (
           <WorkoutCard 
-            key={workout.tagId()} 
+            key={workout.id} 
             workout={workout} 
             summary={summary} 
           />
@@ -161,62 +162,66 @@ const WorkoutList = () => {
 };
 ```
 
-### Pattern 3: XState + Service Integration (Business Logic Only)
+### Pattern 3: XState + Service Integration (No Injection)
 ```typescript
-// ✅ CORRECT: XState machines use services for business logic, not data fetching
+// ✅ CORRECT: XState calls services directly - no injection complexity
 import { fromPromise } from 'xstate';
-import { WorkoutAnalyticsService } from '@/lib/services/workoutAnalyticsService';
-import { publishEvent } from '@/lib/actors/globalNDKActor';
+import { workoutAnalyticsService } from '@/lib/services/workoutAnalytics';
+import { getNDKInstance } from '@/lib/ndk';
 
 const workoutCompletionMachine = setup({
   types: {
     context: {} as {
-      workoutData: WorkoutData;
+      workoutData: CompletedWorkout;
+      userPubkey: string;
       validationResult: ValidationResult | null;
-      summary: WorkoutSummary | null;
+      eventId?: string;
     },
     events: {} as 
       | { type: 'VALIDATE_WORKOUT' }
-      | { type: 'COMPLETE_WORKOUT' }
       | { type: 'PUBLISH_WORKOUT' }
   },
   actors: {
+    // Service handles business logic only
     validateWorkoutActor: fromPromise(async ({ input }: { 
-      input: { workoutData: WorkoutData } 
+      input: { workoutData: CompletedWorkout } 
     }) => {
-      // Service handles pure business logic
-      const analyticsService = new WorkoutAnalyticsService();
-      return analyticsService.validateWorkoutData(input.workoutData);
+      // Direct service call - no injection needed
+      return workoutAnalyticsService.validateWorkoutData(input.workoutData);
     }),
 
+    // Direct NDK operations in actors
     publishWorkoutActor: fromPromise(async ({ input }: {
-      input: { workoutData: WorkoutData; userPubkey: string }
+      input: { workoutData: CompletedWorkout; userPubkey: string }
     }) => {
-      // Global NDK Actor handles publishing
-      const eventData = {
-        kind: 1301,
-        content: JSON.stringify(input.workoutData),
-        tags: [
-          ['d', `workout_${input.workoutData.id}`],
-          ['date', input.workoutData.date],
-          ['duration', input.workoutData.duration.toString()]
-        ],
-        created_at: Math.floor(Date.now() / 1000),
-        pubkey: input.userPubkey
-      };
+      const ndk = getNDKInstance();
+      if (!ndk || !ndk.signer) {
+        throw new Error('NDK not authenticated');
+      }
       
-      publishEvent(eventData, `workout_${input.workoutData.id}`);
-      return { success: true };
+      // Service generates event data
+      const eventData = workoutAnalyticsService.generateNIP101eEvent(
+        input.workoutData, 
+        input.userPubkey
+      );
+      
+      // NDK handles publishing
+      const event = new NDKEvent(ndk, eventData);
+      await event.publish();
+      
+      return { eventId: event.id };
     })
   }
 }).createMachine({
   id: 'workoutCompletion',
   initial: 'validating',
-  context: {
-    workoutData: null as any,
-    validationResult: null,
-    summary: null
-  },
+  
+  context: ({ input }) => ({
+    workoutData: input.workoutData,
+    userPubkey: input.userPubkey,
+    validationResult: null
+  }),
+  
   states: {
     validating: {
       invoke: {
@@ -231,17 +236,11 @@ const workoutCompletionMachine = setup({
         onError: 'validationError'
       }
     },
+    
     validated: {
-      entry: assign({
-        summary: ({ context }) => {
-          const analyticsService = new WorkoutAnalyticsService();
-          return analyticsService.generateWorkoutSummary(context.workoutData);
-        }
-      }),
-      on: {
-        PUBLISH_WORKOUT: 'publishing'
-      }
+      on: { PUBLISH_WORKOUT: 'publishing' }
     },
+    
     publishing: {
       invoke: {
         src: 'publishWorkoutActor',
@@ -249,223 +248,135 @@ const workoutCompletionMachine = setup({
           workoutData: context.workoutData,
           userPubkey: context.userPubkey 
         }),
-        onDone: 'published',
+        onDone: {
+          target: 'published',
+          actions: assign({
+            eventId: ({ event }) => event.output.eventId
+          })
+        },
         onError: 'publishError'
       }
     },
-    published: {
-      type: 'final'
-    },
+    
+    published: { type: 'final' },
     validationError: {},
     publishError: {}
   }
 });
 ```
 
-## Service Dependency Injection for Web
+## Service Organization for NDK-First
 
-### Pattern 1: Service Provider Pattern
+### Pattern 1: Domain-Specific Services
 ```typescript
-// ✅ CORRECT: Service provider for React context
-import React, { createContext, useContext, ReactNode } from 'react';
-import { useNDK } from '@/providers/NDKProvider';
-
-interface ServiceContainer {
-  workoutCacheService: WorkoutCacheService;
-  analyticsService: WorkoutAnalyticsService;
-  exerciseLibraryService: ExerciseLibraryService;
+// src/lib/services/workoutAnalytics.ts
+export class WorkoutAnalyticsService {
+  calculateStats(workouts: ParsedWorkoutEvent[]): WorkoutStats { }
+  validateWorkout(data: any): ValidationResult { }
+  generateSummary(workout: ParsedWorkoutEvent): WorkoutSummary { }
 }
 
-const ServiceContext = createContext<ServiceContainer | null>(null);
+// src/lib/services/exerciseAnalytics.ts  
+export class ExerciseAnalyticsService {
+  analyzePerformance(sets: CompletedSet[]): PerformanceMetrics { }
+  calculateProgression(historical: CompletedSet[]): ProgressionData { }
+  suggestWeight(history: CompletedSet[], rpe: number): number { }
+}
 
-export const ServiceProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+// src/lib/services/workoutGeneration.ts
+export class WorkoutGenerationService {
+  generateFromTemplate(template: WorkoutTemplate): WorkoutPlan { }
+  adaptForUser(plan: WorkoutPlan, userLevel: string): WorkoutPlan { }
+  calculateRestTimes(intensity: number): number { }
+}
+
+// Export singletons
+export const workoutAnalyticsService = new WorkoutAnalyticsService();
+export const exerciseAnalyticsService = new ExerciseAnalyticsService();
+export const workoutGenerationService = new WorkoutGenerationService();
+```
+
+### Pattern 2: Service Composition
+```typescript
+// src/lib/services/index.ts - Barrel exports
+export { workoutAnalyticsService } from './workoutAnalytics';
+export { exerciseAnalyticsService } from './exerciseAnalytics';
+export { workoutGenerationService } from './workoutGeneration';
+
+// Usage in components
+import { 
+  workoutAnalyticsService, 
+  exerciseAnalyticsService 
+} from '@/lib/services';
+
+const analytics = workoutAnalyticsService.calculateStats(workouts);
+const performance = exerciseAnalyticsService.analyzePerformance(sets);
+```
+
+## NDK-Specific Optimizations
+
+### Pattern 1: Leverage NDK Cache Automatically
+```typescript
+// ✅ CORRECT: Let NDK handle caching and optimization
+const ExerciseLibrary = () => {
+  // NDK automatically:
+  // - Caches in IndexedDB
+  // - Deduplicates subscriptions
+  // - Optimizes network requests
+  const { events: exerciseEvents } = useSubscribe({
+    filters: [{ kinds: [33401], '#t': ['fitness'] }],
+    opts: { cacheUsage: NDKSubscriptionCacheUsage.CACHE_FIRST }
+  });
+  
+  const exercises = useMemo(() => 
+    exerciseEvents.map(parseExerciseTemplate),
+    [exerciseEvents]
+  );
+  
+  // Service handles business logic only
+  const categorized = exerciseAnalyticsService.categorizeExercises(exercises);
+  
+  return <ExerciseGrid exercises={categorized} />;
+};
+```
+
+### Pattern 2: Offline-First with NDK
+```typescript
+// ✅ CORRECT: NDK handles offline publishing automatically
+const useWorkoutPublishing = () => {
   const { ndk } = useNDK();
   
-  const services = useMemo(() => {
-    if (!ndk) return null;
+  const publishWorkout = useCallback(async (workoutData: CompletedWorkout) => {
+    if (!ndk || !ndk.signer) {
+      throw new Error('Not authenticated');
+    }
     
-    return {
-      workoutCacheService: new NDKWorkoutCacheService(ndk),
-      analyticsService: new WorkoutAnalyticsService(),
-      exerciseLibraryService: new ExerciseLibraryService(ndk)
-    };
+    // Service generates event data
+    const eventData = workoutAnalyticsService.generateNIP101eEvent(
+      workoutData, 
+      ndk.signer.user.pubkey
+    );
+    
+    // NDK handles:
+    // - Event publishing
+    // - Offline queuing
+    // - Retry logic
+    // - Cache updates
+    const event = new NDKEvent(ndk, eventData);
+    await event.publish();
+    
+    return event.id;
   }, [ndk]);
-
-  if (!services) {
-    return <div>Loading services...</div>;
-  }
-
-  return (
-    <ServiceContext.Provider value={services}>
-      {children}
-    </ServiceContext.Provider>
-  );
-};
-
-export const useServices = (): ServiceContainer => {
-  const services = useContext(ServiceContext);
-  if (!services) {
-    throw new Error('useServices must be used within ServiceProvider');
-  }
-  return services;
+  
+  return { publishWorkout };
 };
 ```
 
-### Pattern 2: Service Injection in Components
+## Service Testing for NDK-First
+
+### Pattern 1: Pure Service Testing
 ```typescript
-// ✅ CORRECT: Using services in React components
-import { useServices } from '@/providers/ServiceProvider';
-
-const WorkoutTemplateSelector: React.FC = () => {
-  const { workoutCacheService } = useServices();
-  const [templates, setTemplates] = useState<WorkoutTemplate[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const loadTemplates = async () => {
-      try {
-        const templates = await workoutCacheService.getWorkoutTemplates();
-        setTemplates(templates);
-      } catch (error) {
-        console.error('Failed to load templates:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadTemplates();
-  }, [workoutCacheService]);
-
-  if (loading) return <div>Loading templates...</div>;
-
-  return (
-    <div>
-      {templates.map(template => (
-        <div key={template.id}>
-          <h3>{template.name}</h3>
-          <p>{template.exercises.length} exercises</p>
-        </div>
-      ))}
-    </div>
-  );
-};
-```
-
-## Web-Specific Service Optimizations
-
-### Pattern 1: Browser Cache Integration
-```typescript
-// ✅ CORRECT: Service with browser cache optimization
-export class OptimizedWorkoutCacheService implements WorkoutCacheService {
-  private memoryCache = new Map<string, any>();
-  private cacheExpiry = new Map<string, number>();
-  private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-
-  constructor(private ndk: NDK) {}
-
-  async getWorkoutTemplates(): Promise<WorkoutTemplate[]> {
-    const cacheKey = 'workout-templates';
-    
-    // Check memory cache first
-    if (this.isValidCache(cacheKey)) {
-      return this.memoryCache.get(cacheKey);
-    }
-
-    // Fetch from NDK cache (IndexedDB)
-    const templates = await this.fetchTemplatesFromNDK();
-    
-    // Update memory cache
-    this.memoryCache.set(cacheKey, templates);
-    this.cacheExpiry.set(cacheKey, Date.now() + this.CACHE_TTL);
-    
-    return templates;
-  }
-
-  private isValidCache(key: string): boolean {
-    const expiry = this.cacheExpiry.get(key);
-    return expiry ? Date.now() < expiry : false;
-  }
-
-  private async fetchTemplatesFromNDK(): Promise<WorkoutTemplate[]> {
-    // Implementation using NDK cache
-    const filter = { kinds: [33402], '#t': ['fitness'] };
-    const events = await this.ndk.fetchEvents(filter);
-    return Array.from(events).map(parseWorkoutTemplate).filter(Boolean);
-  }
-}
-```
-
-### Pattern 2: Offline-First Service
-```typescript
-// ✅ CORRECT: Service with offline support
-export class OfflineWorkoutService implements WorkoutCacheService {
-  constructor(
-    private ndk: NDK,
-    private localStorageKey = 'offline-workouts'
-  ) {}
-
-  async saveWorkout(workout: Workout): Promise<void> {
-    try {
-      // Try to publish to Nostr first
-      const event = generateWorkoutEvent(workout);
-      await event.publish();
-      
-      // Remove from offline queue if successful
-      this.removeFromOfflineQueue(workout.id);
-      
-    } catch (error) {
-      console.warn('Failed to publish workout, saving offline:', error);
-      
-      // Save to offline queue
-      this.addToOfflineQueue(workout);
-    }
-  }
-
-  private addToOfflineQueue(workout: Workout): void {
-    const queue = this.getOfflineQueue();
-    queue.push({
-      workout,
-      timestamp: Date.now(),
-      retryCount: 0
-    });
-    localStorage.setItem(this.localStorageKey, JSON.stringify(queue));
-  }
-
-  private removeFromOfflineQueue(workoutId: string): void {
-    const queue = this.getOfflineQueue();
-    const filtered = queue.filter(item => item.workout.id !== workoutId);
-    localStorage.setItem(this.localStorageKey, JSON.stringify(filtered));
-  }
-
-  private getOfflineQueue(): OfflineWorkoutItem[] {
-    const stored = localStorage.getItem(this.localStorageKey);
-    return stored ? JSON.parse(stored) : [];
-  }
-
-  async syncOfflineWorkouts(): Promise<void> {
-    const queue = this.getOfflineQueue();
-    const successful: string[] = [];
-
-    for (const item of queue) {
-      try {
-        await this.saveWorkout(item.workout);
-        successful.push(item.workout.id);
-      } catch (error) {
-        console.warn(`Failed to sync workout ${item.workout.id}:`, error);
-      }
-    }
-
-    // Remove successfully synced workouts
-    successful.forEach(id => this.removeFromOfflineQueue(id));
-  }
-}
-```
-
-## Service Testing Patterns
-
-### Pattern 1: Service Unit Testing
-```typescript
-// ✅ CORRECT: Unit testing services
+// ✅ CORRECT: Test services without NDK complexity
 describe('WorkoutAnalyticsService', () => {
   let service: WorkoutAnalyticsService;
 
@@ -474,141 +385,337 @@ describe('WorkoutAnalyticsService', () => {
   });
 
   it('should calculate workout stats correctly', () => {
-    const workouts: Workout[] = [
-      {
-        id: '1',
-        duration: 1800,
-        exercises: [
-          {
-            name: 'Push ups',
-            sets: [{ reps: 10, weight: 0 }],
-            muscleGroups: ['chest']
-          }
-        ]
-      },
-      {
-        id: '2',
-        duration: 2400,
-        exercises: [
-          {
-            name: 'Squats',
-            sets: [{ reps: 15, weight: 0 }],
-            muscleGroups: ['legs']
-          }
-        ]
-      }
-    ];
-
+    const workouts = createMockWorkouts();
     const stats = service.calculateWorkoutStats(workouts);
-
+    
     expect(stats.totalWorkouts).toBe(2);
-    expect(stats.totalDuration).toBe(4200);
     expect(stats.averageDuration).toBe(2100);
-    expect(stats.mostFrequentExercises).toHaveLength(2);
+  });
+
+  it('should validate workout data', () => {
+    const invalidWorkout = { exercises: [] };
+    const result = service.validateWorkoutData(invalidWorkout);
+    
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain('at least one exercise');
   });
 });
 ```
 
-### Pattern 2: Service Integration Testing
+### Pattern 2: Component Testing with NDK Mocks
 ```typescript
-// ✅ CORRECT: Integration testing with mocked NDK
-describe('NDKWorkoutCacheService', () => {
-  let service: NDKWorkoutCacheService;
-  let mockNDK: jest.Mocked<NDK>;
+// ✅ CORRECT: Mock NDK hooks for component testing
+import { renderWithNDK } from '@/test/utils';
 
-  beforeEach(() => {
-    mockNDK = {
-      fetchEvents: jest.fn(),
-      fetchEvent: jest.fn()
-    } as any;
+describe('WorkoutDashboard', () => {
+  it('should display workout statistics', () => {
+    const mockWorkouts = createMockWorkoutEvents();
     
-    service = new NDKWorkoutCacheService(mockNDK);
-  });
-
-  it('should fetch workout templates from NDK', async () => {
-    const mockEvents = new Set([
-      createMockWorkoutTemplateEvent('template1'),
-      createMockWorkoutTemplateEvent('template2')
-    ]);
-    
-    mockNDK.fetchEvents.mockResolvedValue(mockEvents);
-
-    const templates = await service.getWorkoutTemplates();
-
-    expect(templates).toHaveLength(2);
-    expect(mockNDK.fetchEvents).toHaveBeenCalledWith({
-      kinds: [33402],
-      '#t': ['fitness']
-    });
-  });
-});
-```
-
-## Service Error Handling
-
-### Pattern 1: Graceful Degradation
-```typescript
-// ✅ CORRECT: Service with graceful error handling
-export class RobustWorkoutCacheService implements WorkoutCacheService {
-  constructor(
-    private ndk: NDK,
-    private fallbackService: LocalWorkoutService
-  ) {}
-
-  async getWorkoutTemplates(): Promise<WorkoutTemplate[]> {
-    try {
-      // Try NDK cache first
-      return await this.fetchFromNDK();
-    } catch (error) {
-      console.warn('NDK fetch failed, using fallback:', error);
-      
-      try {
-        // Fallback to local storage
-        return await this.fallbackService.getWorkoutTemplates();
-      } catch (fallbackError) {
-        console.error('All services failed:', fallbackError);
-        
-        // Return empty array rather than throwing
-        return [];
+    const { getByText } = renderWithNDK(<WorkoutDashboard />, {
+      mockSubscriptions: {
+        '[{"kinds":[1301]}]': mockWorkouts
       }
-    }
-  }
+    });
+    
+    expect(getByText('Total Workouts: 3')).toBeInTheDocument();
+  });
+});
+```
 
-  private async fetchFromNDK(): Promise<WorkoutTemplate[]> {
-    const filter = { kinds: [33402], '#t': ['fitness'] };
-    const events = await this.ndk.fetchEvents(filter);
-    return Array.from(events).map(parseWorkoutTemplate).filter(Boolean);
+## Anti-Patterns to Avoid
+
+### ❌ FORBIDDEN Patterns
+```typescript
+// DON'T: Data fetching in services
+class WorkoutService {
+  async getWorkouts(): Promise<Workout[]> {
+    const ndk = getNDKInstance(); // ❌ Services shouldn't access NDK
+    return await ndk.fetchEvents([...]);
   }
 }
+
+// DON'T: Service injection in XState context
+interface Context {
+  workoutService: WorkoutService; // ❌ No services in context
+}
+
+// DON'T: Complex service provider patterns
+const ServiceProvider = ({ children }) => {
+  const services = {
+    workoutService: new WorkoutService(ndk), // ❌ Complex injection
+  };
+  return <ServiceContext.Provider value={services}>{children}</ServiceContext.Provider>;
+};
 ```
+
+### ✅ CORRECT Alternatives
+```typescript
+// DO: NDK operations in components
+const { events: workouts } = useSubscribe([...]); // Component handles NDK
+
+// DO: Pure business logic in services
+const stats = workoutAnalyticsService.calculateStats(workouts); // Service handles logic
+
+// DO: Direct service calls in XState
+const result = await workoutAnalyticsService.processWorkout(data); // Direct call
+```
+
+## Migration Strategy from Database-Heavy Services
+
+### Phase 1: Identify Service Types
+```typescript
+// ❌ DATABASE-HEAVY (needs refactoring)
+class OldWorkoutService {
+  async getWorkouts(): Promise<Workout[]> { /* Database fetch */ }
+  async saveWorkout(workout: Workout): Promise<void> { /* Database save */ }
+  calculateStats(workoutIds: string[]): Promise<Stats> { /* Database joins */ }
+}
+
+// ✅ NDK-FIRST (business logic only)
+class NewWorkoutAnalyticsService {
+  calculateStats(workouts: ParsedWorkoutEvent[]): WorkoutStats { /* Pure logic */ }
+  validateWorkout(data: any): ValidationResult { /* Pure validation */ }
+  generateEvent(data: CompletedWorkout): EventData { /* Pure transformation */ }
+}
+```
+
+### Phase 2: Extract Business Logic
+1. Move calculations, validations, and transformations to services
+2. Remove all database/persistence code
+3. Convert to pure functions where possible
+4. Export as singletons
+
+### Phase 3: Update Components and Machines
+1. Replace service calls with NDK hooks in components
+2. Use direct service calls in XState actors
+3. Remove service injection complexity
+4. Leverage NDK's built-in optimizations
 
 ## When to Apply This Rule
 
 ### Always Create Services For:
-- NDK cache operations and data persistence
-- Complex business logic calculations
-- Data transformation between formats
-- External API integrations
-- Operations used by multiple components/machines
+- Complex calculations (statistics, analytics, progression)
+- Data validation and transformation
+- Business rule implementation
+- Event generation (NIP-101e, NIP-51)
+- Reusable algorithms
 
-### Service Design Guidelines:
-- Keep services focused on single responsibilities
-- Use dependency injection for testability
-- Implement proper error handling and fallbacks
-- Optimize for web browser performance
-- Maintain type safety with TypeScript interfaces
+### Never Create Services For:
+- Data fetching (use NDK hooks)
+- Caching (NDK handles automatically)
+- Persistence (NDK handles automatically)
+- Subscription management (NDK optimizes)
 
 ### Success Metrics:
-- Business logic is reusable across components
-- Services are easily unit testable
-- Clear separation between UI and business logic
-- Consistent error handling patterns
-- Optimized performance for web browsers
+- Services contain zero NDK operations
+- Business logic is reusable and testable
+- Components use NDK hooks for data
+- XState machines call services directly
+- No complex dependency injection needed
 
-This rule ensures that the POWR Workout PWA maintains clean architecture with well-designed service layers that are optimized for web browser environments and NDK integration.
+## XState v5 Compliance Validation
+
+### ✅ **Official XState Patterns Confirmed**
+Based on XState documentation research, our service patterns align perfectly with official recommendations:
+
+**✅ `setup({ actors })` Pattern**: Our `fromPromise` actors in setup blocks follow exact XState v5 patterns
+**✅ Direct Service Calls**: XState docs show direct function calls in actors, not dependency injection
+**✅ Input-Based Architecture**: Services receive data via `input` parameter, matching XState actor patterns
+**✅ No Context Injection**: XState v5 discourages external services in context - use input instead
+
+### ✅ **XState Documentation References**
+- **Actor Logic Creators**: `fromPromise(async ({ input }) => ...)` - matches our service integration
+- **Setup API**: `setup({ actors: { serviceName: fromPromise(...) } })` - our exact pattern
+- **Input Patterns**: Services receive data via input, not context injection
+- **Provider Pattern**: Use `.provide({ actors })` for runtime actor logic, not service injection
+
+## Golf App Migration Context
+
+### **Parallel Service Structures**
+```typescript
+// Workout services (current)
+export const workoutAnalyticsService = new WorkoutAnalyticsService();
+export const exerciseAnalyticsService = new ExerciseAnalyticsService();
+
+// Golf services (same patterns)
+export const golfAnalyticsService = new GolfAnalyticsService();
+export const courseAnalyticsService = new CourseAnalyticsService();
+export const shotAnalyticsService = new ShotAnalyticsService();
+
+// Both use identical XState integration patterns
+const golfRoundMachine = setup({
+  actors: {
+    analyzeRound: fromPromise(async ({ input }) => {
+      return golfAnalyticsService.calculateRoundStats(input.shots);
+    })
+  }
+});
+```
+
+### **Cross-Domain Pattern Reuse**
+- **Same Service Architecture**: Pure business logic, no data fetching
+- **Same XState Integration**: Direct calls in `fromPromise` actors
+- **Same NDK Patterns**: Components handle data, services handle logic
+- **Same Testing Approach**: Pure service testing + mocked component testing
+
+## Performance Benefits
+
+### **NDK Automatic Optimizations**
+- **Subscription Deduplication**: Multiple components with same filter = single subscription
+- **IndexedDB Cache**: Automatic caching with configurable size limits
+- **Network Optimization**: Intelligent relay connection management
+- **Offline Queue**: Automatic retry logic for failed publishes
+
+### **Service Layer Performance**
+- **CPU-Bound Operations**: Services focus on calculations while NDK handles I/O
+- **Memory Efficiency**: No duplicate data storage - NDK cache is single source
+- **Predictable Performance**: Pure functions have consistent execution time
+- **Scalable Architecture**: Services can be moved to web workers if needed
+
+## Enhanced Error Handling Patterns
+
+### **Result-Based Error Handling**
+```typescript
+// ✅ CORRECT: Return results instead of throwing
+interface ValidationResult {
+  valid: boolean;
+  error?: string;
+  warnings?: string[];
+}
+
+export class WorkoutAnalyticsService {
+  validateWorkoutData(data: any): ValidationResult {
+    if (!data.exercises?.length) {
+      return { 
+        valid: false, 
+        error: 'Workout must include at least one exercise' 
+      };
+    }
+    
+    const warnings: string[] = [];
+    if (data.exercises.length > 20) {
+      warnings.push('Large workout may impact performance');
+    }
+    
+    return { valid: true, warnings };
+  }
+
+  calculateStats(workouts: ParsedWorkoutEvent[]): AnalyticsResult {
+    if (workouts.length === 0) {
+      return {
+        success: false,
+        error: 'No workout data available for analysis'
+      };
+    }
+    
+    try {
+      const stats = this.performCalculations(workouts);
+      return { success: true, data: stats };
+    } catch (error) {
+      return {
+        success: false,
+        error: `Calculation failed: ${error.message}`
+      };
+    }
+  }
+}
+
+// XState integration with result handling
+const analyticsActor = fromPromise(async ({ input }) => {
+  const result = workoutAnalyticsService.calculateStats(input.workouts);
+  
+  if (!result.success) {
+    throw new Error(result.error);
+  }
+  
+  return result.data;
+});
+```
+
+### **Graceful Degradation**
+```typescript
+export class ExerciseAnalyticsService {
+  analyzePerformance(sets: CompletedSet[]): PerformanceResult {
+    // Always return usable data, even with insufficient input
+    if (sets.length < 2) {
+      return {
+        trend: 'insufficient_data',
+        confidence: 0,
+        recommendation: 'Complete more sets for analysis',
+        basicStats: this.calculateBasicStats(sets)
+      };
+    }
+    
+    return {
+      trend: this.calculateTrend(sets),
+      confidence: this.calculateConfidence(sets),
+      recommendation: this.generateRecommendation(sets),
+      basicStats: this.calculateBasicStats(sets)
+    };
+  }
+}
+```
+
+## Advanced Service Patterns
+
+### **Service Composition**
+```typescript
+// Compose multiple services for complex operations
+export class WorkoutPlanningService {
+  constructor(
+    private analytics = workoutAnalyticsService,
+    private exercise = exerciseAnalyticsService,
+    private generation = workoutGenerationService
+  ) {}
+
+  createPersonalizedPlan(userHistory: ParsedWorkoutEvent[]): WorkoutPlan {
+    // Analyze user's performance patterns
+    const userStats = this.analytics.calculateUserProfile(userHistory);
+    
+    // Identify strengths and weaknesses
+    const performance = this.exercise.analyzeUserPerformance(userHistory);
+    
+    // Generate targeted plan
+    return this.generation.createPlan({
+      userLevel: userStats.level,
+      weaknesses: performance.weakAreas,
+      preferences: userStats.preferredExercises,
+      timeConstraints: userStats.averageWorkoutDuration
+    });
+  }
+}
+
+export const workoutPlanningService = new WorkoutPlanningService();
+```
+
+### **Service Middleware Pattern**
+```typescript
+// Add cross-cutting concerns without complexity
+export function withLogging<T extends (...args: any[]) => any>(
+  service: T,
+  methodName: string
+): T {
+  return ((...args: any[]) => {
+    console.log(`[${service.constructor.name}] ${methodName} called`);
+    const result = service(...args);
+    console.log(`[${service.constructor.name}] ${methodName} completed`);
+    return result;
+  }) as T;
+}
+
+// Usage
+export const workoutAnalyticsService = new WorkoutAnalyticsService();
+workoutAnalyticsService.calculateStats = withLogging(
+  workoutAnalyticsService.calculateStats.bind(workoutAnalyticsService),
+  'calculateStats'
+);
+```
+
+This NDK-first service architecture eliminates database complexity while maintaining clean separation of concerns and excellent testability. The patterns are fully validated against XState v5 official documentation and provide a solid foundation for both workout and golf app development.
 
 ---
 
-**Last Updated**: 2025-06-21
-**Project**: POWR Workout PWA
-**Environment**: Web Browser
+**Last Updated**: 2025-06-26
+**Project**: POWR Workout PWA / NDK-First Architecture
+**Environment**: Web Browser + React Native Ready
+**XState Compliance**: Validated against official XState v5 documentation

@@ -32,17 +32,18 @@ export function MobileBottomTabs({ activeTab, onTabChange, tabs }: MobileBottomT
               variant="ghost"
               size="sm"
               className={cn(
-                "flex flex-col items-center justify-center h-9 w-14 p-1 relative",
-                "transition-all duration-150 ease-out",
+                "flex items-center justify-center h-12 w-12 p-2 relative rounded-full",
+                "transition-colors duration-150 ease-out will-change-auto",
                 isActive 
-                  ? "text-primary" 
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "text-primary bg-primary/10" 
+                  : "text-muted-foreground hover:text-foreground hover:bg-accent"
               )}
               onClick={() => onTabChange(tab.id)}
+              aria-label={tab.label}
             >
-              <div className="relative mb-0.5">
+              <div className="relative">
                 <Icon className={cn(
-                  "h-4 w-4 transition-transform duration-200",
+                  "h-5 w-5 transition-all duration-150 ease-out will-change-auto",
                   isActive && "scale-110"
                 )} />
                 
@@ -50,7 +51,7 @@ export function MobileBottomTabs({ activeTab, onTabChange, tabs }: MobileBottomT
                 {tab.badge && tab.badge > 0 && (
                   <Badge 
                     variant="destructive" 
-                    className="absolute -top-1.5 -right-1.5 h-3 w-3 p-0 text-xs flex items-center justify-center"
+                    className="absolute -top-2 -right-2 h-4 w-4 p-0 text-xs flex items-center justify-center"
                   >
                     {tab.badge > 99 ? '99+' : tab.badge}
                   </Badge>
@@ -58,16 +59,9 @@ export function MobileBottomTabs({ activeTab, onTabChange, tabs }: MobileBottomT
                 
                 {/* Notification Dot */}
                 {tab.notificationDot && (
-                  <div className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 bg-destructive rounded-full" />
+                  <div className="absolute -top-1 -right-1 h-2 w-2 bg-destructive rounded-full" />
                 )}
               </div>
-              
-              <span className={cn(
-                "text-xs leading-none transition-all duration-200",
-                isActive ? "font-medium" : "font-normal"
-              )}>
-                {tab.label}
-              </span>
             </Button>
           );
         })}
