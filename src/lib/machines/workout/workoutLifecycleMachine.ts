@@ -16,6 +16,8 @@ import type {
 } from './types/workoutLifecycleTypes';
 import { defaultWorkoutLifecycleContext } from './types/workoutLifecycleTypes';
 import type { UserInfo } from './types/workoutTypes';
+import { publishEvent } from '@/lib/actors/globalNDKActor';
+import { workoutAnalyticsService, type CompletedWorkout } from '@/lib/services/workoutAnalytics';
 
 // Workout lifecycle machine following Noga patterns
 export const workoutLifecycleMachine = setup({
@@ -111,51 +113,113 @@ export const workoutLifecycleMachine = setup({
   },
   
   actors: {
-    // Setup machine actor (to be implemented)
+    // Real setup machine actor using workout analytics service
     setupMachine: fromPromise(async ({ input }: { input: SetupMachineInput }): Promise<SetupMachineOutput> => {
-      // TODO: Implement setup machine
-      console.log('[WorkoutLifecycle] Setup machine input:', input);
+      console.log('[WorkoutLifecycle] Setup machine starting with input:', input);
       
-      // Mock setup completion for now
-      return {
-        templateSelection: {
+      try {
+        // Generate workout ID using service
+        const workoutId = workoutAnalyticsService.generateWorkoutId();
+        
+        // For now, create a simple workout setup
+        // TODO: Later this will fetch templates from NDK cache and show selection UI
+        const templateSelection = {
           templateId: input.preselectedTemplateId || 'default-template',
-          customTitle: 'Test Workout'
-        },
-        workoutData: {
-          workoutId: `workout_${Date.now()}`,
-          title: 'Test Workout',
+          customTitle: input.preselectedTemplateId ? undefined : 'Custom Workout'
+        };
+        
+        const workoutData = {
+          workoutId,
+          title: templateSelection.customTitle || 'Test Workout',
           startTime: Date.now(),
           completedSets: [],
-          workoutType: 'strength'
-        }
-      };
+          workoutType: 'strength' as const
+        };
+        
+        console.log('[WorkoutLifecycle] Setup complete:', { workoutId, templateSelection });
+        
+        return {
+          templateSelection,
+          workoutData
+        };
+      } catch (error) {
+        console.error('[WorkoutLifecycle] Setup failed:', error);
+        throw error;
+      }
     }),
     
-    // Active workout machine actor (to be implemented)
+    // Real active workout machine actor with NDK publishing
     activeWorkoutMachine: fromPromise(async ({ input }: { input: ActiveWorkoutMachineInput }): Promise<ActiveWorkoutMachineOutput> => {
-      // TODO: Implement active workout machine
-      console.log('[WorkoutLifecycle] Active workout machine input:', input);
+      console.log('[WorkoutLifecycle] Active workout machine starting with input:', input);
       
-      // Mock workout completion for now
-      return {
-        workoutData: {
-          ...input.workoutData,
+      try {
+        // Simulate workout completion with some test data
+        const completedWorkout: CompletedWorkout = {
+          workoutId: input.workoutData.workoutId,
+          title: input.workoutData.title,
+          workoutType: input.workoutData.workoutType,
+          startTime: input.workoutData.startTime,
           endTime: Date.now(),
           completedSets: [
             {
-              exerciseRef: '33401:test:pushups',
+              exerciseRef: workoutAnalyticsService.createExerciseReference(input.userInfo.pubkey, 'pushup-standard'),
               setNumber: 1,
               reps: 10,
               weight: 0,
+              rpe: 7,
               setType: 'normal',
-              completedAt: Date.now()
+              completedAt: Date.now() - 300000 // 5 minutes ago
+            },
+            {
+              exerciseRef: workoutAnalyticsService.createExerciseReference(input.userInfo.pubkey, 'pushup-standard'),
+              setNumber: 2,
+              reps: 8,
+              weight: 0,
+              rpe: 8,
+              setType: 'normal',
+              completedAt: Date.now() - 150000 // 2.5 minutes ago
             }
-          ]
-        },
-        publishedEventId: `event_${Date.now()}`,
-        totalDuration: 1800 // 30 minutes
-      };
+          ],
+          notes: 'Great workout! Feeling strong today.'
+        };
+        
+        // Validate workout data using service
+        const validation = workoutAnalyticsService.validateWorkoutData(completedWorkout);
+        if (!validation.valid) {
+          throw new Error(`Workout validation failed: ${validation.errors.join(', ')}`);
+        }
+        
+        // Generate NIP-101e event using service
+        const eventData = workoutAnalyticsService.generateNIP101eEvent(completedWorkout, input.userInfo.pubkey);
+        
+        // Publish workout completion event using Global NDK Actor (confirmed publishing)
+        console.log('[WorkoutLifecycle] Publishing workout completion event...');
+        const publishResult = await publishEvent(eventData, `workout_${completedWorkout.workoutId}`);
+        
+        if (!publishResult.success) {
+          console.warn('[WorkoutLifecycle] Publishing failed, but workout completed locally:', publishResult.error);
+          // Continue anyway - workout is completed locally
+        }
+        
+        const totalDuration = completedWorkout.endTime - completedWorkout.startTime;
+        
+        console.log('[WorkoutLifecycle] Workout completed successfully:', {
+          workoutId: completedWorkout.workoutId,
+          duration: Math.floor(totalDuration / 1000 / 60),
+          sets: completedWorkout.completedSets.length,
+          published: publishResult.success,
+          eventId: publishResult.eventId
+        });
+        
+        return {
+          workoutData: completedWorkout,
+          publishedEventId: publishResult.eventId || 'local-only',
+          totalDuration: Math.floor(totalDuration / 1000) // seconds
+        };
+      } catch (error) {
+        console.error('[WorkoutLifecycle] Active workout failed:', error);
+        throw error;
+      }
     })
   }
 }).createMachine({

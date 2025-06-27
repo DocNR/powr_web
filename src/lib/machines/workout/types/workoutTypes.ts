@@ -43,7 +43,7 @@ export interface WorkoutData {
   endTime?: number;
   completedSets: CompletedSet[];
   notes?: string;
-  workoutType: 'strength' | 'cardio' | 'flexibility' | 'mixed';
+  workoutType: 'strength' | 'circuit' | 'emom' | 'amrap';
 }
 
 // User and authentication types

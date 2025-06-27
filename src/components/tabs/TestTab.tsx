@@ -12,6 +12,7 @@ import { WorkoutPublisher } from '@/components/test/WorkoutPublisher';
 import { WorkoutReader } from '@/components/test/WorkoutReader';
 import { WorkoutListManager } from '@/components/test/WorkoutListManager';
 import WorkoutLifecycleMachineTest from '@/components/test/WorkoutLifecycleMachineTest';
+import { GlobalNDKActorTest } from '@/components/test/GlobalNDKActorTest';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { TestTube, Database, Wifi, WifiOff } from 'lucide-react';
@@ -69,6 +70,11 @@ export function TestTab() {
         {/* XState Workout Machine Test */}
         <div className="w-full">
           <WorkoutLifecycleMachineTest />
+        </div>
+        
+        {/* Global NDK Actor Test */}
+        <div className="w-full">
+          <GlobalNDKActorTest />
         </div>
       </div>
 
