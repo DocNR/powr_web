@@ -11,25 +11,39 @@ import { createActor, type Actor } from 'xstate';
 import { workoutLifecycleMachine } from '@/lib/machines/workout/workoutLifecycleMachine';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAccount, usePubkey, useIsAuthenticated } from '@/lib/auth/hooks';
 
 const WorkoutLifecycleMachineTest: React.FC = () => {
   const [actor, setActor] = useState<Actor<typeof workoutLifecycleMachine> | null>(null);
   const [currentState, setCurrentState] = useState<string>('Not Started');
   const [logs, setLogs] = useState<string[]>([]);
+  
+  // Get real authenticated user data
+  const account = useAccount();
+  const pubkey = usePubkey();
+  const isAuthenticated = useIsAuthenticated();
 
   const addLog = (message: string) => {
     setLogs(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`]);
   };
 
   const startMachine = () => {
-    const testUserInfo = {
-      pubkey: 'test-pubkey-123',
-      displayName: 'Test User'
+    // Use real authenticated user data instead of test data
+    if (!isAuthenticated || !pubkey) {
+      addLog('❌ Error: User not authenticated. Please login first.');
+      return;
+    }
+
+    const userInfo = {
+      pubkey: pubkey, // Use REAL authenticated user's pubkey
+      displayName: account?.npub?.slice(0, 16) + '...' || 'Authenticated User'
     };
+
+    addLog(`✅ Using authenticated user: ${pubkey.slice(0, 16)}...`);
 
     const newActor = createActor(workoutLifecycleMachine, {
       input: {
-        userInfo: testUserInfo,
+        userInfo: userInfo,
         preselectedTemplateId: 'test-template-123'
       }
     });

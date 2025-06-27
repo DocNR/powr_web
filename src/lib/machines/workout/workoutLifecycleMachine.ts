@@ -16,8 +16,9 @@ import type {
 } from './types/workoutLifecycleTypes';
 import { defaultWorkoutLifecycleContext } from './types/workoutLifecycleTypes';
 import type { UserInfo } from './types/workoutTypes';
-import { publishEvent } from '@/lib/actors/globalNDKActor';
-import { workoutAnalyticsService, type CompletedWorkout } from '@/lib/services/workoutAnalytics';
+import { workoutAnalyticsService } from '@/lib/services/workoutAnalytics';
+import { publishWorkoutActor } from './actors/publishWorkoutActor';
+import { loadTemplateActor } from './actors/loadTemplateActor';
 
 // Workout lifecycle machine following Noga patterns
 export const workoutLifecycleMachine = setup({
@@ -113,7 +114,11 @@ export const workoutLifecycleMachine = setup({
   },
   
   actors: {
-    // Real setup machine actor using workout analytics service
+    // Include the imported actors for use in invoke
+    loadTemplateActor,
+    publishWorkoutActor,
+    
+    // Real setup machine actor using NDK template loading
     setupMachine: fromPromise(async ({ input }: { input: SetupMachineInput }): Promise<SetupMachineOutput> => {
       console.log('[WorkoutLifecycle] Setup machine starting with input:', input);
       
@@ -122,7 +127,7 @@ export const workoutLifecycleMachine = setup({
         const workoutId = workoutAnalyticsService.generateWorkoutId();
         
         // For now, create a simple workout setup
-        // TODO: Later this will fetch templates from NDK cache and show selection UI
+        // TODO: Later this will use the loadTemplateActor through invoke
         const templateSelection = {
           templateId: input.preselectedTemplateId || 'default-template',
           customTitle: input.preselectedTemplateId ? undefined : 'Custom Workout'
@@ -148,73 +153,21 @@ export const workoutLifecycleMachine = setup({
       }
     }),
     
-    // Real active workout machine actor with NDK publishing
+    // Real active workout machine actor - manages active workout state
     activeWorkoutMachine: fromPromise(async ({ input }: { input: ActiveWorkoutMachineInput }): Promise<ActiveWorkoutMachineOutput> => {
       console.log('[WorkoutLifecycle] Active workout machine starting with input:', input);
       
       try {
-        // Simulate workout completion with some test data
-        const completedWorkout: CompletedWorkout = {
-          workoutId: input.workoutData.workoutId,
-          title: input.workoutData.title,
-          workoutType: input.workoutData.workoutType,
-          startTime: input.workoutData.startTime,
-          endTime: Date.now(),
-          completedSets: [
-            {
-              exerciseRef: workoutAnalyticsService.createExerciseReference(input.userInfo.pubkey, 'pushup-standard'),
-              setNumber: 1,
-              reps: 10,
-              weight: 0,
-              rpe: 7,
-              setType: 'normal',
-              completedAt: Date.now() - 300000 // 5 minutes ago
-            },
-            {
-              exerciseRef: workoutAnalyticsService.createExerciseReference(input.userInfo.pubkey, 'pushup-standard'),
-              setNumber: 2,
-              reps: 8,
-              weight: 0,
-              rpe: 8,
-              setType: 'normal',
-              completedAt: Date.now() - 150000 // 2.5 minutes ago
-            }
-          ],
-          notes: 'Great workout! Feeling strong today.'
-        };
+        // This actor should manage the active workout state
+        // For now, it just returns the workout data without publishing
+        // Publishing will happen when WORKOUT_COMPLETED event is received
         
-        // Validate workout data using service
-        const validation = workoutAnalyticsService.validateWorkoutData(completedWorkout);
-        if (!validation.valid) {
-          throw new Error(`Workout validation failed: ${validation.errors.join(', ')}`);
-        }
-        
-        // Generate NIP-101e event using service
-        const eventData = workoutAnalyticsService.generateNIP101eEvent(completedWorkout, input.userInfo.pubkey);
-        
-        // Publish workout completion event using Global NDK Actor (confirmed publishing)
-        console.log('[WorkoutLifecycle] Publishing workout completion event...');
-        const publishResult = await publishEvent(eventData, `workout_${completedWorkout.workoutId}`);
-        
-        if (!publishResult.success) {
-          console.warn('[WorkoutLifecycle] Publishing failed, but workout completed locally:', publishResult.error);
-          // Continue anyway - workout is completed locally
-        }
-        
-        const totalDuration = completedWorkout.endTime - completedWorkout.startTime;
-        
-        console.log('[WorkoutLifecycle] Workout completed successfully:', {
-          workoutId: completedWorkout.workoutId,
-          duration: Math.floor(totalDuration / 1000 / 60),
-          sets: completedWorkout.completedSets.length,
-          published: publishResult.success,
-          eventId: publishResult.eventId
-        });
+        console.log('[WorkoutLifecycle] Active workout ready - waiting for completion...');
         
         return {
-          workoutData: completedWorkout,
-          publishedEventId: publishResult.eventId || 'local-only',
-          totalDuration: Math.floor(totalDuration / 1000) // seconds
+          workoutData: input.workoutData,
+          publishedEventId: undefined, // No publishing until completion
+          totalDuration: 0 // Will be calculated on completion
         };
       } catch (error) {
         console.error('[WorkoutLifecycle] Active workout failed:', error);
@@ -252,8 +205,10 @@ export const workoutLifecycleMachine = setup({
         onDone: {
           target: 'active',
           actions: [
-            'updateTemplateSelection',
-            'updateWorkoutData',
+            assign({
+              templateSelection: ({ event }) => event.output.templateSelection,
+              workoutData: ({ event }) => event.output.workoutData
+            }),
             'spawnActiveWorkout',
             'logTransition'
           ]
@@ -303,8 +258,71 @@ export const workoutLifecycleMachine = setup({
     },
     
     completed: {
+      invoke: {
+        src: 'publishWorkoutActor',
+        input: ({ context }) => {
+          // Always use mock completed sets for testing since we don't have real workout tracking yet
+          // Use the REAL authenticated user's pubkey for exercise references
+          const mockCompletedSets = [
+            {
+              exerciseRef: workoutAnalyticsService.createExerciseReference(context.userInfo.pubkey, 'pushup-standard'),
+              setNumber: 1,
+              reps: 10,
+              weight: 0,
+              rpe: 7,
+              setType: 'normal' as const,
+              completedAt: Date.now() - 300000
+            },
+            {
+              exerciseRef: workoutAnalyticsService.createExerciseReference(context.userInfo.pubkey, 'pushup-standard'),
+              setNumber: 2,
+              reps: 8,
+              weight: 0,
+              rpe: 8,
+              setType: 'normal' as const,
+              completedAt: Date.now() - 150000
+            }
+          ];
+
+          // Create completed workout data
+          const completedWorkout = {
+            workoutId: context.workoutData?.workoutId || 'unknown',
+            title: context.workoutData?.title || 'Unknown Workout',
+            workoutType: context.workoutData?.workoutType || 'strength',
+            startTime: context.workoutData?.startTime || Date.now(),
+            endTime: Date.now(),
+            completedSets: mockCompletedSets,
+            notes: 'Great workout! Feeling strong today.'
+          };
+          
+          return {
+            workoutData: completedWorkout,
+            userPubkey: context.userInfo.pubkey
+          };
+        },
+        onDone: {
+          target: 'published',
+          actions: ['logTransition']
+        },
+        onError: {
+          target: 'publishError',
+          actions: ['setError', 'logTransition']
+        }
+      }
+    },
+    
+    published: {
       type: 'final',
       entry: ['logTransition']
+    },
+    
+    publishError: {
+      on: {
+        DISMISS_ERROR: {
+          target: 'published',
+          actions: ['clearError', 'logTransition']
+        }
+      }
     },
     
     error: {

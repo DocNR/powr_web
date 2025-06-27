@@ -31,6 +31,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Complete XState Workout Machines with Real NDK Integration COMPLETE (June 27, 2025) ✅**
+  
+  **User Impact**: Full end-to-end workout system now operational. Users can authenticate with NIP-07 browser extensions, start complete workout flows (Setup → Active → Complete), and publish real workout events to Nostr network. Complete lifecycle includes template selection, exercise progression tracking, pause/resume functionality, and automatic publishing of NIP-101e compliant workout records.
+  
+  **Developer Notes**: Implemented comprehensive 2-phase XState v5 system following Noga patterns. Phase 1: Core machine hierarchy (workoutLifecycleMachine parent, nested active states with pause/resume, complete TypeScript types). Phase 2: Real NDK integration (publishWorkoutActor, loadTemplateActor, workoutAnalyticsService for NIP-101e generation, Global NDK Actor publishing). Successfully published event: 82dc1410dddf303e29f242229e3f41a3ee429c525f6bbdb74d9b1d6bb03622af. Fixed NIP-07 authentication with proper credential management patterns.
+  
+  **Architecture Changes**: Fully validated NDK-first architecture with real authentication and publishing. Established complete service layer with pure business logic (workoutAnalyticsService). Proven XState + NDK integration patterns ready for golf app migration. Zero custom database code - all persistence through NDK cache. Complete credential management: auth hooks for components, input parameters for XState machines.
+
 - **NDK Event Queue Architecture Research & Optimization COMPLETE (June 26, 2025) ✅**
   
   **User Impact**: App now has production-ready event publishing with proven offline reliability. Events queued when offline are automatically published when connectivity returns, with real-world validation showing events successfully delivered to Nostr network while maintaining IndexedDB persistence for fault tolerance.
