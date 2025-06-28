@@ -35,9 +35,10 @@
 
 ### 🎨 "Building UI Components" / Interface Development
 **Symptoms**: Custom component creation, styling inconsistencies, accessibility concerns
-- **Primary**: [shadcn-ui-component-library.md](./shadcn-ui-component-library.md) - UI component library standards
-- **Consistency**: Use shadcn/ui before building custom components
+- **Primary**: [radix-ui-component-library.md](./radix-ui-component-library.md) - Enterprise UI component library standards
+- **Consistency**: Use POWR UI components built on Radix UI primitives
 - **Accessibility**: Built-in a11y compliance through Radix UI primitives
+- **White Labeling**: Complete styling control for gym personalities
 
 ### 💪 "Working with Workout Events" / Nostr Integration
 **Symptoms**: NIP-101e events, workout data validation, event publishing
@@ -66,7 +67,7 @@
 7. **[service-layer-architecture.md](./service-layer-architecture.md)** - Service extraction for web
 8. **[xstate-external-service-integration.md](./xstate-external-service-integration.md)** - External service patterns
 9. **[nip-101e-standards.md](./nip-101e-standards.md)** - Workout event standards
-10. **[shadcn-ui-component-library.md](./shadcn-ui-component-library.md)** - UI component library standards
+10. **[radix-ui-component-library.md](./radix-ui-component-library.md)** - Enterprise UI component library standards
 
 ### 📝 **Documentation & Workflow**
 11. **[documentation-maintenance.md](./documentation-maintenance.md)** - Doc standards
@@ -92,8 +93,10 @@
 | "Need to create a service" / "Extract business logic" | service-layer-architecture.md |
 | "Using NDK hooks" / "Data fetching patterns" | ndk-best-practices.md |
 | "This feels complex" / "Should I build a service for this?" | simple-solutions-first.md |
-| "Building UI components" / "Need a form/button/modal" | shadcn-ui-component-library.md |
-| "Custom component creation" / "Styling inconsistencies" | shadcn-ui-component-library.md |
+| "Building UI components" / "Need a form/button/modal" | radix-ui-component-library.md |
+| "Custom component creation" / "Styling inconsistencies" | radix-ui-component-library.md |
+| "White labeling" / "Gym theming" / "Enterprise stability" | radix-ui-component-library.md |
+| "shadcn/ui issues" / "Component dependency problems" | radix-ui-component-library.md |
 | "Need to verify published events" / "Check Nostr content" | nostr-event-verification.md |
 | "NAK commands failing" / "Event not found" | nostr-event-verification.md |
 
@@ -136,6 +139,7 @@ Before any XState work:
 - **XState v5**: Complex workout state management
 - **Next.js 14**: App Router with PWA capabilities
 - **NIP-101e**: Workout events as primary data model
+- **Radix UI + Tailwind**: Enterprise-grade white label UI system
 
 ### **Success Metrics**
 - Zero custom database code - All persistence via NDK cache
@@ -188,6 +192,6 @@ Before any XState work:
 
 ---
 
-**Last Updated**: 2025-06-25
+**Last Updated**: 2025-06-28
 **Project**: POWR Workout PWA
 **Next Review**: When adding new rule categories or after major architectural changes

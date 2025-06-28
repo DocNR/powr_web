@@ -121,9 +121,8 @@ export const loadTemplateActor = fromPromise(async ({ input }: {
       loadTime: `${loadTime}ms`
     });
     
-    // For Phase 2, fall back to mock data on error
-    console.warn('[LoadTemplateActor] Falling back to mock data for Phase 2');
-    return createMockTemplateData(input.templateId, input.userPubkey, startTime);
+    // Re-throw error - no mock data fallback in Phase 2
+    throw new Error(`Failed to load template: ${errorMessage}`);
   }
 });
 
@@ -205,74 +204,4 @@ async function resolveExerciseDependencies(
   });
   
   return exercises;
-}
-
-/**
- * Create mock template data for Phase 2 testing
- */
-function createMockTemplateData(templateId: string, userPubkey: string, startTime: number): LoadTemplateOutput {
-  const template: WorkoutTemplate = {
-    id: templateId,
-    name: `Test Template: ${templateId}`,
-    description: 'Mock template data for Phase 2 NDK integration testing',
-    exercises: [
-      {
-        exerciseRef: `33401:${userPubkey}:pushup-standard`,
-        sets: 3,
-        reps: 10,
-        weight: 0,
-        restTime: 60
-      },
-      {
-        exerciseRef: `33401:${userPubkey}:bodyweight-squats`,
-        sets: 3,
-        reps: 15,
-        weight: 0,
-        restTime: 60
-      }
-    ],
-    estimatedDuration: 1800, // 30 minutes
-    difficulty: 'beginner',
-    authorPubkey: userPubkey,
-    createdAt: Math.floor(Date.now() / 1000)
-  };
-  
-  const exercises: ExerciseTemplate[] = [
-    {
-      id: 'pushup-standard',
-      name: 'Standard Pushup',
-      description: 'Classic bodyweight exercise',
-      muscleGroups: ['chest', 'triceps'],
-      equipment: 'bodyweight',
-      difficulty: 'beginner',
-      instructions: ['Start in plank position', 'Lower body to ground', 'Push back up'],
-      authorPubkey: userPubkey,
-      createdAt: Math.floor(Date.now() / 1000)
-    },
-    {
-      id: 'bodyweight-squats',
-      name: 'Bodyweight Squats',
-      description: 'Basic leg exercise',
-      muscleGroups: ['legs', 'glutes'],
-      equipment: 'bodyweight',
-      difficulty: 'beginner',
-      instructions: ['Stand with feet apart', 'Lower down', 'Stand back up'],
-      authorPubkey: userPubkey,
-      createdAt: Math.floor(Date.now() / 1000)
-    }
-  ];
-  
-  const loadTime = Date.now() - startTime;
-  
-  console.log('[LoadTemplateActor] Created mock template data:', {
-    templateId,
-    exerciseCount: exercises.length,
-    loadTime: `${loadTime}ms`
-  });
-  
-  return {
-    template,
-    exercises,
-    loadTime
-  };
 }

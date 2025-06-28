@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# business plans (not relevant for open source)
+docs/white-label-implementation-plan.md

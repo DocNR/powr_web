@@ -13,6 +13,8 @@ import { WorkoutReader } from '@/components/test/WorkoutReader';
 import { WorkoutListManager } from '@/components/test/WorkoutListManager';
 import WorkoutLifecycleMachineTest from '@/components/test/WorkoutLifecycleMachineTest';
 import { GlobalNDKActorTest } from '@/components/test/GlobalNDKActorTest';
+import Phase1ContentVerificationTest from '@/components/test/Phase1ContentVerificationTest';
+import WorkflowValidationTest from '@/components/test/WorkflowValidationTest';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { TestTube, Database, Wifi, WifiOff } from 'lucide-react';
@@ -50,6 +52,16 @@ export function TestTab() {
 
       {/* Test Components */}
       <div className="space-y-6">
+        {/* Phase 1 Content Verification - PREREQUISITE */}
+        <div className="w-full">
+          <Phase1ContentVerificationTest />
+        </div>
+        
+        {/* Phase 2 Workflow Validation Test */}
+        <div className="w-full">
+          <WorkflowValidationTest />
+        </div>
+        
         <div className="grid gap-6 md:grid-cols-2">
           {/* Workout Publisher */}
           <div className="space-y-4">
