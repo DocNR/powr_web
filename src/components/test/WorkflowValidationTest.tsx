@@ -16,25 +16,30 @@ import React, { useState, useEffect } from 'react';
 import { useMachine } from '@xstate/react';
 import { workoutSetupMachine } from '@/lib/machines/workout/workoutSetupMachine';
 import { activeWorkoutMachine } from '@/lib/machines/workout/activeWorkoutMachine';
-import { useAccount, usePubkey, useIsAuthenticated } from '@/lib/auth/hooks';
+import { usePubkey, useIsAuthenticated } from '@/lib/auth/hooks';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, Clock, AlertCircle, Play, Target } from 'lucide-react';
+import type { WorkoutTemplate } from '@/lib/machines/workout/types/workoutTypes';
 
 export default function WorkflowValidationTest() {
   const pubkey = usePubkey();
   const isAuthenticated = useIsAuthenticated();
   
-  const [resetKey, setResetKey] = useState(0);
   const [state, send] = useMachine(workoutSetupMachine, {
     input: { userPubkey: pubkey || '' }
   });
   
   const [activityLog, setActivityLog] = useState<string[]>([]);
-  const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
-  const [workoutData, setWorkoutData] = useState<any>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<WorkoutTemplate | null>(null);
+  const [workoutData, setWorkoutData] = useState<{
+    templateId?: string;
+    template?: WorkoutTemplate;
+    exercises?: unknown[];
+    startTime: number;
+  } | null>(null);
   const [activeWorkoutState, sendActiveWorkout] = useMachine(activeWorkoutMachine, {
     input: {
       userInfo: {
@@ -72,7 +77,7 @@ export default function WorkflowValidationTest() {
   // Handle template selection
   const handleTemplateSelect = (templateId: string) => {
     const template = state.context.availableTemplates.find(t => t.id === templateId);
-    setSelectedTemplate(template);
+    setSelectedTemplate(template || null);
     send({ type: 'SELECT_TEMPLATE', templateId });
     addLog(`Template selected: ${template?.name} (${template?.exercises.length} exercises)`);
   };
@@ -81,110 +86,12 @@ export default function WorkflowValidationTest() {
   const handleConfirmTemplate = () => {
     send({ type: 'CONFIRM_TEMPLATE' });
     setWorkoutData({
-      templateId: state.context.selectedTemplateId,
-      template: state.context.loadedTemplate,
+      templateId: state.context.selectedTemplateId || undefined,
+      template: state.context.loadedTemplate || undefined,
       exercises: state.context.loadedExercises,
       startTime: Date.now()
     });
     addLog(`Template confirmed: Ready for active workout simulation`);
-  };
-
-  // Simulate workout completion
-  const simulateWorkoutCompletion = () => {
-    if (!workoutData) return;
-    
-    // Simulate completed sets for each exercise
-    const completedSets = workoutData.template.exercises.flatMap((exercise: any, exerciseIndex: number) => {
-      return Array.from({ length: exercise.sets }, (_, setIndex) => ({
-        exerciseRef: exercise.exerciseRef,
-        exerciseIndex,
-        setIndex,
-        weight: exercise.weight || 0,
-        reps: exercise.reps + Math.floor(Math.random() * 3) - 1, // Slight variation
-        rpe: 7 + Math.floor(Math.random() * 3), // RPE 7-9
-        setType: 'normal',
-        completedAt: Date.now() + (setIndex * 60000) // 1 minute between sets
-      }));
-    });
-
-    const completedWorkout = {
-      ...workoutData,
-      completedSets,
-      endTime: Date.now() + (completedSets.length * 60000),
-      totalSets: completedSets.length,
-      status: 'completed'
-    };
-
-    setWorkoutData(completedWorkout);
-    addLog(`Workout simulation completed: ${completedSets.length} sets across ${workoutData.template.exercises.length} exercises`);
-  };
-
-  // Test workout publishing
-  const testWorkoutPublishing = async () => {
-    if (!workoutData || !workoutData.completedSets || !pubkey) return;
-    
-    addLog('🔄 Testing NIP-101e event publishing...');
-    
-    try {
-      // Import the publishing actor and analytics service
-      const { publishWorkoutActor } = await import('@/lib/machines/workout/actors/publishWorkoutActor');
-      const { workoutAnalyticsService } = await import('@/lib/services/workoutAnalytics');
-      const { createActor } = await import('xstate');
-      
-      // Create completed workout data
-      const completedWorkoutData = {
-        workoutId: workoutAnalyticsService.generateWorkoutId(),
-        title: workoutData.template.name,
-        workoutType: 'strength' as const,
-        startTime: workoutData.startTime,
-        endTime: workoutData.endTime,
-        completedSets: workoutData.completedSets.map((set: any) => ({
-          exerciseRef: set.exerciseRef,
-          setNumber: set.setIndex + 1,
-          reps: set.reps,
-          weight: set.weight,
-          rpe: set.rpe,
-          setType: set.setType,
-          completedAt: set.completedAt
-        })),
-        templateId: workoutData.templateId
-      };
-      
-      // Test publishing
-      const publishResult = await new Promise((resolve) => {
-        const actor = createActor(publishWorkoutActor, {
-          input: {
-            workoutData: completedWorkoutData,
-            userPubkey: pubkey
-          }
-        });
-        
-        actor.subscribe((snapshot) => {
-          if (snapshot.status === 'done') {
-            resolve(snapshot.output);
-          } else if (snapshot.status === 'error') {
-            resolve({ success: false, error: snapshot.error });
-          }
-        });
-        
-        actor.start();
-      });
-      
-      if (publishResult.success) {
-        setWorkoutData({
-          ...workoutData,
-          published: true,
-          eventId: publishResult.eventId,
-          requestId: publishResult.requestId
-        });
-        addLog(`✅ Workout published successfully! Event ID: ${publishResult.eventId}`);
-      } else {
-        addLog(`❌ Publishing failed: ${publishResult.error}`);
-      }
-      
-    } catch (error) {
-      addLog(`❌ Publishing test failed: ${error.message}`);
-    }
   };
 
   // Authentication check
@@ -529,11 +436,12 @@ export default function WorkflowValidationTest() {
                       <Button
                         size="sm"
                         onClick={() => {
-                          // Reset the workflow to start over using React key pattern
-                          setResetKey(prev => prev + 1); // Force machine recreation
+                          // Reset the workflow to start over
                           setWorkoutData(null);
                           setSelectedTemplate(null);
                           addLog('🔄 Restarting workout workflow...');
+                          // Send reset event to setup machine
+                          send({ type: 'LOAD_TEMPLATES' });
                         }}
                       >
                         Start New Workout

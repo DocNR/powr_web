@@ -16,7 +16,7 @@ architectural_decision: radix_primitives_tailwind
 
 ## 🎯 Sprint Overview
 
-### **Strategic Mission**
+### **Strategic Mission**r,
 Build enterprise-grade POWR Design System using **Radix UI Primitives + Tailwind CSS** based on definitive research findings, enabling dramatic visual differences for gym personalities while maintaining proven 272ms performance.
 
 ### **Research Foundation - DEFINITIVE DECISION**

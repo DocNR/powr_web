@@ -1,21 +1,18 @@
 'use client';
 
 /**
- * Test Tab - NDK Cache Validation
+ * Test Tab - Workout Flow Testing
  * 
- * Contains WorkoutPublisher and WorkoutReader components for testing
- * NDK cache persistence and validation.
+ * Contains essential test components for validating the complete workout workflow
+ * and critical NDK functionality.
  */
 
 import React from 'react';
-import { WorkoutPublisher } from '@/components/test/WorkoutPublisher';
-import { WorkoutReader } from '@/components/test/WorkoutReader';
-import { GlobalNDKActorTest } from '@/components/test/GlobalNDKActorTest';
-import Phase1ContentVerificationTest from '@/components/test/Phase1ContentVerificationTest';
 import NDKDeduplicationTest from '@/components/test/NDKDeduplicationTest';
+import WorkflowValidationTest from '@/components/test/WorkflowValidationTest';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { TestTube, Database, Wifi, WifiOff } from 'lucide-react';
+import { TestTube, Target, Wifi, WifiOff } from 'lucide-react';
 
 export function TestTab() {
   return (
@@ -24,25 +21,24 @@ export function TestTab() {
       <div className="flex items-center gap-3">
         <TestTube className="h-8 w-8 text-primary" />
         <div>
-          <h1 className="text-3xl font-bold">NDK Cache Validation</h1>
+          <h1 className="text-3xl font-bold">Workout Flow Testing</h1>
           <p className="text-muted-foreground">
-            Test NDK IndexedDB persistence, offline queue, and cross-session behavior
+            Test complete workout workflows and critical NDK functionality
           </p>
         </div>
       </div>
 
       {/* Instructions */}
       <Alert>
-        <Database className="h-4 w-4" />
+        <Target className="h-4 w-4" />
         <AlertDescription>
           <div className="space-y-2">
-            <p><strong>Testing Instructions:</strong></p>
+            <p><strong>Testing Focus:</strong></p>
             <ol className="list-decimal list-inside space-y-1 text-sm">
-              <li>Open DevTools → Application → IndexedDB → workout-pwa-cache</li>
-              <li>Use WorkoutPublisher to create test events</li>
-              <li>Use WorkoutReader to verify events are cached and retrievable</li>
-              <li>Test offline behavior using DevTools Network tab</li>
-              <li>Test cross-session persistence by refreshing the page</li>
+              <li>Use Workflow Validation Test for complete end-to-end workout testing</li>
+              <li>Use NDK Deduplication Test to verify set number fix</li>
+              <li>These tests provide the foundation for building production UI</li>
+              <li>Authenticate with NIP-07 extension for full functionality</li>
             </ol>
           </div>
         </AlertDescription>
@@ -50,44 +46,38 @@ export function TestTab() {
 
       {/* Test Components */}
       <div className="space-y-6">
-        {/* 🔴 CRITICAL: NDK Tag Deduplication Test - PRIORITY */}
+        {/* 🎯 PRIMARY: Workflow Validation Test - UI Foundation */}
+        <div className="w-full">
+          <Card className="border-blue-200 bg-blue-50">
+            <CardHeader>
+              <CardTitle className="text-blue-800 flex items-center gap-2">
+                🎯 PRIMARY: Complete Workout Flow Test
+              </CardTitle>
+              <CardDescription className="text-blue-700">
+                Foundation for UI development. Test the complete user journey from template selection to workout completion.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <WorkflowValidationTest />
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* 🔴 CRITICAL: NDK Tag Deduplication Test */}
         <div className="w-full">
           <Card className="border-red-200 bg-red-50">
             <CardHeader>
               <CardTitle className="text-red-800 flex items-center gap-2">
-                🚨 CRITICAL: NDK Deduplication Fix Test
+                🔴 CRITICAL: NDK Deduplication Fix Test
               </CardTitle>
               <CardDescription className="text-red-700">
-                Test the fix for silent data loss in workout sets. This is blocking real workout usage.
+                Verify the fix for silent data loss in workout sets. Essential for data integrity.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <NDKDeduplicationTest />
             </CardContent>
           </Card>
-        </div>
-
-        {/* Essential Test Components */}
-        <div className="grid gap-6 md:grid-cols-2">
-          {/* Workout Publisher */}
-          <div className="space-y-4">
-            <WorkoutPublisher />
-          </div>
-
-          {/* Workout Reader */}
-          <div className="space-y-4">
-            <WorkoutReader />
-          </div>
-        </div>
-        
-        {/* Phase 1 Content Verification */}
-        <div className="w-full">
-          <Phase1ContentVerificationTest />
-        </div>
-        
-        {/* Global NDK Actor Test */}
-        <div className="w-full">
-          <GlobalNDKActorTest />
         </div>
       </div>
 
@@ -141,7 +131,7 @@ export function TestTab() {
               <strong>Unexpected Behavior:</strong> Published events are appearing in the 
               <code className="mx-1 px-1 bg-background rounded">unpublishedEvents</code> table 
               even after successful publication to relays. This needs investigation to determine 
-              if it's normal NDK behavior or indicates a queue cleanup issue.
+              if it&apos;s normal NDK behavior or indicates a queue cleanup issue.
             </p>
           </div>
         </CardContent>
