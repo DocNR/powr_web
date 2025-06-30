@@ -2,14 +2,14 @@
 title: POWR Workout PWA Changelog
 description: Record of all notable changes to the POWR Workout PWA project
 status: verified
-last_updated: 2025-06-25
-last_verified: 2025-06-25
+last_updated: 2025-06-29
+last_verified: 2025-06-29
 related_code: 
-  - /src/lib/auth/
-  - /src/components/auth/
-  - /src/components/dashboard/
+  - /src/lib/machines/workout/
+  - /src/lib/actors/
+  - /src/components/test/
   - /.clinerules/
-  - /.clinerules/nostr-event-verification.md
+  - /docs/research/
 category: reference
 formatting_rules:
   - "Follow Keep a Changelog format (https://keepachangelog.com/)"
@@ -31,6 +31,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Active Workout Machine Implementation COMPLETE (June 29, 2025) ✅**
+  
+  **User Impact**: Users can now execute complete real-time workouts with exercise progression, set tracking, pause/resume functionality, and automatic publishing to Nostr network. Full workout lifecycle from template selection through active execution to completion.
+  
+  **Developer Notes**: Implemented complete XState v5 activeWorkoutMachine following Noga patterns. Created setTrackingActor for set persistence, activeWorkoutGuards for state transitions, integrated with existing workoutLifecycleMachine and NDK publishing actors.
+  
+  **Architecture Changes**: Completed XState workout machine hierarchy with production-ready patterns. Established real-time workout execution architecture ready for golf app migration. Validated XState + NDK integration for complex state management.
+
 - **NDK Deduplication Set Number Fix COMPLETE (June 29, 2025) ✅**
   
   **User Impact**: Users can now track complex workouts with multiple identical sets without silent data loss. Enables supersets, circuit training, and progressive overload methodologies with complete data integrity.
@@ -38,6 +46,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   **Developer Notes**: Added set number as 8th parameter in NIP-101e exercise tags to prevent unintended NDK deduplication. Per-exercise set counters in activeWorkoutMachine, service layer event generation updated, comprehensive test suite with live network verification.
   
   **Architecture Changes**: Established NDK deduplication bypass patterns while preserving intended deduplication. Service layer compliance maintained, backward-compatible NIP-101e extension implemented.
+
+- **UI Architecture Strategy & Planning COMPLETE (June 29, 2025) ✅**
+  
+  **User Impact**: Foundation established for enterprise-grade white label UI system with dramatic visual differences between gym personalities. Strategic decision eliminates community dependency risks for business customers.
+  
+  **Developer Notes**: Comprehensive research completed favoring Radix UI Primitives + Tailwind over shadcn/ui. Created complete 4-6 day sprint plan, established .clinerules/radix-ui-component-library.md standards, documented sprint coordinator role.
+  
+  **Architecture Changes**: Eliminated shadcn/ui community dependency risks. Established enterprise stability patterns for white labeling business model. Foundation ready for dramatic gym personality theming system.
 
 ### Added
 - **Phase 2: Complete End-to-End Workout Flow COMPLETE (June 27, 2025) ✅**

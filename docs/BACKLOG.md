@@ -66,6 +66,14 @@ formatting_rules:
 ## 🟢 Normal Priority
 
 ### Technical Improvements
+- [ ] **Service Layer Extraction for activeWorkoutMachine** (M)
+  - Extract template loading service (~150 lines of complex fallback logic)
+  - Extract workout data transformation service (CompletedWorkout format conversion)
+  - Extract exercise progression calculations (set number calculation with boundary protection)
+  - Extract timing and session management service (duration calculations, pause time tracking)
+  - **Benefits**: Improved testability, reusability, maintainability, and performance
+  - **Context**: activeWorkoutMachine is getting large (~700+ lines) with significant business logic that could be extracted following service-layer-architecture.md patterns
+
 - [ ] **Hydration Error Audit** (S)
   - Remove all `suppressHydrationWarning` flags temporarily
   - Document exact hydration errors that appear
