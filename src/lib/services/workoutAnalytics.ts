@@ -70,10 +70,15 @@ export class WorkoutAnalyticsService {
   generateNIP101eEvent(workoutData: CompletedWorkout, userPubkey: string): WorkoutEventData {
     const duration = workoutData.endTime - workoutData.startTime;
     
+    // Generate template-based d-tag for proper identification
+    const dTag = workoutData.templateId 
+      ? `${workoutData.templateId}-${workoutData.startTime}`
+      : workoutData.workoutId;
+    
     // Build tags following NIP-101e specification
     const tags: string[][] = [
-      // Required tags
-      ['d', workoutData.workoutId],
+      // Required tags - use template-based d-tag
+      ['d', dTag],
       ['title', workoutData.title],
       ['type', workoutData.workoutType],
       ['start', workoutData.startTime.toString()],
@@ -90,24 +95,48 @@ export class WorkoutAnalyticsService {
     }
     
     // Exercise sets - each completed set as separate exercise tag
-    workoutData.completedSets.forEach(set => {
-      tags.push([
+    console.log('[WorkoutAnalytics] Processing completed sets for tags:', {
+      totalSets: workoutData.completedSets.length,
+      sets: workoutData.completedSets.map(set => ({
+        exerciseRef: set.exerciseRef,
+        setNumber: set.setNumber,
+        reps: set.reps,
+        weight: set.weight
+      }))
+    });
+    
+    workoutData.completedSets.forEach((set, index) => {
+      const exerciseTag = [
         'exercise',
         set.exerciseRef,
         '', // relay-url (empty for now)
         set.weight.toString(),
         set.reps.toString(),
         (set.rpe || 7).toString(),
-        set.setType
-      ]);
+        set.setType,
+        set.setNumber.toString() // NEW: 8th parameter for NDK deduplication fix
+      ];
+      
+      console.log(`[WorkoutAnalytics] Adding exercise tag ${index + 1} with set number ${set.setNumber}:`, exerciseTag);
+      tags.push(exerciseTag);
     });
+    
+    console.log('[WorkoutAnalytics] Total exercise tags added:', tags.filter(t => t[0] === 'exercise').length);
     
     // Standard Nostr hashtags
     tags.push(['t', 'fitness']);
     tags.push(['t', workoutData.workoutType]);
+    tags.push(['client', 'POWR Web']);
     
     // Build content with workout summary
     const content = this.generateWorkoutSummary(workoutData);
+    
+    console.log('[WorkoutAnalytics] Final event data before return:', {
+      kind: WORKOUT_EVENT_KINDS.WORKOUT_RECORD,
+      totalTags: tags.length,
+      exerciseTagsCount: tags.filter(t => t[0] === 'exercise').length,
+      allTags: tags.map((tag, i) => `${i}: [${tag.join(', ')}]`)
+    });
     
     return {
       kind: WORKOUT_EVENT_KINDS.WORKOUT_RECORD,

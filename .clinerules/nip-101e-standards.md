@@ -16,7 +16,7 @@ This rule establishes comprehensive standards for NIP-101e event generation, par
 #### ✅ REQUIRED Patterns
 ```typescript
 // Exercise references - Follow NIP-01 addressable event format
-["exercise", "33401:pubkey:exercise-d-tag", "relay-url", "weight", "reps", "rpe", "set_type"]
+["exercise", "33401:pubkey:exercise-d-tag", "relay-url", "weight", "reps", "rpe", "set_type", "set_number"]
 
 // Template references - Follow NIP-01 addressable event format  
 ["template", "33402:pubkey:template-d-tag", "relay-url"] // ✅ Correct format (pubkey, not eventId)
@@ -29,16 +29,17 @@ This rule establishes comprehensive standards for NIP-101e event generation, par
 ["end", "1706455800"]                       // ✅ Unix timestamp  
 ["completed", "true"]                       // ✅ true|false
 
-// Exercise sets - Each set is a separate exercise tag
-["exercise", "33401:pubkey:pushups", "", "0", "10", "7", "normal"]     // ✅ Bodyweight exercise
-["exercise", "33401:pubkey:squats", "", "60", "5", "8", "normal"]      // ✅ Weighted exercise
-["exercise", "33401:pubkey:squats", "", "60", "5", "8", "normal"]      // ✅ Second set same exercise
+// Exercise sets - Each set is a separate exercise tag with unique set numbers
+["exercise", "33401:pubkey:pushups", "", "0", "10", "7", "normal", "1"]     // ✅ Bodyweight exercise set 1
+["exercise", "33401:pubkey:squats", "", "60", "5", "8", "normal", "1"]      // ✅ Weighted exercise set 1
+["exercise", "33401:pubkey:squats", "", "60", "5", "8", "normal", "2"]      // ✅ Second set same exercise
 
-// Standard parameters (weight, reps, rpe, set_type)
+// Standard parameters (weight, reps, rpe, set_type, set_number)
 // weight: kg (empty string for bodyweight, negative for assisted)
 // reps: count
 // rpe: 0-10 (Rate of Perceived Exertion)
 // set_type: warmup|normal|drop|failure
+// set_number: per-exercise set counter (1, 2, 3...) - prevents NDK deduplication
 
 // Standard Nostr hashtags
 ["t", "fitness"]                            // ✅ Correct

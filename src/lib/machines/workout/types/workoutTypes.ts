@@ -19,11 +19,12 @@ export interface CompletedSet {
 
 export interface WorkoutExercise {
   exerciseRef: string; // Reference to exercise template
-  plannedSets: number;
-  plannedReps: number;
-  plannedWeight: number;
+  sets: number; // Renamed from plannedSets for consistency
+  reps: number; // Renamed from plannedReps for consistency
+  weight?: number; // Renamed from plannedWeight for consistency
   restTime?: number; // seconds
 }
+
 
 export interface WorkoutTemplate {
   id: string;
@@ -32,7 +33,8 @@ export interface WorkoutTemplate {
   exercises: WorkoutExercise[];
   estimatedDuration?: number; // minutes
   difficulty?: 'beginner' | 'intermediate' | 'advanced';
-  author: string; // pubkey
+  authorPubkey: string; // pubkey
+  createdAt: number; // Unix timestamp
 }
 
 export interface WorkoutData {
@@ -42,8 +44,10 @@ export interface WorkoutData {
   startTime: number;
   endTime?: number;
   completedSets: CompletedSet[];
+  exercises?: WorkoutExercise[]; // Template exercises for active workout
   notes?: string;
   workoutType: 'strength' | 'circuit' | 'emom' | 'amrap';
+  template?: WorkoutTemplate; // Loaded template data
 }
 
 // User and authentication types
@@ -58,6 +62,8 @@ export interface ErrorInfo {
   message: string;
   code?: string;
   timestamp: number;
+  retryable?: boolean;
+  originalError?: unknown;
   context?: Record<string, unknown>;
 }
 
@@ -82,6 +88,7 @@ export interface PublishingStatus {
   isPublishing: boolean;
   publishError?: ErrorInfo;
   publishedEventId?: string;
+  eventId?: string; // For compatibility with activeWorkoutMachine
   publishAttempts: number;
 }
 

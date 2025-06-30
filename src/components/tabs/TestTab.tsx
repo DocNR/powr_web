@@ -10,11 +10,9 @@
 import React from 'react';
 import { WorkoutPublisher } from '@/components/test/WorkoutPublisher';
 import { WorkoutReader } from '@/components/test/WorkoutReader';
-import { WorkoutListManager } from '@/components/test/WorkoutListManager';
-import WorkoutLifecycleMachineTest from '@/components/test/WorkoutLifecycleMachineTest';
 import { GlobalNDKActorTest } from '@/components/test/GlobalNDKActorTest';
 import Phase1ContentVerificationTest from '@/components/test/Phase1ContentVerificationTest';
-import WorkflowValidationTest from '@/components/test/WorkflowValidationTest';
+import NDKDeduplicationTest from '@/components/test/NDKDeduplicationTest';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { TestTube, Database, Wifi, WifiOff } from 'lucide-react';
@@ -52,16 +50,24 @@ export function TestTab() {
 
       {/* Test Components */}
       <div className="space-y-6">
-        {/* Phase 1 Content Verification - PREREQUISITE */}
+        {/* 🔴 CRITICAL: NDK Tag Deduplication Test - PRIORITY */}
         <div className="w-full">
-          <Phase1ContentVerificationTest />
+          <Card className="border-red-200 bg-red-50">
+            <CardHeader>
+              <CardTitle className="text-red-800 flex items-center gap-2">
+                🚨 CRITICAL: NDK Deduplication Fix Test
+              </CardTitle>
+              <CardDescription className="text-red-700">
+                Test the fix for silent data loss in workout sets. This is blocking real workout usage.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <NDKDeduplicationTest />
+            </CardContent>
+          </Card>
         </div>
-        
-        {/* Phase 2 Workflow Validation Test */}
-        <div className="w-full">
-          <WorkflowValidationTest />
-        </div>
-        
+
+        {/* Essential Test Components */}
         <div className="grid gap-6 md:grid-cols-2">
           {/* Workout Publisher */}
           <div className="space-y-4">
@@ -74,14 +80,9 @@ export function TestTab() {
           </div>
         </div>
         
-        {/* NIP-51 List Management */}
+        {/* Phase 1 Content Verification */}
         <div className="w-full">
-          <WorkoutListManager />
-        </div>
-        
-        {/* XState Workout Machine Test */}
-        <div className="w-full">
-          <WorkoutLifecycleMachineTest />
+          <Phase1ContentVerificationTest />
         </div>
         
         {/* Global NDK Actor Test */}

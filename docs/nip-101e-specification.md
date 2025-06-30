@@ -152,8 +152,8 @@ The list of tags are as follows:
     ["start", "<Unix timestamp in seconds>"],
     ["end", "<Unix timestamp in seconds>"],
     
-    ["exercise", "<kind>:<pubkey>:<d-tag>", "<relay-url>", "<weight>", "<reps>", "<rpe>", "<set_type>"],
-    ["exercise", "<kind>:<pubkey>:<d-tag>", "<relay-url>", "<weight>", "<reps>", "<rpe>", "<set_type>"],
+    ["exercise", "<kind>:<pubkey>:<d-tag>", "<relay-url>", "<weight>", "<reps>", "<rpe>", "<set_type>", "<set_number>"],
+    ["exercise", "<kind>:<pubkey>:<d-tag>", "<relay-url>", "<weight>", "<reps>", "<rpe>", "<set_type>", "<set_number>"],
     
     ["template", "<kind>:<pubkey>:<d-tag>", "<relay-url>"],
     ["pr", "<kind>:<pubkey>:<d-tag>,<metric>,<value>"],
@@ -176,6 +176,9 @@ The list of tags are as follows:
   - RPE 7: Could do 2-3 more reps
 * `duration` - Time in seconds
 * `set_type` - Set classification (possible values: `warmup`, `normal`, `drop`, `failure`)
+* `set_number` - Per-exercise set counter (1, 2, 3...) - **OPTIONAL for backward compatibility**
+
+**Note**: The 8th parameter (set_number) was added to prevent unintended NDK deduplication of identical sets while preserving intended deduplication behavior. This enables proper tracking of multiple identical sets and advanced training methodologies like supersets and circuit training.
 
 Additional parameters can be defined in exercise templates in the `format_units` tag as needed for specific activities (e.g., distance, heartrate, intensity).
 

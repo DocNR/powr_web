@@ -23,12 +23,21 @@ formatting_rules:
 
 # Changelog
 
-All notable changes to the POWR Workout PWA will be documented in this file.
+All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+### Added
+- **NDK Deduplication Set Number Fix COMPLETE (June 29, 2025) ✅**
+  
+  **User Impact**: Users can now track complex workouts with multiple identical sets without silent data loss. Enables supersets, circuit training, and progressive overload methodologies with complete data integrity.
+  
+  **Developer Notes**: Added set number as 8th parameter in NIP-101e exercise tags to prevent unintended NDK deduplication. Per-exercise set counters in activeWorkoutMachine, service layer event generation updated, comprehensive test suite with live network verification.
+  
+  **Architecture Changes**: Established NDK deduplication bypass patterns while preserving intended deduplication. Service layer compliance maintained, backward-compatible NIP-101e extension implemented.
 
 ### Added
 - **Phase 2: Complete End-to-End Workout Flow COMPLETE (June 27, 2025) ✅**
