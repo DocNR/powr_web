@@ -52,7 +52,7 @@ const createNDKSingleton = async (): Promise<NDK> => {
       lowestValidationRatio: 0.0,   // Accept events from first responding relay
       autoConnectUserRelays: false, // Prevent auto connections that block
       autoFetchUserMutelist: false, // Prevent auto fetches that block
-      clientName: 'workout-pwa',
+      clientName: 'POWR Web',
     });
     
     // Connect to relays with timeout to prevent hanging

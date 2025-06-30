@@ -168,6 +168,36 @@ export const publishEvent = async (
       optimistic: options.optimistic
     });
     
+    console.log('[GlobalNDKActor] NDK Event tags analysis:', {
+      totalTags: ndkEvent.tags.length,
+      exerciseTagsCount: ndkEvent.tags.filter(t => t[0] === 'exercise').length,
+      allTags: ndkEvent.tags.map((tag, i) => `${i}: [${tag.join(', ')}]`)
+    });
+    
+    console.log('[GlobalNDKActor] Original eventData vs NDK event comparison:', {
+      originalTags: eventData.tags.length,
+      originalExerciseTags: eventData.tags.filter(t => t[0] === 'exercise').length,
+      ndkTags: ndkEvent.tags.length,
+      ndkExerciseTags: ndkEvent.tags.filter(t => t[0] === 'exercise').length,
+      tagsMatch: JSON.stringify(eventData.tags) === JSON.stringify(ndkEvent.tags)
+    });
+    
+    // CRITICAL DEBUG: Check if NDK is deduplicating tags
+    const originalExerciseTags = eventData.tags.filter(t => t[0] === 'exercise');
+    const ndkExerciseTags = ndkEvent.tags.filter(t => t[0] === 'exercise');
+    
+    console.log('[GlobalNDKActor] DEDUPLICATION ANALYSIS:');
+    console.log('Original exercise tags:', originalExerciseTags.map((tag, i) => `${i}: [${tag.join(', ')}]`));
+    console.log('NDK exercise tags:', ndkExerciseTags.map((tag, i) => `${i}: [${tag.join(', ')}]`));
+    
+    if (originalExerciseTags.length !== ndkExerciseTags.length) {
+      console.error('[GlobalNDKActor] 🚨 NDK IS DEDUPLICATING TAGS!', {
+        originalCount: originalExerciseTags.length,
+        ndkCount: ndkExerciseTags.length,
+        lost: originalExerciseTags.length - ndkExerciseTags.length
+      });
+    }
+    
     // Check network connectivity for better logging
     const isOnline = navigator.onLine;
     const connectedRelays = Array.from(ndk.pool?.relays?.values() || [])

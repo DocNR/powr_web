@@ -26,7 +26,7 @@ export interface WorkoutTemplate {
   description: string;
   exercises: TemplateExercise[];
   estimatedDuration?: number;
-  difficulty?: string;
+  difficulty?: 'beginner' | 'intermediate' | 'advanced';
   authorPubkey: string;
   createdAt: number;
 }
@@ -135,7 +135,11 @@ function parseTemplateFromEvent(event: NDKEvent): WorkoutTemplate {
   const id = tagMap.get('d')?.[1] || 'unknown';
   const name = tagMap.get('title')?.[1] || 'Untitled Template';
   const description = event.content || 'No description';
-  const difficulty = tagMap.get('difficulty')?.[1];
+  const difficultyValue = tagMap.get('difficulty')?.[1];
+  const difficulty: 'beginner' | 'intermediate' | 'advanced' | undefined = 
+    difficultyValue === 'beginner' || difficultyValue === 'intermediate' || difficultyValue === 'advanced' 
+      ? difficultyValue 
+      : undefined;
   const estimatedDuration = tagMap.get('duration')?.[1] ? parseInt(tagMap.get('duration')![1]) : undefined;
   
   // Extract exercise references

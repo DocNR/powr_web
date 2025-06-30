@@ -51,6 +51,9 @@ export interface ActiveWorkoutContext extends BaseMachineContext {
     plannedWeight: number;
   };
   
+  // Per-exercise set counters for NDK deduplication fix
+  exerciseSetCounters: Map<string, number>;
+  
   // Error handling
   error?: ErrorInfo;
   
@@ -73,12 +76,15 @@ export type ActiveWorkoutEvent =
   | { type: 'NEXT_EXERCISE' }
   | { type: 'PREVIOUS_EXERCISE' }
   | { type: 'SKIP_EXERCISE' }
+  | { type: 'SKIP_EXERCISE' }
+  | { type: 'NAVIGATE_TO_EXERCISE'; exerciseIndex: number }
   
   // Set completion events
   | { type: 'START_SET'; setNumber: number }
-  | { type: 'COMPLETE_SET'; setData: CompletedSet }
+  | { type: 'COMPLETE_SET'; setData?: Partial<CompletedSet> } // Optional - machine auto-generates
   | { type: 'SKIP_SET' }
   | { type: 'REDO_SET'; setNumber: number }
+  | { type: 'END_REST_PERIOD' }
   
   // Publishing events
   | { type: 'PUBLISH_WORKOUT' }
@@ -90,6 +96,9 @@ export type ActiveWorkoutEvent =
   | { type: 'ERROR_OCCURRED'; error: ErrorInfo }
   | { type: 'DISMISS_ERROR' }
   | { type: 'RETRY_OPERATION' }
+  
+  // Summary events
+  | { type: 'DISMISS_SUMMARY' }
   
   // Activity events
   | { type: 'UPDATE_ACTIVITY' }
@@ -185,6 +194,7 @@ export const defaultActiveWorkoutContext: Omit<ActiveWorkoutContext, 'userInfo' 
     isPublishing: false,
     publishAttempts: 0
   },
+  exerciseSetCounters: new Map<string, number>(),
   lastUpdated: Date.now(),
   lastActivityAt: Date.now()
 };

@@ -15,6 +15,7 @@
 import React, { useState, useEffect } from 'react';
 import { useMachine } from '@xstate/react';
 import { workoutSetupMachine } from '@/lib/machines/workout/workoutSetupMachine';
+import { activeWorkoutMachine } from '@/lib/machines/workout/activeWorkoutMachine';
 import { useAccount, usePubkey, useIsAuthenticated } from '@/lib/auth/hooks';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -23,10 +24,10 @@ import { Badge } from '@/components/ui/badge';
 import { CheckCircle, Clock, AlertCircle, Play, Target } from 'lucide-react';
 
 export default function WorkflowValidationTest() {
-  const account = useAccount();
   const pubkey = usePubkey();
   const isAuthenticated = useIsAuthenticated();
   
+  const [resetKey, setResetKey] = useState(0);
   const [state, send] = useMachine(workoutSetupMachine, {
     input: { userPubkey: pubkey || '' }
   });
@@ -34,6 +35,25 @@ export default function WorkflowValidationTest() {
   const [activityLog, setActivityLog] = useState<string[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
   const [workoutData, setWorkoutData] = useState<any>(null);
+  const [activeWorkoutState, sendActiveWorkout] = useMachine(activeWorkoutMachine, {
+    input: {
+      userInfo: {
+        pubkey: pubkey || '',
+        displayName: 'Test User'
+      },
+      workoutData: {
+        workoutId: 'test-workout-' + Date.now(),
+        title: 'Test Workout',
+        startTime: Date.now(),
+        workoutType: 'strength' as const,
+        exercises: [],
+        completedSets: []
+      },
+      templateSelection: {
+        templateId: selectedTemplate?.id || '' // Use selected template ID if available
+      }
+    }
+  });
 
   // Initialize userPubkey when authentication changes
   useEffect(() => {
@@ -318,7 +338,7 @@ export default function WorkflowValidationTest() {
                 </div>
 
                 <Button onClick={handleConfirmTemplate} className="w-full">
-                  Confirm Template & Start Workout Simulation
+                  Confirm Template & Start Active Workout Machine
                 </Button>
               </div>
             )}
@@ -326,82 +346,207 @@ export default function WorkflowValidationTest() {
         </Card>
       )}
 
-      {/* Step 3: Workout Simulation */}
+      {/* Step 3: Active Workout Machine - Real Workout Execution */}
       {workoutData && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Play className="h-5 w-5" />
-              Step 3: Workout Data Flow Simulation
+              Step 3: Active Workout Execution
             </CardTitle>
+            <CardDescription>
+              Complete workout flow: sets → exercises → navigation → completion → publishing
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <span className="font-medium">Template:</span> {workoutData.template.name}
+                  <span className="font-medium">Machine State:</span> {typeof activeWorkoutState.value === 'string' ? activeWorkoutState.value : JSON.stringify(activeWorkoutState.value)}
                 </div>
                 <div>
-                  <span className="font-medium">Exercises:</span> {workoutData.template.exercises.length}
+                  <span className="font-medium">Current Exercise:</span> {activeWorkoutState.context.exerciseProgression.currentExerciseIndex + 1} of {activeWorkoutState.context.exerciseProgression.totalExercises}
                 </div>
                 <div>
-                  <span className="font-medium">Status:</span> {workoutData.status || 'In Progress'}
+                  <span className="font-medium">Current Set:</span> {activeWorkoutState.context.exerciseProgression.currentSetNumber}
                 </div>
                 <div>
-                  <span className="font-medium">Sets:</span> {workoutData.completedSets?.length || 0} / {workoutData.template.exercises.reduce((sum: number, ex: any) => sum + ex.sets, 0)}
+                  <span className="font-medium">Publishing:</span> {activeWorkoutState.context.publishingStatus.isPublishing ? 'Yes' : 'No'}
                 </div>
               </div>
 
-              {!workoutData.completedSets && (
-                <Button onClick={simulateWorkoutCompletion} className="w-full">
-                  Simulate Workout Completion
-                </Button>
-              )}
-
-              {workoutData.completedSets && (
-                <div className="space-y-3">
-                  <Alert>
-                    <CheckCircle className="h-4 w-4" />
-                    <AlertDescription>
-                      Workout simulation completed! {workoutData.completedSets.length} sets recorded.
-                      Ready for NIP-101e event publishing validation.
-                    </AlertDescription>
-                  </Alert>
-                  
-                  <div className="text-sm space-y-1">
-                    <p className="font-medium">Completed Sets Preview:</p>
-                    {workoutData.completedSets.slice(0, 3).map((set: any, index: number) => (
-                      <div key={index} className="bg-muted p-2 rounded text-xs">
-                        {set.exerciseRef.split(':')[2]} - Set {set.setIndex + 1}: {set.reps} reps @ {set.weight}kg (RPE {set.rpe})
-                      </div>
-                    ))}
-                    {workoutData.completedSets.length > 3 && (
-                      <p className="text-xs text-muted-foreground">...and {workoutData.completedSets.length - 3} more sets</p>
-                    )}
+              {/* Machine Controls */}
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {activeWorkoutState.matches('loadingTemplate') && (
+                  <div className="col-span-full text-center py-2">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+                    <p className="mt-1 text-sm text-muted-foreground">Loading template...</p>
                   </div>
+                )}
 
-                  {!workoutData.published && (
-                    <Button 
-                      onClick={() => testWorkoutPublishing()} 
-                      className="w-full"
-                      variant="default"
+                {/* Show controls for any exercising state */}
+                {activeWorkoutState.matches('exercising') && (
+                  <>
+                    {/* Always show these basic controls when exercising */}
+                    <Button
+                      size="sm"
+                      onClick={() => sendActiveWorkout({
+                        type: 'COMPLETE_SET'
+                        // Machine auto-generates all set data from template + progression
+                      })}
+                      disabled={!activeWorkoutState.matches({ exercising: 'performingSet' })}
                     >
-                      Test NIP-101e Event Publishing
+                      Complete Set
                     </Button>
-                  )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => sendActiveWorkout({ type: 'PREVIOUS_EXERCISE' })}
+                      disabled={!activeWorkoutState.can({ type: 'PREVIOUS_EXERCISE' })}
+                    >
+                      Previous Exercise
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => sendActiveWorkout({ type: 'NEXT_EXERCISE' })}
+                      disabled={!activeWorkoutState.can({ type: 'NEXT_EXERCISE' })}
+                    >
+                      Next Exercise
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => sendActiveWorkout({ type: 'PAUSE_WORKOUT' })}
+                    >
+                      Pause
+                    </Button>
 
-                  {workoutData.published && (
-                    <Alert>
-                      <CheckCircle className="h-4 w-4" />
-                      <AlertDescription>
-                        ✅ Workout published successfully! Event ID: {workoutData.eventId}
-                        <br />
-                        <span className="text-xs font-mono">{workoutData.eventId}</span>
-                      </AlertDescription>
-                    </Alert>
-                  )}
+                    {/* Rest period specific control */}
+                    {activeWorkoutState.matches({ exercising: 'restPeriod' }) && (
+                      <Button
+                        size="sm"
+                        onClick={() => sendActiveWorkout({ type: 'END_REST_PERIOD' })}
+                      >
+                        Skip Rest
+                      </Button>
+                    )}
+
+                    {/* Between exercises control */}
+                    {activeWorkoutState.matches({ exercising: 'betweenExercises' }) && (
+                      <Button
+                        size="sm"
+                        onClick={() => sendActiveWorkout({ type: 'START_EXERCISE', exerciseIndex: 0 })}
+                      >
+                        Start Exercise
+                      </Button>
+                    )}
+                  </>
+                )}
+
+                {activeWorkoutState.matches('paused') && (
+                  <>
+                    <Button
+                      size="sm"
+                      onClick={() => sendActiveWorkout({ type: 'RESUME_WORKOUT' })}
+                    >
+                      Resume
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => sendActiveWorkout({ type: 'COMPLETE_WORKOUT' })}
+                      disabled={!activeWorkoutState.can({ type: 'COMPLETE_WORKOUT' })}
+                    >
+                      Complete
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => sendActiveWorkout({ type: 'CANCEL_WORKOUT' })}
+                    >
+                      Cancel
+                    </Button>
+                  </>
+                )}
+
+                {activeWorkoutState.matches('publishing') && (
+                  <div className="col-span-full text-center py-2">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+                    <p className="mt-1 text-sm text-muted-foreground">Publishing workout...</p>
+                  </div>
+                )}
+
+                {activeWorkoutState.matches('showingSummary') && (
+                  <Button
+                    size="sm"
+                    onClick={() => sendActiveWorkout({ type: 'DISMISS_SUMMARY' })}
+                  >
+                    Dismiss Summary
+                  </Button>
+                )}
+
+                {activeWorkoutState.matches('error') && (
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => sendActiveWorkout({ type: 'RETRY_OPERATION' })}
+                  >
+                    Retry
+                  </Button>
+                )}
+
+                {/* Debug: Show current state details */}
+                <div className="col-span-full mt-2 p-2 bg-muted rounded text-xs">
+                  <p><strong>Debug State:</strong> {JSON.stringify(activeWorkoutState.value)}</p>
+                  <p><strong>Can Complete Set:</strong> {activeWorkoutState.can({ type: 'COMPLETE_SET', setData: { exerciseRef: 'test', setNumber: 1, reps: 10, weight: 0, rpe: 7, setType: 'normal', completedAt: Date.now() } }) ? 'Yes' : 'No'}</p>
+                  <p><strong>Can Next Exercise:</strong> {activeWorkoutState.can({ type: 'NEXT_EXERCISE' }) ? 'Yes' : 'No'}</p>
+                </div>
+              </div>
+
+              {/* Machine Context Display */}
+              {activeWorkoutState.context.currentSetData && (
+                <div className="p-3 bg-muted rounded">
+                  <p className="text-sm font-medium mb-2">Current Set Data:</p>
+                  <div className="text-xs space-y-1">
+                    <p><strong>Exercise:</strong> {activeWorkoutState.context.currentSetData.exerciseRef}</p>
+                    <p><strong>Set:</strong> {activeWorkoutState.context.currentSetData.setNumber}</p>
+                    <p><strong>Planned:</strong> {activeWorkoutState.context.currentSetData.plannedReps} reps @ {activeWorkoutState.context.currentSetData.plannedWeight}kg</p>
+                  </div>
                 </div>
               )}
+
+              {/* Final Output */}
+              {(activeWorkoutState.matches('final') || activeWorkoutState.matches('cancelled')) && (
+                <Alert>
+                  <CheckCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    <strong>Active Workout Machine Complete!</strong>
+                    <pre className="text-xs mt-2 bg-white p-2 rounded border overflow-auto">
+                      {JSON.stringify(activeWorkoutState.output, null, 2)}
+                    </pre>
+                    <div className="mt-3">
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          // Reset the workflow to start over using React key pattern
+                          setResetKey(prev => prev + 1); // Force machine recreation
+                          setWorkoutData(null);
+                          setSelectedTemplate(null);
+                          addLog('🔄 Restarting workout workflow...');
+                        }}
+                      >
+                        Start New Workout
+                      </Button>
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              <div className="text-xs text-muted-foreground">
+                <p><strong>Machine Info:</strong> This demonstrates the activeWorkoutMachine following Noga&apos;s patterns exactly.</p>
+                <p>The machine handles workout execution, set tracking, exercise navigation, and NDK publishing.</p>
+              </div>
             </div>
           </CardContent>
         </Card>
