@@ -13,7 +13,7 @@ import { useSubNavigation } from '@/providers/SubNavigationProvider';
 import { getSubNavigation } from '@/config/subNavigation';
 
 export function AppLayout() {
-  const isMobile = useMediaQuery('(max-width: 768px)');
+  const isMobile = useMediaQuery('(max-width: 640px)');
   const { activeTab, setActiveTab } = useNavigation();
   const { getActiveSubTab, setActiveSubTab } = useSubNavigation();
   
@@ -36,7 +36,7 @@ export function AppLayout() {
       )}
 
       {/* Main Content Area */}
-      <div className={`flex-1 flex flex-col ${!isMobile ? 'ml-64' : ''}`}>
+      <div className={`flex-1 flex flex-col overflow-x-hidden max-w-full ${!isMobile ? 'ml-64' : ''}`}>
         {/* Header - only show on mobile since desktop has sidebar */}
         {isMobile && (
           <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60 border-b border-border">

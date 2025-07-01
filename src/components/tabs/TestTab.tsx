@@ -10,6 +10,7 @@
 import React from 'react';
 import NDKDeduplicationTest from '@/components/test/NDKDeduplicationTest';
 import WorkflowValidationTest from '@/components/test/WorkflowValidationTest';
+import WorkoutGalleryTest from '@/components/test/WorkoutGalleryTest';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { TestTube, Target, Wifi, WifiOff } from 'lucide-react';
@@ -76,6 +77,23 @@ export function TestTab() {
             </CardHeader>
             <CardContent>
               <NDKDeduplicationTest />
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* 🎨 NEW: Workout Gallery Components Test */}
+        <div className="w-full">
+          <Card className="border-green-200 bg-green-50">
+            <CardHeader>
+              <CardTitle className="text-green-800 flex items-center gap-2">
+                🎨 NEW: Workout Gallery Components Test
+              </CardTitle>
+              <CardDescription className="text-green-700">
+                Test the new UI components: CalendarBar, WorkoutCard variants, and ScrollableGallery components.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <WorkoutGalleryTest />
             </CardContent>
           </Card>
         </div>

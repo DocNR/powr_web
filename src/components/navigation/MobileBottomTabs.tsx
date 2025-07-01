@@ -20,7 +20,7 @@ interface MobileBottomTabsProps {
 export function MobileBottomTabs({ activeTab, onTabChange, tabs }: MobileBottomTabsProps) {
   return (
     <div className="fixed left-0 right-0 bottom-0 z-50 bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60 border-t border-border">
-      <div className="flex items-center justify-around px-2 safe-area-pb" style={{ paddingTop: '0.25rem', paddingBottom: `calc(0.25rem + env(safe-area-inset-bottom, 0px))` }}>
+      <div className="flex items-center justify-around px-1 safe-area-pb" style={{ paddingTop: '0.25rem', paddingBottom: `calc(0.25rem + env(safe-area-inset-bottom, 0px))` }}>
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -31,7 +31,7 @@ export function MobileBottomTabs({ activeTab, onTabChange, tabs }: MobileBottomT
               variant="ghost"
               size="sm"
               className={cn(
-                "flex items-center justify-center h-14 w-14 p-2 relative rounded-full",
+                "flex items-center justify-center h-12 w-12 sm:h-14 sm:w-14 p-2 relative rounded-full flex-shrink-0",
                 "transition-all duration-200 ease-out will-change-auto",
                 "min-h-[44px] min-w-[44px]", // Ensure 44px+ touch targets for gym use
                 isActive 

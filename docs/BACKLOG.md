@@ -48,6 +48,12 @@ formatting_rules:
 ## 🟡 High Priority
 
 ### User Experience Improvements
+- [ ] **UI Layout Standardization** (M)
+  - Create semantic layout wrapper components (FeedLayout, ContentLayout, WorkoutLayout)
+  - Standardize tab layout patterns while preserving UX differences
+  - Migrate existing tabs to use standardized components
+  - Related: `docs/tasks/ui-layout-standardization-task.md`
+
 - [ ] **User Profile Management** (M)
   - Profile creation and editing
   - Avatar and bio management

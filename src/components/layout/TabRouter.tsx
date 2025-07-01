@@ -4,7 +4,7 @@ import React, { useEffect, useRef } from 'react';
 import { useNavigation } from '@/providers/NavigationProvider';
 import HomeTab from '@/components/tabs/HomeTab';
 import { LibraryTab } from '@/components/tabs/LibraryTab';
-import ActiveTab from '@/components/tabs/ActiveTab';
+import WorkoutsTab from '@/components/tabs/WorkoutsTab';
 import { SocialTab } from '@/components/tabs/SocialTab';
 import { LogTab } from '@/components/tabs/LogTab';
 import { TestTab } from '@/components/tabs/TestTab';
@@ -32,7 +32,7 @@ export function TabRouter() {
       case 'library':
         return <LibraryTab />;
       case 'workout':
-        return <ActiveTab />;
+        return <WorkoutsTab />;
       case 'social':
         return <SocialTab />;
       case 'log':

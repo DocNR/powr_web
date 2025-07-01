@@ -33,7 +33,7 @@ export function AppHeader({
   };
 
   return (
-    <header className="flex items-center justify-between px-4 py-3 bg-background border-b">
+    <header className="flex items-center justify-between px-4 py-3 bg-background border-b min-w-0">
       {/* Left side - User Avatar (opens left drawer) */}
       <Sheet>
         <SheetTrigger asChild>
@@ -145,7 +145,7 @@ export function AppHeader({
       </Sheet>
       
       {/* Centered title */}
-      <h1 className="text-xl font-bold text-foreground">{title}</h1>
+      <h1 className="text-xl font-bold text-foreground truncate mx-4 flex-1 text-center">{title}</h1>
       
       {/* Right side - Settings icon */}
       <Button variant="ghost" size="icon" className="text-orange-500">
