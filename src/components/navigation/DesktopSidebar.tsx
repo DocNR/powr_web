@@ -1,8 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/powr-ui/primitives/Button';
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/ui/logo';
 
@@ -57,12 +56,9 @@ export function DesktopSidebar({ activeTab, onTabChange, tabs }: DesktopSidebarP
                     
                     {/* Badge */}
                     {tab.badge && tab.badge > 0 && (
-                      <Badge 
-                        variant="destructive" 
-                        className="absolute -top-2 -right-2 h-4 w-4 p-0 text-xs flex items-center justify-center"
-                      >
+                      <div className="absolute -top-2 -right-2 h-4 w-4 bg-red-500 text-white text-xs flex items-center justify-center rounded-full">
                         {tab.badge > 99 ? '99+' : tab.badge}
-                      </Badge>
+                      </div>
                     )}
                     
                     {/* Notification Dot */}

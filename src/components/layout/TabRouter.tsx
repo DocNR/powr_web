@@ -2,11 +2,11 @@
 
 import React, { useEffect, useRef } from 'react';
 import { useNavigation } from '@/providers/NavigationProvider';
-import { HomeTab } from '@/components/tabs/HomeTab';
-import { WorkoutsTab } from '@/components/tabs/WorkoutsTab';
-import { ActiveTab } from '@/components/tabs/ActiveTab';
-import { ProgressTab } from '@/components/tabs/ProgressTab';
-import { ProfileTab } from '@/components/tabs/ProfileTab';
+import HomeTab from '@/components/tabs/HomeTab';
+import { LibraryTab } from '@/components/tabs/LibraryTab';
+import ActiveTab from '@/components/tabs/ActiveTab';
+import { SocialTab } from '@/components/tabs/SocialTab';
+import { LogTab } from '@/components/tabs/LogTab';
 import { TestTab } from '@/components/tabs/TestTab';
 
 export function TabRouter() {
@@ -29,14 +29,14 @@ export function TabRouter() {
     switch (activeTab) {
       case 'home':
         return <HomeTab />;
-      case 'workouts':
-        return <WorkoutsTab />;
-      case 'active':
+      case 'library':
+        return <LibraryTab />;
+      case 'workout':
         return <ActiveTab />;
-      case 'progress':
-        return <ProgressTab />;
-      case 'profile':
-        return <ProfileTab />;
+      case 'social':
+        return <SocialTab />;
+      case 'log':
+        return <LogTab />;
       case 'test':
         return <TestTab />;
       default:

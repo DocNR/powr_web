@@ -1,4 +1,4 @@
-import { Home, Dumbbell, TrendingUp, User, Zap, TestTube } from 'lucide-react';
+import { Home, Library, Zap, Users, BookOpen } from 'lucide-react';
 import { NavigationTab } from '@/types/navigation';
 
 export const navigationTabs: NavigationTab[] = [
@@ -8,30 +8,25 @@ export const navigationTabs: NavigationTab[] = [
     icon: Home,
   },
   {
-    id: 'workouts',
-    label: 'Workouts',
-    icon: Dumbbell,
+    id: 'library',
+    label: 'Library',
+    icon: Library,
   },
   {
-    id: 'active',
-    label: 'Active',
-    icon: Zap, // Changed from Play to Zap for more energy/power theme
+    id: 'workout',
+    label: 'Workout',
+    icon: Zap, // Active workout tab - energy/power theme
     notificationDot: false, // Will be set dynamically if workout is active
   },
   {
-    id: 'progress',
-    label: 'Progress',
-    icon: TrendingUp,
+    id: 'social',
+    label: 'Social',
+    icon: Users,
   },
   {
-    id: 'profile',
-    label: 'Profile',
-    icon: User,
-  },
-  {
-    id: 'test',
-    label: 'Test',
-    icon: TestTube,
+    id: 'log',
+    label: 'Log',
+    icon: BookOpen,
   },
 ];
 

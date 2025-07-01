@@ -3,7 +3,7 @@
 import * as React from "react"
 import { SunMoon } from "lucide-react"
 import { useTheme } from "next-themes"
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/powr-ui/primitives/Button"
 
 export function ModeToggle() {
   const { theme, setTheme } = useTheme()

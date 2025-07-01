@@ -15,9 +15,9 @@ import { useState, ReactNode, useEffect } from 'react';
 import { LogIn, Puzzle, Cable, RotateCw, AlertTriangle, Smartphone } from 'lucide-react';
 
 // UI Components
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Button } from '@/components/powr-ui/primitives/Button';
+import { Input } from '@/components/powr-ui/primitives/Input';
+import { Label } from '@/components/powr-ui/primitives/Label';
 import {
   Dialog,
   DialogContent,

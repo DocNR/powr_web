@@ -7,16 +7,16 @@
  */
 
 import { useEffect } from 'react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/powr-ui/primitives/Button';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+} from '@/components/powr-ui/primitives/Card';
+import { Input } from '@/components/powr-ui/primitives/Input';
+import { Label } from '@/components/powr-ui/primitives/Label';
 import { 
   useAccount, 
   useIsAuthenticated, 

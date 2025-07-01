@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/powr-ui/primitives/Button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from '@/components/powr-ui/primitives/Sheet';
 import { Menu, User, LogOut, Settings } from 'lucide-react';
 import { useAccount, useLogout } from '@/lib/auth/hooks';
 import { ModeToggle } from '@/components/mode-toggle';

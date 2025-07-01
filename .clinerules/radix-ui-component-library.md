@@ -24,7 +24,7 @@ After analyzing Leonardo Montini's excellent critique of shadcn/ui (https://leon
 
 ### **POWR Design System Architecture**
 ```
-Radix UI Primitives → POWR Design System → Gym-Specific Themes → Customer Apps
+Radix UI Primitives → POWR Design System → Gym-Specific Themes → PWA Deployment
 ```
 
 ### **Primary Component Strategy**
@@ -379,7 +379,7 @@ test('modal is properly labeled and accessible', () => {
 ### **Documentation**
 - **Radix UI Primitives**: https://www.radix-ui.com/primitives
 - **Tailwind CSS**: https://tailwindcss.com/docs
-- **POWR UI Implementation**: `docs/tasks/phase-1-ui-implementation-task.md`
+- **POWR UI Implementation**: `docs/tasks/ui-sprint-plan.md`
 
 ### **GitHub Repositories**
 - **Radix UI**: https://github.com/radix-ui/primitives

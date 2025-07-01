@@ -1,6 +1,6 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/powr-ui/primitives/Card';
 import { Activity, Calendar, Clock, TrendingUp } from 'lucide-react';
 
 interface StatsCardsProps {
