@@ -1,8 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/powr-ui/primitives/Button';
 import { cn } from '@/lib/utils';
 
 interface MobileBottomTabsProps {
@@ -32,11 +31,12 @@ export function MobileBottomTabs({ activeTab, onTabChange, tabs }: MobileBottomT
               variant="ghost"
               size="sm"
               className={cn(
-                "flex items-center justify-center h-12 w-12 p-2 relative rounded-full",
-                "transition-colors duration-150 ease-out will-change-auto",
+                "flex items-center justify-center h-14 w-14 p-2 relative rounded-full",
+                "transition-all duration-200 ease-out will-change-auto",
+                "min-h-[44px] min-w-[44px]", // Ensure 44px+ touch targets for gym use
                 isActive 
-                  ? "text-primary bg-primary/10" 
-                  : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                  ? "text-white bg-gradient-to-r from-orange-500 to-orange-600 shadow-lg shadow-orange-500/25" 
+                  : "text-muted-foreground hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-950/20"
               )}
               onClick={() => onTabChange(tab.id)}
               aria-label={tab.label}
@@ -49,12 +49,9 @@ export function MobileBottomTabs({ activeTab, onTabChange, tabs }: MobileBottomT
                 
                 {/* Badge */}
                 {tab.badge && tab.badge > 0 && (
-                  <Badge 
-                    variant="destructive" 
-                    className="absolute -top-2 -right-2 h-4 w-4 p-0 text-xs flex items-center justify-center"
-                  >
+                  <div className="absolute -top-2 -right-2 h-4 w-4 bg-red-500 text-white text-xs flex items-center justify-center rounded-full">
                     {tab.badge > 99 ? '99+' : tab.badge}
-                  </Badge>
+                  </div>
                 )}
                 
                 {/* Notification Dot */}

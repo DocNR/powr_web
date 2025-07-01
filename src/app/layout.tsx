@@ -4,6 +4,7 @@ import "./globals.css";
 import { Provider } from 'jotai';
 import { ThemeProvider } from "@/components/theme-provider";
 import { NavigationProvider } from "@/providers/NavigationProvider";
+import { SubNavigationProvider } from "@/providers/SubNavigationProvider";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 import InstallButton from "@/components/InstallButton";
 
@@ -73,9 +74,11 @@ export default function RootLayout({
         >
           <Provider>
             <NavigationProvider>
-              <ServiceWorkerRegistration />
-              <InstallButton />
-              {children}
+              <SubNavigationProvider>
+                <ServiceWorkerRegistration />
+                <InstallButton />
+                {children}
+              </SubNavigationProvider>
             </NavigationProvider>
           </Provider>
         </ThemeProvider>
