@@ -88,18 +88,73 @@ const WorkoutLifecycleMachineTest: React.FC = () => {
 
   const completeWorkout = () => {
     if (actor) {
+      // Create realistic workout completion data with proper exercise references
+      const workoutId = `legs-workout-bodyweight-${Date.now()}`;
+      const startTime = Date.now() - 1800000; // 30 minutes ago
+      const endTime = Date.now();
+      
+      // Use authenticated user's pubkey for exercise references
+      const completedSets = [
+        {
+          exerciseRef: `33401:${pubkey}:bodyweight-squats`,
+          setNumber: 1,
+          reps: 15,
+          weight: 0,
+          rpe: 6,
+          setType: 'warmup' as const,
+          completedAt: startTime + 300000 // 5 minutes in
+        },
+        {
+          exerciseRef: `33401:${pubkey}:bodyweight-squats`,
+          setNumber: 2,
+          reps: 12,
+          weight: 0,
+          rpe: 7,
+          setType: 'normal' as const,
+          completedAt: startTime + 600000 // 10 minutes in
+        },
+        {
+          exerciseRef: `33401:${pubkey}:bodyweight-squats`,
+          setNumber: 3,
+          reps: 10,
+          weight: 0,
+          rpe: 8,
+          setType: 'normal' as const,
+          completedAt: startTime + 900000 // 15 minutes in
+        },
+        {
+          exerciseRef: `33401:${pubkey}:lunges`,
+          setNumber: 1,
+          reps: 10,
+          weight: 0,
+          rpe: 7,
+          setType: 'normal' as const,
+          completedAt: startTime + 1200000 // 20 minutes in
+        },
+        {
+          exerciseRef: `33401:${pubkey}:lunges`,
+          setNumber: 2,
+          reps: 8,
+          weight: 0,
+          rpe: 8,
+          setType: 'normal' as const,
+          completedAt: startTime + 1500000 // 25 minutes in
+        }
+      ];
+
       actor.send({ 
         type: 'WORKOUT_COMPLETED',
         workoutData: {
-          workoutId: 'test-workout-123',
-          title: 'Test Workout',
-          startTime: Date.now() - 1800000, // 30 minutes ago
-          endTime: Date.now(),
-          completedSets: [],
-          workoutType: 'strength'
+          workoutId,
+          title: 'POWR Test Legs Workout',
+          startTime,
+          endTime,
+          completedSets,
+          workoutType: 'strength',
+          notes: 'Great bodyweight leg workout! Feeling strong and energized.'
         }
       });
-      addLog('Sent WORKOUT_COMPLETED event');
+      addLog(`Sent WORKOUT_COMPLETED event with ${completedSets.length} completed sets`);
     }
   };
 

@@ -41,6 +41,8 @@ interface WorkoutImageHandlerProps {
   lazy?: boolean;
   /** Image priority for above-the-fold content */
   priority?: boolean;
+  /** Whether image should fill its container */
+  fill?: boolean;
 }
 
 export function WorkoutImageHandler({
@@ -53,7 +55,8 @@ export function WorkoutImageHandler({
   height = 150,
   className,
   lazy = true,
-  priority = false
+  priority = false,
+  fill = false
 }: WorkoutImageHandlerProps) {
   const [imageError, setImageError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -112,7 +115,7 @@ export function WorkoutImageHandler({
   // Determine the best image to use
   const primaryImage = useMemo(() => {
     // Priority: imeta tags > content URLs > fallback
-    if (imetaImages.length > 0) {
+    if (imetaImages.length > 0 && imetaImages[0].url && isValidImageUrl(imetaImages[0].url)) {
       return {
         src: imetaImages[0].url,
         alt: imetaImages[0].alt || alt,
@@ -121,7 +124,7 @@ export function WorkoutImageHandler({
       };
     }
     
-    if (contentImages.length > 0) {
+    if (contentImages.length > 0 && isValidImageUrl(contentImages[0])) {
       return {
         src: contentImages[0],
         alt,
@@ -178,31 +181,43 @@ export function WorkoutImageHandler({
       )}
       
       {/* Main image */}
-      <Image
-        src={finalImageSrc}
-        alt={finalAlt}
-        width={finalWidth}
-        height={finalHeight}
-        className={cn(
-          "object-cover transition-opacity duration-300",
-          isLoading ? "opacity-0" : "opacity-100"
-        )}
-        onLoad={handleImageLoad}
-        onError={handleImageError}
-        priority={priority}
-        loading={lazy ? "lazy" : "eager"}
-        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-      />
+      {fill ? (
+        <Image
+          src={finalImageSrc}
+          alt={finalAlt}
+          fill
+          priority={priority}
+          className={cn(
+            'object-cover transition-opacity duration-300',
+            isLoading ? 'opacity-0' : 'opacity-100',
+            className
+          )}
+          onLoad={handleImageLoad}
+          onError={handleImageError}
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+        />
+      ) : (
+        <Image
+          src={finalImageSrc}
+          alt={finalAlt}
+          width={finalWidth}
+          height={finalHeight}
+          className={cn(
+            "object-cover object-center transition-opacity duration-300",
+            "scale-105", // Slight zoom to ensure full coverage
+            isLoading ? "opacity-0" : "opacity-100"
+          )}
+          onLoad={handleImageLoad}
+          onError={handleImageError}
+          priority={priority}
+          loading={lazy ? "lazy" : "eager"}
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+        />
+      )}
       
       {/* Image overlay for better text readability */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
       
-      {/* Debug info in development */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="absolute top-2 left-2 bg-black/70 text-white text-xs p-1 rounded">
-          {imageError ? 'Fallback' : primaryImage ? 'Parsed' : 'Default'}
-        </div>
-      )}
     </div>
   );
 }

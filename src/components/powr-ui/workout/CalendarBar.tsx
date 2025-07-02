@@ -10,6 +10,7 @@
 import { useState } from 'react';
 import { format, addDays, subDays, startOfWeek, isSameDay, isToday } from 'date-fns';
 import { Button } from '@/components/powr-ui/primitives/Button';
+import { Card } from '@/components/powr-ui/primitives/Card';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -52,7 +53,7 @@ export function CalendarBar({
   };
 
   return (
-    <div className={cn("bg-black text-white", className)}>
+    <Card className={cn("w-full max-w-none", className)}>
       {/* Header with "Today" and navigation */}
       <div className="flex items-center justify-between px-3 py-3 md:px-4 md:py-4">
         <Button
@@ -65,11 +66,11 @@ export function CalendarBar({
         </Button>
         
         <div className="text-center">
-          <h2 className="text-lg md:text-xl font-bold text-white">
-            Today
-          </h2>
-          <p className="text-xs md:text-sm text-gray-400">
+          <h2 className="text-lg md:text-xl font-bold text-card-foreground">
             {format(selectedDate, 'EEEE, d MMMM')}
+          </h2>
+          <p className="text-xs md:text-sm text-muted-foreground">
+            Selected date
           </p>
         </div>
         
@@ -87,12 +88,13 @@ export function CalendarBar({
       <div className="grid grid-cols-7 gap-1 px-3 pb-3 md:px-4 md:pb-4 max-w-full overflow-hidden">
         {weekDays.map((date, index) => {
           const isCurrentDay = isToday(date);
+          const isSelectedDay = isSameDay(date, selectedDate);
           const workoutIndicator = getWorkoutIndicator(date);
           
           return (
             <div key={index} className="flex flex-col items-center">
               {/* Day letter */}
-              <div className="text-xs text-gray-400 mb-1 md:mb-2 font-medium">
+              <div className="text-xs text-muted-foreground mb-1 md:mb-2 font-medium">
                 {format(date, 'EEEEE')}
               </div>
               
@@ -102,9 +104,12 @@ export function CalendarBar({
                 className={cn(
                   "relative w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-all duration-200",
                   "touch-manipulation", // Touch-friendly without fixed min-width
-                  isCurrentDay
-                    ? "border-2 border-orange-500 text-white"
-                    : "text-gray-400 hover:text-white hover:bg-gray-800"
+                  // Selected date: same orange as border but with opacity (no border)
+                  isSelectedDay && "bg-orange-500/20 text-orange-600 dark:text-orange-400 font-medium",
+                  // Today (unselected): orange border only
+                  isCurrentDay && !isSelectedDay && "border-2 border-orange-500 text-card-foreground",
+                  // Normal dates
+                  !isSelectedDay && !isCurrentDay && "text-muted-foreground hover:text-card-foreground hover:bg-muted"
                 )}
               >
                 {/* Date number */}
@@ -125,6 +130,6 @@ export function CalendarBar({
           );
         })}
       </div>
-    </div>
+    </Card>
   );
 }

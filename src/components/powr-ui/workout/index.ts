@@ -14,5 +14,9 @@ export {
   HeroGallery 
 } from './ScrollableGallery';
 export { FilterChips, workoutFilters, durationFilters } from './FilterChips';
+export { FilterButton } from './FilterButton';
+export { default as CompactWorkoutCard } from './CompactWorkoutCard';
+export { default as SearchableWorkoutDiscovery } from './SearchableWorkoutDiscovery';
+export { WorkoutDetailModal } from './WorkoutDetailModal';
 
 // Types are available for import directly from individual components

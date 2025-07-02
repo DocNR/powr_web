@@ -1,4 +1,4 @@
-import { Home, Library, Zap, Users, BookOpen } from 'lucide-react';
+import { Home, Library, Zap, Users, BookOpen, TestTube } from 'lucide-react';
 import { NavigationTab } from '@/types/navigation';
 
 export const navigationTabs: NavigationTab[] = [
@@ -27,6 +27,11 @@ export const navigationTabs: NavigationTab[] = [
     id: 'log',
     label: 'Log',
     icon: BookOpen,
+  },
+  {
+    id: 'test',
+    label: 'Debug',
+    icon: TestTube,
   },
 ];
 

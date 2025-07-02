@@ -126,11 +126,15 @@ export const workoutLifecycleMachine = setup({
         // Generate workout ID using service
         const workoutId = workoutAnalyticsService.generateWorkoutId();
         
-        // For now, create a simple workout setup
-        // TODO: Later this will use the loadTemplateActor through invoke
+        // Create complete template selection with NIP-101e reference data
+        const templateId = input.preselectedTemplateId || 'default-template';
         const templateSelection = {
-          templateId: input.preselectedTemplateId || 'default-template',
-          customTitle: input.preselectedTemplateId ? undefined : 'Custom Workout'
+          templateId,
+          customTitle: input.preselectedTemplateId ? undefined : 'Custom Workout',
+          // ✅ ADD: Complete template reference information for NIP-101e compliance
+          templatePubkey: input.userInfo.pubkey, // Use authenticated user's pubkey for test templates
+          templateReference: `33402:${input.userInfo.pubkey}:${templateId}`,
+          templateRelayUrl: '' // Optional relay URL
         };
         
         const workoutData = {
@@ -141,7 +145,11 @@ export const workoutLifecycleMachine = setup({
           workoutType: 'strength' as const
         };
         
-        console.log('[WorkoutLifecycle] Setup complete:', { workoutId, templateSelection });
+        console.log('[WorkoutLifecycle] Setup complete with template reference:', { 
+          workoutId, 
+          templateSelection,
+          templateReference: templateSelection.templateReference
+        });
         
         return {
           templateSelection,

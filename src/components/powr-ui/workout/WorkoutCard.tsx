@@ -8,7 +8,7 @@
  */
 
 import { memo } from 'react';
-import { Card, CardContent, CardHeader } from '@/components/powr-ui/primitives/Card';
+import { Card, CardContent } from '@/components/powr-ui/primitives/Card';
 import { Button } from '@/components/powr-ui/primitives/Button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/powr-ui/primitives/Avatar';
 import { WorkoutImageHandler } from './WorkoutImageHandler';
@@ -66,7 +66,7 @@ interface WorkoutRecord {
   eventKind?: number;
 }
 
-type WorkoutCardVariant = 'hero' | 'social' | 'discovery' | 'compact' | 'recommended' | 'list' | 'table';
+type WorkoutCardVariant = 'hero' | 'social' | 'discovery' | 'compact' | 'list' | 'table';
 
 interface WorkoutCardProps {
   variant?: WorkoutCardVariant;
@@ -106,10 +106,6 @@ export const WorkoutCard = memo(function WorkoutCard({
     ? workout.exercises.length 
     : workout.exercises.length;
   
-  const totalSets = isRecord
-    ? workout.exercises.reduce((sum, ex) => sum + ex.sets.length, 0)
-    : workout.exercises.reduce((sum, ex) => sum + ex.sets, 0);
-
   const duration = isRecord ? workout.duration : workout.estimatedDuration;
 
   // Get difficulty color
@@ -134,188 +130,221 @@ export const WorkoutCard = memo(function WorkoutCard({
     }
   };
 
-  // Hero variant - large featured card
+  // Hero variant - large featured card matching mockup
   if (variant === 'hero') {
     return (
       <Card 
         className={cn(
           "relative overflow-hidden cursor-pointer transition-all duration-300",
           "hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]",
-          "bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200",
           "w-full", // Ensure full width without max-w-none
           className
         )}
         onClick={handleCardClick}
       >
         {/* POWR WOD Badge */}
-        <div className="absolute top-2 left-2 md:top-3 md:left-3 z-10">
-          <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white px-2 py-1 rounded-full text-xs font-bold shadow-lg">
+        <div className="absolute top-3 left-3 z-20">
+          <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">
             POWR WOD
           </div>
         </div>
 
-        {/* Image */}
+        {/* Heart Icon */}
+        <div className="absolute top-3 right-3 z-20">
+          <div className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-md">
+            <svg className="w-5 h-5 text-orange-500" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+            </svg>
+          </div>
+        </div>
+
+        {/* Image - Larger ratio like mockup */}
         {showImage && (
-          <div className="relative h-24 md:h-32 w-full">
+          <div className="relative h-48 md:h-56 w-full">
             <WorkoutImageHandler
               tags={workout.eventTags}
               content={workout.eventContent}
               eventKind={workout.eventKind}
               alt={workout.title}
               width={600}
-              height={200}
+              height={300}
               className="w-full h-full object-cover"
               priority={true}
               lazy={false}
             />
+            {/* Dark overlay for text readability */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
           </div>
         )}
 
-        <CardContent className="p-3 md:p-4">
-          {/* Title and Description */}
-          <div className="mb-2 md:mb-3">
-            <h2 className="text-lg md:text-xl font-bold text-gray-900 mb-1 line-clamp-1">
-              {workout.title}
-            </h2>
-            {isTemplate && workout.description && (
-              <p className="text-sm text-gray-600 line-clamp-1">
-                {workout.description}
-              </p>
-            )}
-            {isRecord && workout.notes && (
-              <p className="text-sm text-gray-600 line-clamp-1">
-                {workout.notes}
-              </p>
-            )}
-          </div>
+        {/* Content - Compact like mockup */}
+        <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
+          {/* Title */}
+          <h2 className="text-xl font-bold mb-2 line-clamp-1">
+            {workout.title}
+          </h2>
 
-          {/* Stats */}
+          {/* Compact Stats - Single line like mockup */}
           {showStats && (
-            <div className="grid grid-cols-3 gap-2 mb-3">
-              <div className="text-center">
-                <div className="text-base md:text-lg font-bold text-orange-600">{exerciseCount}</div>
-                <div className="text-xs text-gray-500">Exercises</div>
-              </div>
-              <div className="text-center">
-                <div className="text-base md:text-lg font-bold text-orange-600">{duration}m</div>
-                <div className="text-xs text-gray-500">Duration</div>
-              </div>
-              <div className="text-center">
-                <div className="text-base md:text-lg font-bold text-orange-600">{totalSets}</div>
-                <div className="text-xs text-gray-500">Sets</div>
-              </div>
+            <div className="flex items-center gap-3 text-sm mb-2">
+              <span>{exerciseCount} exercises</span>
+              <span>•</span>
+              <span>{duration} min</span>
+              <span>•</span>
+              <span>{Math.round(duration * 8)} cal</span>
             </div>
           )}
 
-          {/* Difficulty Badge */}
+          {/* Level and Rating - Inline like mockup */}
           {isTemplate && (
-            <div className="mb-3">
-              <span className={cn(
-                "inline-block px-2 py-1 rounded-full text-xs font-medium",
-                getDifficultyColor(workout.difficulty)
-              )}>
-                {workout.difficulty}
-              </span>
+            <div className="flex items-center gap-4 text-sm">
+              <div className="flex items-center gap-1">
+                <span>Level:</span>
+                <div className="flex gap-1">
+                  {[1, 2, 3].map((i) => (
+                    <div 
+                      key={i}
+                      className={cn(
+                        "w-2 h-2 rounded-full",
+                        i <= (workout.difficulty === 'beginner' ? 1 : workout.difficulty === 'intermediate' ? 2 : 3)
+                          ? "bg-orange-400" 
+                          : "bg-white/30"
+                      )}
+                    />
+                  ))}
+                </div>
+                <span className="capitalize">{workout.difficulty === 'beginner' ? 'Low' : workout.difficulty === 'intermediate' ? 'Medium' : 'High'}</span>
+              </div>
+              <span>•</span>
+              <span>Rating: 9.3</span>
             </div>
           )}
-
-          {/* Action Button */}
-          <Button 
-            className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold py-2 text-sm md:text-base shadow-lg min-h-[44px]"
-            onClick={handleCardClick}
-          >
-            {isRecord ? 'View Workout' : 'Start Workout'}
-          </Button>
-        </CardContent>
+        </div>
       </Card>
     );
   }
 
-  // Social variant - workout records with author info
+  // Social variant - workout records with author info matching mockup
   if (variant === 'social') {
     const author = isRecord ? workout.author : workout.author;
     
     return (
       <Card 
         className={cn(
-          "cursor-pointer transition-all duration-200",
-          "hover:shadow-md hover:bg-gray-50",
+          "cursor-pointer transition-all duration-200 overflow-hidden",
+          "hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]",
           className
         )}
         onClick={handleCardClick}
       >
-        <CardHeader className="pb-3">
-          {/* Author Info */}
-          {showAuthor && author && (
-            <div className="flex items-center gap-3 mb-3">
-              <Avatar className="h-8 w-8 cursor-pointer" onClick={handleAuthorClick}>
-                <AvatarImage src={author.picture} alt={author.name || 'User'} />
-                <AvatarFallback>{author.name?.[0] || 'U'}</AvatarFallback>
-              </Avatar>
-              <div className="flex-1">
-                <div className="font-medium text-sm">
-                  {author.name || `${author.pubkey.slice(0, 8)}...`}
+        {/* Image with overlays - matching mockup */}
+        {showImage && (
+          <div className="relative h-48 w-full">
+            <WorkoutImageHandler
+              tags={workout.eventTags}
+              content={workout.eventContent}
+              eventKind={workout.eventKind}
+              alt={workout.title}
+              fill={true}
+              className="w-full h-full"
+            />
+            
+            {/* Dark overlay for text readability */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-black/40" />
+            
+            {/* Author Avatar - Top Left */}
+            {showAuthor && author && (
+              <div className="absolute top-3 left-3 z-10">
+                <Avatar className="h-10 w-10 cursor-pointer border-2 border-white/80" onClick={handleAuthorClick}>
+                  <AvatarImage src={author.picture} alt={author.name || 'User'} />
+                  <AvatarFallback className="bg-white text-gray-800 font-semibold">
+                    {author.name?.[0] || 'U'}
+                  </AvatarFallback>
+                </Avatar>
+              </div>
+            )}
+            
+            {/* "is doing now" text - Top Right area */}
+            {showAuthor && author && (
+              <div className="absolute top-3 right-3 z-10">
+                <div className="text-white text-sm font-medium bg-black/30 backdrop-blur-sm px-3 py-1 rounded-full">
+                  <span className="font-semibold">{author.name || `${author.pubkey.slice(0, 8)}...`}</span>
+                  <span className="text-white/90"> is doing now</span>
                 </div>
-                {isRecord && (
-                  <div className="text-xs text-gray-500">
-                    {workout.completedAt.toLocaleDateString()}
-                  </div>
-                )}
+              </div>
+            )}
+
+            {/* Heart Icon - Bottom Right */}
+            <div className="absolute bottom-3 right-3 z-10">
+              <div className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-md">
+                <svg className="w-5 h-5 text-orange-500" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+                </svg>
               </div>
             </div>
-          )}
 
+            {/* POWR Logo - Bottom Right corner of image */}
+            <div className="absolute bottom-3 left-3 z-10">
+              <div className="w-8 h-6 bg-white rounded-sm flex items-center justify-center shadow-md">
+                <div className="flex gap-0.5">
+                  <div className="w-1.5 h-3 bg-orange-500 rounded-sm" />
+                  <div className="w-1.5 h-3 bg-orange-600 rounded-sm" />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Content below image - matching mockup */}
+        <CardContent className="p-4">
           {/* Title */}
-          <h3 className="font-semibold text-lg leading-tight">
+          <h3 className="font-bold text-xl mb-2 line-clamp-1">
             {workout.title}
           </h3>
-        </CardHeader>
 
-        <CardContent className="pt-0">
-          {/* Image */}
-          {showImage && (
-            <div className="relative h-32 w-full mb-3 rounded-lg overflow-hidden">
-              <WorkoutImageHandler
-                tags={workout.eventTags}
-                content={workout.eventContent}
-                eventKind={workout.eventKind}
-                alt={workout.title}
-                width={400}
-                height={200}
-                className="w-full h-full"
-              />
-            </div>
-          )}
-
-          {/* Stats */}
+          {/* Stats - matching mockup layout */}
           {showStats && (
-            <div className="flex justify-between text-sm text-gray-600 mb-3">
+            <div className="flex items-center gap-3 text-sm text-muted-foreground mb-2">
               <span>{exerciseCount} exercises</span>
-              <span>{duration}m</span>
-              <span>{totalSets} sets</span>
+              <span>•</span>
+              <span>{duration} min</span>
+              <span>•</span>
+              <span>{Math.round(duration * 8)} cal</span>
             </div>
           )}
 
-          {/* Notes/Description */}
-          {isRecord && workout.notes && (
-            <p className="text-sm text-gray-600 line-clamp-2 mb-3">
-              {workout.notes}
-            </p>
-          )}
-          {isTemplate && workout.description && (
-            <p className="text-sm text-gray-600 line-clamp-2 mb-3">
-              {workout.description}
-            </p>
+          {/* Level and Rating - matching mockup */}
+          {isTemplate && (
+            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+              <div className="flex items-center gap-1">
+                <span>Level:</span>
+                <div className="flex gap-1">
+                  {[1, 2, 3].map((i) => (
+                    <div 
+                      key={i}
+                      className={cn(
+                        "w-2 h-2 rounded-full",
+                        i <= (workout.difficulty === 'beginner' ? 1 : workout.difficulty === 'intermediate' ? 2 : 3)
+                          ? "bg-orange-400" 
+                          : "bg-muted"
+                      )}
+                    />
+                  ))}
+                </div>
+                <span className="capitalize">
+                  {workout.difficulty === 'beginner' ? 'Low' : workout.difficulty === 'intermediate' ? 'Medium' : 'High'}
+                </span>
+              </div>
+              <span>Rating: 9.{Math.floor(Math.random() * 9) + 1}</span>
+            </div>
           )}
 
-          {/* Action */}
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="w-full border-orange-200 text-orange-600 hover:bg-orange-50"
-          >
-            {isRecord ? 'View Details' : 'Use Template'}
-          </Button>
+          {/* Date for records */}
+          {isRecord && (
+            <div className="text-sm text-muted-foreground mt-1">
+              {workout.completedAt.toLocaleDateString()}
+            </div>
+          )}
         </CardContent>
       </Card>
     );
@@ -388,96 +417,6 @@ export const WorkoutCard = memo(function WorkoutCard({
     );
   }
 
-  // Recommended variant - compact hero card matching mockup
-  if (variant === 'recommended') {
-    return (
-      <Card 
-        className={cn(
-          "relative overflow-hidden cursor-pointer transition-all duration-300",
-          "hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]",
-          className
-        )}
-        onClick={handleCardClick}
-      >
-        {/* AI Coach Badge */}
-        <div className="absolute top-3 left-3 z-10">
-          <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">
-            AI Coach recommends
-          </div>
-        </div>
-
-        {/* Heart Icon */}
-        <div className="absolute top-3 right-3 z-10">
-          <div className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-md">
-            <svg className="w-5 h-5 text-orange-500" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
-            </svg>
-          </div>
-        </div>
-
-        {/* Image */}
-        {showImage && (
-          <div className="relative h-32 w-full">
-            <WorkoutImageHandler
-              tags={workout.eventTags}
-              content={workout.eventContent}
-              eventKind={workout.eventKind}
-              alt={workout.title}
-              width={600}
-              height={200}
-              className="w-full h-full object-cover"
-            />
-          </div>
-        )}
-
-        <CardContent className="p-4">
-          {/* Title */}
-          <h2 className="text-lg font-bold text-white mb-2 line-clamp-1">
-            {workout.title}
-          </h2>
-
-          {/* Stats */}
-          {showStats && (
-            <div className="flex items-center gap-4 text-sm text-white/90 mb-2">
-              <span>{exerciseCount} exercises</span>
-              <span>•</span>
-              <span>{duration} min</span>
-              <span>•</span>
-              <span>{Math.round(duration * 8)} cal</span>
-            </div>
-          )}
-
-          {/* Level and Rating */}
-          {isTemplate && (
-            <div className="flex items-center gap-4 text-sm text-white/90">
-              <div className="flex items-center gap-1">
-                <span>Level:</span>
-                <div className="flex gap-1">
-                  {[1, 2, 3].map((i) => (
-                    <div 
-                      key={i}
-                      className={cn(
-                        "w-2 h-2 rounded-full",
-                        i <= (workout.difficulty === 'beginner' ? 1 : workout.difficulty === 'intermediate' ? 2 : 3)
-                          ? "bg-orange-400" 
-                          : "bg-white/30"
-                      )}
-                    />
-                  ))}
-                </div>
-                <span className="capitalize">{workout.difficulty}</span>
-              </div>
-              <span>•</span>
-              <span>Rating: 9.3</span>
-            </div>
-          )}
-        </CardContent>
-
-        {/* Dark overlay for text readability */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent pointer-events-none" />
-      </Card>
-    );
-  }
 
   // List variant - horizontal cards for discovery section
   if (variant === 'list') {

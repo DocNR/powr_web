@@ -11,6 +11,8 @@ import React from 'react';
 import NDKDeduplicationTest from '@/components/test/NDKDeduplicationTest';
 import WorkflowValidationTest from '@/components/test/WorkflowValidationTest';
 import NIP101eTemplateReferenceTest from '@/components/test/NIP101eTemplateReferenceTest';
+import { WorkoutDetailModalTest } from '@/components/test/WorkoutDetailModalTest';
+import WorkoutLifecycleMachineTest from '@/components/test/WorkoutLifecycleMachineTest';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { TestTube, Target, Wifi, WifiOff } from 'lucide-react';
@@ -114,6 +116,40 @@ export function TestTab() {
             </CardHeader>
             <CardContent>
               <NIP101eTemplateReferenceTest />
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* 🎨 NEW: Workout Detail Modal Test */}
+        <div className="w-full">
+          <Card className="border-purple-200 bg-purple-50">
+            <CardHeader>
+              <CardTitle className="text-purple-800 flex items-center gap-2">
+                🎨 NEW: Workout Detail Modal Test
+              </CardTitle>
+              <CardDescription className="text-purple-700">
+                Test the full-screen workout detail modal with loading states, error handling, and tabbed content.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <WorkoutDetailModalTest />
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* 🔧 NEW: Workout Lifecycle Machine Test - Template Reference Fix */}
+        <div className="w-full">
+          <Card className="border-green-200 bg-green-50">
+            <CardHeader>
+              <CardTitle className="text-green-800 flex items-center gap-2">
+                🔧 NEW: Complete Workout Flow Test (Template Reference Fix)
+              </CardTitle>
+              <CardDescription className="text-green-700">
+                Test the fixed workoutLifecycleMachine that now includes proper template references in published 1301 events for social feed integration.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <WorkoutLifecycleMachineTest />
             </CardContent>
           </Card>
         </div>
