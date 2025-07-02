@@ -10,7 +10,7 @@
 import React from 'react';
 import NDKDeduplicationTest from '@/components/test/NDKDeduplicationTest';
 import WorkflowValidationTest from '@/components/test/WorkflowValidationTest';
-import WorkoutGalleryTest from '@/components/test/WorkoutGalleryTest';
+import NIP101eTemplateReferenceTest from '@/components/test/NIP101eTemplateReferenceTest';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { TestTube, Target, Wifi, WifiOff } from 'lucide-react';
@@ -81,19 +81,39 @@ export function TestTab() {
           </Card>
         </div>
 
-        {/* 🎨 NEW: Workout Gallery Components Test */}
+        {/* 🎨 NEW: Workout Gallery Components Test - TEMPORARILY DISABLED */}
         <div className="w-full">
-          <Card className="border-green-200 bg-green-50">
+          <Card className="border-yellow-200 bg-yellow-50">
             <CardHeader>
-              <CardTitle className="text-green-800 flex items-center gap-2">
-                🎨 NEW: Workout Gallery Components Test
+              <CardTitle className="text-yellow-800 flex items-center gap-2">
+                🎨 DISABLED: Workout Gallery Components Test
               </CardTitle>
-              <CardDescription className="text-green-700">
-                Test the new UI components: CalendarBar, WorkoutCard variants, and ScrollableGallery components.
+              <CardDescription className="text-yellow-700">
+                Temporarily disabled due to external image loading issues. Will be fixed in next update.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <WorkoutGalleryTest />
+              <div className="p-4 text-center text-yellow-700">
+                <p>WorkoutGalleryTest component temporarily disabled to prevent crashes.</p>
+                <p className="text-sm mt-2">Issue: External Unsplash images causing Next.js Image loader errors.</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* 🔧 FIX: NIP-101e Template Reference Test */}
+        <div className="w-full">
+          <Card className="border-orange-200 bg-orange-50">
+            <CardHeader>
+              <CardTitle className="text-orange-800 flex items-center gap-2">
+                🔧 FIX: NIP-101e Template Reference Test
+              </CardTitle>
+              <CardDescription className="text-orange-700">
+                Test the corrected template reference format in workout records for NIP-101e compliance.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <NIP101eTemplateReferenceTest />
             </CardContent>
           </Card>
         </div>

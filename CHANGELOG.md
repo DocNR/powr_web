@@ -30,6 +30,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **NIP-101e Template Reference Format COMPLETE (July 2, 2025) ✅**
+  
+  **User Impact**: Workout records now use proper NIP-101e template references ensuring cross-client compatibility with other Nostr fitness apps. Users benefit from correct template attribution and future-proof event structure that works across the entire Nostr ecosystem.
+  
+  **Developer Notes**: Fixed critical protocol compliance issue where workout records used incorrect format `["template", "just-template-id"]` instead of required `["template", "33402:pubkey:d-tag", "relay-url"]` format. Updated CompletedWorkout and TemplateSelection interfaces in workoutAnalytics.ts, fixed generateNIP101eEvent() method, integrated with workoutLifecycleMachine for proper template reference passing. Created comprehensive NIP101eTemplateReferenceTest component with visual comparison. Temporarily disabled WorkoutGalleryTest to prevent image loading crashes.
+  
+  **Architecture Changes**: Established proper NIP-01 addressable event reference patterns for template attribution. Enhanced debug accessibility with crash-free navigation. Foundation ready for cross-client Nostr fitness app interoperability and protocol compliance verification.
+
 ### Added
 - **UI Sprint Day 1: Enterprise-Grade Foundation + Navigation COMPLETE (June 30, 2025) ✅**
   

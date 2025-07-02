@@ -19,7 +19,10 @@ export interface CompletedWorkout {
   endTime: number;
   completedSets: CompletedSet[];
   notes?: string;
-  templateId?: string;
+  templateId?: string;           // Keep for backward compatibility
+  templateReference?: string;    // NEW: Full "33402:pubkey:d-tag" format
+  templatePubkey?: string;       // NEW: Template author's pubkey
+  templateRelayUrl?: string;     // NEW: Optional relay URL
 }
 
 export interface CompletedSet {
@@ -89,9 +92,14 @@ export class WorkoutAnalyticsService {
       ['duration', Math.floor(duration / 1000).toString()],
     ];
     
-    // Template reference if used
-    if (workoutData.templateId) {
-      tags.push(['template', workoutData.templateId]);
+    // Template reference if used - CORRECTED FORMAT per NIP-101e specification
+    if (workoutData.templateReference) {
+      // Use full "33402:pubkey:d-tag" format with optional relay URL
+      tags.push(['template', workoutData.templateReference, workoutData.templateRelayUrl || '']);
+    } else if (workoutData.templateId && workoutData.templatePubkey) {
+      // Fallback: construct reference from parts for backward compatibility
+      const templateRef = `33402:${workoutData.templatePubkey}:${workoutData.templateId}`;
+      tags.push(['template', templateRef, workoutData.templateRelayUrl || '']);
     }
     
     // Exercise sets - each completed set as separate exercise tag
@@ -224,6 +232,22 @@ export class WorkoutAnalyticsService {
     const validTypes = ['strength', 'circuit', 'emom', 'amrap'];
     if (!validTypes.includes(workoutData.workoutType)) {
       errors.push(`Invalid workout type: ${workoutData.workoutType}`);
+    }
+    
+    // Validate template reference format if provided
+    if (workoutData.templateReference) {
+      const templateRefPattern = /^33402:[a-f0-9]{64}:[a-zA-Z0-9\-_]+$/;
+      if (!templateRefPattern.test(workoutData.templateReference)) {
+        errors.push(`Invalid template reference format: ${workoutData.templateReference}. Must be "33402:pubkey:d-tag"`);
+      }
+    }
+    
+    // Validate template pubkey format if provided
+    if (workoutData.templatePubkey) {
+      const pubkeyPattern = /^[a-f0-9]{64}$/;
+      if (!pubkeyPattern.test(workoutData.templatePubkey)) {
+        errors.push(`Invalid template pubkey format: ${workoutData.templatePubkey}. Must be 64-character hex string`);
+      }
     }
     
     // Validate completed sets

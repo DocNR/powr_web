@@ -284,7 +284,7 @@ export const workoutLifecycleMachine = setup({
             }
           ];
 
-          // Create completed workout data
+          // Create completed workout data with template reference information
           const completedWorkout = {
             workoutId: context.workoutData?.workoutId || 'unknown',
             title: context.workoutData?.title || 'Unknown Workout',
@@ -292,7 +292,14 @@ export const workoutLifecycleMachine = setup({
             startTime: context.workoutData?.startTime || Date.now(),
             endTime: Date.now(),
             completedSets: mockCompletedSets,
-            notes: 'Great workout! Feeling strong today.'
+            notes: 'Great workout! Feeling strong today.',
+            // NEW: Include template reference information for NIP-101e compliance
+            templateId: context.templateSelection.templateId,
+            templatePubkey: context.templateSelection.templatePubkey || context.userInfo.pubkey, // Fallback to user's pubkey for now
+            templateReference: context.templateSelection.templateId && context.templateSelection.templatePubkey 
+              ? `33402:${context.templateSelection.templatePubkey}:${context.templateSelection.templateId}`
+              : undefined,
+            templateRelayUrl: context.templateSelection.templateRelayUrl || '' // Optional relay URL
           };
           
           return {

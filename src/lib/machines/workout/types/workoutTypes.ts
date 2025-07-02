@@ -97,6 +97,10 @@ export interface TemplateSelection {
   templateId?: string;
   template?: WorkoutTemplate;
   customTitle?: string;
+  // NEW: Template reference information for NIP-101e compliance
+  templatePubkey?: string;       // Template author's pubkey
+  templateReference?: string;    // Full "33402:pubkey:d-tag" format
+  templateRelayUrl?: string;     // Optional relay URL
 }
 
 // Exercise progression types
