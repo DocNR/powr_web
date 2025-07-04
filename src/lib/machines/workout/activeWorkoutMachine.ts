@@ -119,7 +119,6 @@ export const activeWorkoutMachine = setup({
         
         // Import required modules
         const { loadTemplateActor } = await import('./actors/loadTemplateActor');
-        const { workoutSetupMachine } = await import('./workoutSetupMachine');
         const { createActor } = await import('xstate');
         
         // Helper function to try loading a specific template
@@ -162,47 +161,8 @@ export const activeWorkoutMachine = setup({
           }
         }
         
-        // Strategy 2: Fallback - Get first available template from user's templates
-        console.log('[ActiveWorkoutMachine] 🔄 Attempting fallback: loading first available template...');
-        
-        try {
-          // Use workoutSetupMachine to get available templates
-          const setupResult = await new Promise<Array<{ id: string; name: string }>>((resolve, reject) => {
-            const timeoutId = setTimeout(() => {
-              reject(new Error('Setup machine timeout after 10 seconds'));
-            }, 10000);
-            
-            const setupActor = createActor(workoutSetupMachine, {
-              input: { userPubkey }
-            });
-            
-            setupActor.subscribe((snapshot) => {
-              if (snapshot.matches('templateSelection') && snapshot.context.availableTemplates.length > 0) {
-                clearTimeout(timeoutId);
-                resolve(snapshot.context.availableTemplates);
-              } else if (snapshot.matches('error')) {
-                clearTimeout(timeoutId);
-                reject(new Error(snapshot.context.error || 'Setup machine failed'));
-              }
-            });
-            
-            setupActor.start();
-            setupActor.send({ type: 'LOAD_TEMPLATES' });
-          });
-          
-          if (setupResult && setupResult.length > 0) {
-            const fallbackTemplateId = setupResult[0].id;
-            console.log('[ActiveWorkoutMachine] 🎯 Found fallback template:', fallbackTemplateId);
-            
-            const templateResult = await tryLoadTemplate(fallbackTemplateId);
-            const loadedTemplate = templateResult.template;
-            console.log('[ActiveWorkoutMachine] ✅ Loaded fallback template:', loadedTemplate.name, 'with', loadedTemplate.exercises.length, 'exercises');
-            return loadedTemplate;
-          }
-        } catch (fallbackError) {
-          const fallbackErrorMessage = fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
-          console.warn('[ActiveWorkoutMachine] ⚠️ Fallback template loading failed:', fallbackErrorMessage);
-        }
+        // Strategy 2: No automatic fallback - require explicit template selection
+        console.log('[ActiveWorkoutMachine] ⚠️ No fallback strategy - template must be explicitly provided');
         
         // Strategy 3: Last resort - Create minimal template for testing
         console.log('[ActiveWorkoutMachine] 🆘 Creating minimal template as last resort...');

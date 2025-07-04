@@ -5,20 +5,19 @@
  * Parent machine that manages overall workout flow: Setup → Active → Complete
  */
 
-import { setup, assign, fromPromise, spawnChild } from 'xstate';
+import { setup, assign } from 'xstate';
 import type {
   WorkoutLifecycleContext,
   WorkoutLifecycleEvent,
-  SetupMachineInput,
-  SetupMachineOutput,
-  ActiveWorkoutMachineInput,
-  ActiveWorkoutMachineOutput
+  SetupMachineOutput
 } from './types/workoutLifecycleTypes';
 import { defaultWorkoutLifecycleContext } from './types/workoutLifecycleTypes';
-import type { UserInfo } from './types/workoutTypes';
+import type { UserInfo, WorkoutData } from './types/workoutTypes';
 import { workoutAnalyticsService } from '@/lib/services/workoutAnalytics';
 import { publishWorkoutActor } from './actors/publishWorkoutActor';
 import { loadTemplateActor } from './actors/loadTemplateActor';
+import { workoutSetupMachine, loadTemplatesActor } from './workoutSetupMachine';
+import { activeWorkoutMachine } from './activeWorkoutMachine';
 
 // Workout lifecycle machine following Noga patterns
 export const workoutLifecycleMachine = setup({
@@ -75,16 +74,6 @@ export const workoutLifecycleMachine = setup({
       error: undefined
     }),
     
-    updateWorkoutData: assign({
-      workoutData: ({ event }) => {
-        if (event.type === 'WORKOUT_ACTIVE' || 
-            event.type === 'WORKOUT_COMPLETED' || 
-            event.type === 'START_WORKOUT') {
-          return event.workoutData;
-        }
-        return undefined;
-      }
-    }),
     
     updateTemplateSelection: assign({
       templateSelection: ({ event }) => {
@@ -95,93 +84,79 @@ export const workoutLifecycleMachine = setup({
       }
     }),
     
-    // Use spawnChild for spawning actors (XState v5 pattern)
-    spawnActiveWorkout: spawnChild('activeWorkoutMachine', {
-      id: 'activeWorkout',
-      input: ({ context }) => ({
-        userInfo: context.userInfo,
-        workoutData: context.workoutData!,
-        templateSelection: context.templateSelection
-      })
+    // Spawn active workout actor (following NOGA pattern exactly)
+    spawnActiveWorkout: assign({
+      activeWorkoutActor: ({ spawn, context, self }) => {
+        console.log('[WorkoutLifecycleMachine] Spawning active workout actor...');
+        console.log('[WorkoutLifecycleMachine] Context workoutData:', context.workoutData);
+        
+        if (!context.workoutData) {
+          console.error('[WorkoutLifecycleMachine] No workout data available for spawning');
+          self.send({ type: 'ERROR_OCCURRED', error: { message: 'No workout data available for spawning', timestamp: Date.now() } });
+          return undefined;
+        }
+        
+        // Type-safe context - we know workoutData is present after the check
+        const input = {
+          userInfo: context.userInfo,
+          workoutData: context.workoutData as WorkoutData, // Type assertion needed for spawn
+          templateSelection: context.templateSelection
+        };
+        
+        console.log('[WorkoutLifecycleMachine] Spawn input:', input);
+        console.log('[WorkoutLifecycleMachine] activeWorkoutMachine:', activeWorkoutMachine);
+        
+        try {
+          const activeWorkoutActor = spawn('activeWorkoutMachine', {
+            id: 'activeWorkout',
+            input
+          });
+          
+          console.log('[WorkoutLifecycleMachine] Spawned actor:', activeWorkoutActor);
+          
+          // Subscribe to actor state changes to detect completion
+          activeWorkoutActor.subscribe((snapshot) => {
+            console.log('[WorkoutLifecycleMachine] Active workout actor state changed:', snapshot.value, 'status:', snapshot.status);
+            
+            // When the activeWorkout reaches final state, complete the lifecycle
+            if (snapshot.status === 'done' || snapshot.value === 'final') {
+              console.log('[WorkoutLifecycleMachine] Active workout completed, sending COMPLETE event');
+              self.send({ type: 'WORKOUT_COMPLETED', workoutData: (snapshot.output as { workoutData?: WorkoutData })?.workoutData });
+            }
+          });
+          
+          console.log('[WorkoutLifecycleMachine] Active workout actor spawned successfully');
+          return activeWorkoutActor;
+        } catch (spawnError) {
+          console.error('[WorkoutLifecycleMachine] Error spawning actor:', spawnError);
+          return undefined;
+        }
+      }
     }),
-    
-    cleanupActiveWorkout: ({ context }) => {
-      // TODO: Cleanup spawned active workout machine
-      console.log('[WorkoutLifecycle] Cleaning up active workout', {
-        workoutId: context.workoutData?.workoutId
-      });
-    }
+
+    // Stop and cleanup active workout actor
+    stopActiveWorkout: () => {
+      console.log('[WorkoutLifecycleMachine] Stopping active workout actor...');
+      // The stopChild will be handled by the exit action in the state
+    },
+
+    // Clear active workout actor from context
+    clearActiveWorkoutActor: assign({
+      activeWorkoutActor: undefined
+    })
   },
   
   actors: {
     // Include the imported actors for use in invoke
     loadTemplateActor,
     publishWorkoutActor,
+    loadTemplatesActor,
     
-    // Real setup machine actor using NDK template loading
-    setupMachine: fromPromise(async ({ input }: { input: SetupMachineInput }): Promise<SetupMachineOutput> => {
-      console.log('[WorkoutLifecycle] Setup machine starting with input:', input);
-      
-      try {
-        // Generate workout ID using service
-        const workoutId = workoutAnalyticsService.generateWorkoutId();
-        
-        // Create complete template selection with NIP-101e reference data
-        const templateId = input.preselectedTemplateId || 'default-template';
-        const templateSelection = {
-          templateId,
-          customTitle: input.preselectedTemplateId ? undefined : 'Custom Workout',
-          // ✅ ADD: Complete template reference information for NIP-101e compliance
-          templatePubkey: input.userInfo.pubkey, // Use authenticated user's pubkey for test templates
-          templateReference: `33402:${input.userInfo.pubkey}:${templateId}`,
-          templateRelayUrl: '' // Optional relay URL
-        };
-        
-        const workoutData = {
-          workoutId,
-          title: templateSelection.customTitle || 'Test Workout',
-          startTime: Date.now(),
-          completedSets: [],
-          workoutType: 'strength' as const
-        };
-        
-        console.log('[WorkoutLifecycle] Setup complete with template reference:', { 
-          workoutId, 
-          templateSelection,
-          templateReference: templateSelection.templateReference
-        });
-        
-        return {
-          templateSelection,
-          workoutData
-        };
-      } catch (error) {
-        console.error('[WorkoutLifecycle] Setup failed:', error);
-        throw error;
-      }
-    }),
+    // Use direct reference to real setup machine (following NOGA pattern)
+    setupMachine: workoutSetupMachine,
     
-    // Real active workout machine actor - manages active workout state
-    activeWorkoutMachine: fromPromise(async ({ input }: { input: ActiveWorkoutMachineInput }): Promise<ActiveWorkoutMachineOutput> => {
-      console.log('[WorkoutLifecycle] Active workout machine starting with input:', input);
-      
-      try {
-        // This actor should manage the active workout state
-        // For now, it just returns the workout data without publishing
-        // Publishing will happen when WORKOUT_COMPLETED event is received
-        
-        console.log('[WorkoutLifecycle] Active workout ready - waiting for completion...');
-        
-        return {
-          workoutData: input.workoutData,
-          publishedEventId: undefined, // No publishing until completion
-          totalDuration: 0 // Will be calculated on completion
-        };
-      } catch (error) {
-        console.error('[WorkoutLifecycle] Active workout failed:', error);
-        throw error;
-      }
-    })
+    // Register activeWorkoutMachine for spawning
+    activeWorkoutMachine: activeWorkoutMachine
   }
 }).createMachine({
   id: 'workoutLifecycle',
@@ -190,7 +165,11 @@ export const workoutLifecycleMachine = setup({
   context: ({ input }) => ({
     ...defaultWorkoutLifecycleContext,
     userInfo: input.userInfo,
-    lifecycleStartTime: Date.now()
+    lifecycleStartTime: Date.now(),
+    // Add activeWorkoutActor to context (following NOGA pattern)
+    activeWorkoutActor: undefined,
+    // Add preselectedTemplateId from input
+    preselectedTemplateId: input.preselectedTemplateId
   }),
   
   states: {
@@ -198,26 +177,71 @@ export const workoutLifecycleMachine = setup({
       on: {
         START_SETUP: {
           target: 'setup',
-          actions: ['logTransition', 'updateLastActivity']
+          actions: [
+            assign({
+              preselectedTemplateId: ({ event }) => event.preselectedTemplateId,
+              // Store templateAuthorPubkey from the event for passing to setup machine
+              templateSelection: ({ event, context }) => ({
+                ...context.templateSelection,
+                templatePubkey: event.templateAuthorPubkey
+              })
+            }),
+            'logTransition', 
+            'updateLastActivity'
+          ]
         }
       }
     },
     
     setup: {
+      // ✅ NOGA PATTERN: Direct invoke of real setupMachine
       invoke: {
         src: 'setupMachine',
-        input: ({ context, event }) => ({
-          userInfo: context.userInfo,
-          preselectedTemplateId: event.type === 'START_SETUP' ? event.preselectedTemplateId : undefined
+        input: ({ context }) => ({
+          userPubkey: context.userInfo.pubkey,
+          preselectedTemplateId: context.preselectedTemplateId,
+          templateAuthorPubkey: context.templateSelection.templatePubkey
         }),
         onDone: {
-          target: 'active',
+          target: 'setupComplete',
           actions: [
             assign({
-              templateSelection: ({ event }) => event.output.templateSelection,
-              workoutData: ({ event }) => event.output.workoutData
+              templateSelection: ({ event }) => {
+                console.log('[WorkoutLifecycle] ASSIGN ACTION - Raw event:', event);
+                console.log('[WorkoutLifecycle] ASSIGN ACTION - Event output:', event.output);
+                console.log('[WorkoutLifecycle] ASSIGN ACTION - Event output type:', typeof event.output);
+                
+                const output = event.output as SetupMachineOutput;
+                console.log('[WorkoutLifecycle] ASSIGN ACTION - Parsed output:', output);
+                console.log('[WorkoutLifecycle] ASSIGN ACTION - templateSelection:', output?.templateSelection);
+                
+                if (!output?.templateSelection) {
+                  console.error('[WorkoutLifecycle] ASSIGN ACTION - No templateSelection in output!');
+                  return {};
+                }
+                
+                return output.templateSelection;
+              },
+              workoutData: ({ event }) => {
+                const output = event.output as SetupMachineOutput;
+                console.log('[WorkoutLifecycle] ASSIGN ACTION - workoutData:', output?.workoutData);
+                
+                if (!output?.workoutData) {
+                  console.error('[WorkoutLifecycle] ASSIGN ACTION - No workoutData in output!');
+                  // Return a fallback WorkoutData instead of undefined
+                  return {
+                    workoutId: 'fallback',
+                    title: 'Fallback Workout',
+                    startTime: Date.now(),
+                    completedSets: [],
+                    workoutType: 'strength' as const,
+                    exercises: []
+                  };
+                }
+                
+                return output.workoutData;
+              }
             }),
-            'spawnActiveWorkout',
             'logTransition'
           ]
         },
@@ -228,39 +252,57 @@ export const workoutLifecycleMachine = setup({
       }
     },
     
-    active: {
-      initial: 'exercising',
-      states: {
-        exercising: {
-          on: {
-            WORKOUT_PAUSED: {
-              target: 'paused',
-              actions: ['logTransition']
-            },
-            WORKOUT_COMPLETED: {
-              target: '#workoutLifecycle.completed',
-              actions: ['updateWorkoutData', 'cleanupActiveWorkout', 'logTransition']
-            }
-          }
-        },
-        paused: {
-          on: {
-            WORKOUT_RESUMED: {
-              target: 'exercising',
-              actions: ['logTransition']
-            },
-            WORKOUT_COMPLETED: {
-              target: '#workoutLifecycle.completed',
-              actions: ['updateWorkoutData', 'cleanupActiveWorkout', 'logTransition']
-            }
-          }
-        }
-      },
-      
+    setupComplete: {
+      entry: ['logTransition'],
       on: {
+        START_WORKOUT: {
+          target: 'active',
+          actions: [
+            'spawnActiveWorkout',
+            'logTransition'
+          ]
+        },
+        CANCEL_SETUP: {
+          target: 'idle',
+          actions: ['logTransition']
+        }
+      }
+    },
+    
+    active: {
+      // Spawn action already called in setup onDone (following NOGA pattern)
+      entry: ['logTransition'],
+      // Add exit action for cleanup
+      exit: ['stopActiveWorkout', 'clearActiveWorkoutActor'],
+      on: {
+        WORKOUT_COMPLETED: {
+          target: 'completed',
+          actions: [
+            assign({
+              workoutData: ({ event, context }) => {
+                if (event.workoutData) {
+                  return event.workoutData;
+                }
+                if (context.workoutData) {
+                  return context.workoutData;
+                }
+                // Fallback - should never happen in normal flow
+                return {
+                  workoutId: 'unknown',
+                  title: 'Unknown Workout',
+                  startTime: Date.now(),
+                  completedSets: [],
+                  workoutType: 'strength' as const,
+                  exercises: []
+                };
+              }
+            }),
+            'logTransition'
+          ]
+        },
         WORKOUT_CANCELLED: {
           target: 'idle',
-          actions: ['cleanupActiveWorkout', 'logTransition']
+          actions: ['logTransition']
         }
       }
     },

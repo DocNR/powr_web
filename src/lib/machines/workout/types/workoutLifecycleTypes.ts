@@ -25,7 +25,7 @@ export interface WorkoutLifecycleContext extends BaseMachineContext {
   templateSelection: TemplateSelection;
   
   // Active workout actor reference
-  activeWorkoutActorRef?: unknown; // XState actor reference
+  activeWorkoutActor?: unknown; // XState actor reference
   
   // Error handling
   error?: ErrorInfo;
@@ -33,11 +33,25 @@ export interface WorkoutLifecycleContext extends BaseMachineContext {
   // Lifecycle tracking
   lastUpdated: number;
   lifecycleStartTime: number;
+  
+  // Temporary setup state (for testing auto-progression)
+  availableTemplates?: any[];
+  selectedTemplateId?: string;
+  loadedTemplate?: any;
+  loadedExercises?: any[];
+  
+  // Preselected template from START_SETUP event
+  preselectedTemplateId?: string;
+}
+
+// Active state context - guarantees workoutData is present
+export interface ActiveWorkoutLifecycleContext extends WorkoutLifecycleContext {
+  workoutData: WorkoutData; // Required in active state
 }
 
 // Workout lifecycle events
 export type WorkoutLifecycleEvent =
-  | { type: 'START_SETUP'; preselectedTemplateId?: string }
+  | { type: 'START_SETUP'; preselectedTemplateId?: string; templateAuthorPubkey?: string }
   | { type: 'SETUP_COMPLETE'; templateSelection: TemplateSelection }
   | { type: 'START_WORKOUT'; workoutData: WorkoutData }
   | { type: 'WORKOUT_ACTIVE'; workoutData: WorkoutData }
@@ -54,6 +68,7 @@ export type WorkoutLifecycleEvent =
 export interface SetupMachineInput {
   userInfo: UserInfo;
   preselectedTemplateId?: string;
+  templateAuthorPubkey?: string;
 }
 
 // Setup machine output

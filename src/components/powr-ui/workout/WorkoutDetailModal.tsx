@@ -21,6 +21,7 @@ interface TemplateData {
   equipment?: string[];
   tags?: string[][];
   eventKind?: number;
+  templateRef?: string;
 }
 
 interface WorkoutDetailModalProps {

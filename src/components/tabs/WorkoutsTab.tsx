@@ -12,6 +12,8 @@ import { CalendarBar, WorkoutCard, ScrollableGallery, SearchableWorkoutDiscovery
 import { getNDKInstance, WORKOUT_EVENT_KINDS } from '@/lib/ndk';
 import { parseWorkoutEvent, type WorkoutEvent } from '@/lib/workout-events';
 import { useIsAuthenticated } from '@/lib/auth/hooks';
+import { useMachine } from '@xstate/react';
+import { workoutLifecycleMachine } from '@/lib/machines/workout/workoutLifecycleMachine';
 
 interface SocialWorkout {
   id: string;
@@ -57,6 +59,8 @@ interface DiscoveryWorkout {
   };
   eventId?: string;
   eventTags?: string[][];
+  eventKind?: number;
+  templateRef?: string;
 }
 
 interface WorkoutIndicator {
@@ -83,6 +87,62 @@ export default function WorkoutsTab() {
   // Store raw event data for click logging
   const [rawEventData, setRawEventData] = useState<Map<string, Record<string, unknown>>>(new Map());
 
+  // Workout Lifecycle Machine
+  const [workoutState, workoutSend] = useMachine(workoutLifecycleMachine, {
+    input: {
+      userInfo: {
+        pubkey: 'user-pubkey', // TODO: Get from auth context
+        displayName: 'User'
+      }
+    }
+  });
+
+  // Machine state-based UI updates
+  useEffect(() => {
+    console.log('🔄 Workout machine state changed:', workoutState.value);
+    
+    if (workoutState.matches('setup')) {
+      // Setup state - machine is resolving template, don't open modal yet
+      console.log('📋 Machine in setup state - waiting for template resolution...');
+      // Don't open modal until setup is complete
+      
+    } else if (workoutState.matches('setupComplete')) {
+      // Setup complete - template is resolved, show modal with resolved data
+      console.log('✅ Setup complete - template resolved:', workoutState.context.templateSelection);
+      
+      // NOW open modal with resolved data from machine state
+      if (workoutState.context.templateSelection && workoutState.context.workoutData) {
+        const resolvedWorkout = {
+          title: workoutState.context.workoutData.title,
+          description: `Template: ${workoutState.context.templateSelection.templateId}`,
+          content: JSON.stringify(workoutState.context.workoutData),
+          exercises: workoutState.context.workoutData.exercises || [],
+          equipment: ['Various'],
+          tags: [['t', 'fitness']],
+          eventKind: 33402,
+          templateRef: workoutState.context.templateSelection.templateReference
+        };
+        
+        setSelectedWorkout(resolvedWorkout);
+        setIsModalOpen(true); // Open modal NOW with resolved data
+      }
+      
+    } else if (workoutState.matches('active')) {
+      // Active state - activeWorkoutMachine is running
+      console.log('🏃‍♂️ Machine in active state - workout is running');
+      // Keep modal closed during active workout
+      setIsModalOpen(false);
+      
+    } else if (workoutState.matches('completed')) {
+      // Completed state - show completion UI or navigate back
+      console.log('✅ Machine in completed state - workout finished');
+      setIsModalOpen(false);
+    } else if (workoutState.matches('idle')) {
+      // Idle state - machine is ready for new workout
+      console.log('💤 Machine in idle state - ready for new workout');
+    }
+  }, [workoutState]);
+
   // Load real Nostr data
   useEffect(() => {
     const loadNostrData = async () => {
@@ -102,7 +162,7 @@ export default function WorkoutsTab() {
         // Load recent workout records (Kind 1301) for social feed
         console.log('[WorkoutsTab] Fetching recent workout records...');
         const workoutRecords = await ndk.fetchEvents({
-          kinds: [WORKOUT_EVENT_KINDS.WORKOUT_RECORD as any],
+          kinds: [WORKOUT_EVENT_KINDS.WORKOUT_RECORD as number],
           '#t': ['fitness'],
           limit: 10,
           since: Math.floor(Date.now() / 1000) - (7 * 24 * 60 * 60) // Last 7 days
@@ -112,7 +172,7 @@ export default function WorkoutsTab() {
 
         // Parse workout records for social feed
         const parsedWorkouts: SocialWorkout[] = [];
-        const templateRefs = new Set<string>();
+        const socialTemplateRefs = new Set<string>();
         const eventDataMap = new Map();
 
         for (const event of Array.from(workoutRecords)) {
@@ -145,14 +205,14 @@ export default function WorkoutsTab() {
             
             if (templateTags.length > 0) {
               const templateRef = templateTags[0][1]; // First template reference
-              templateRefs.add(templateRef);
+              socialTemplateRefs.add(templateRef);
               
               // Try to fetch the referenced template immediately
               try {
                 const [kind, pubkey, dTag] = templateRef.split(':');
                 if (kind === '33402' && pubkey && dTag) {
                   const referencedTemplates = await ndk.fetchEvents({
-                    kinds: [33402 as any],
+                    kinds: [33402 as number],
                     authors: [pubkey],
                     '#d': [dTag],
                     limit: 1
@@ -188,7 +248,7 @@ export default function WorkoutsTab() {
               completedAt: new Date(parsed.endTime * 1000),
               duration: Math.floor(parsed.duration / 60), // Convert to minutes
               exercises: parsed.exercises.map(ex => ({
-                name: ex.reference.split(':')[2]?.replace(/-/g, ' ') || 'Unknown Exercise',
+                name: `${parsed.exercises.length} exercises`, // Simple count instead of fake names
                 sets: [{
                   reps: parseInt(ex.reps),
                   weight: parseInt(ex.weight),
@@ -217,23 +277,37 @@ export default function WorkoutsTab() {
         parsedWorkouts.sort((a, b) => b.completedAt.getTime() - a.completedAt.getTime());
         setSocialWorkouts(parsedWorkouts.slice(0, 5)); // Limit to 5 for UI
 
-        // Load workout templates (Kind 33402) for discovery section
-        console.log('[WorkoutsTab] Fetching workout templates...');
+        // Load workout templates - OPEN DISCOVERY (no author filtering)
+        console.log('[WorkoutsTab] Fetching workout templates with open discovery...');
+        const templateStartTime = Date.now();
+        
+        // Fetch ALL workout templates from the network (no filtering at all)
         const templates = await ndk.fetchEvents({
-          kinds: [WORKOUT_EVENT_KINDS.WORKOUT_TEMPLATE as any],
-          '#t': ['fitness'],
-          limit: 20
+          kinds: [WORKOUT_EVENT_KINDS.WORKOUT_TEMPLATE as number],
+          limit: 50  // Increased limit for better discovery
         });
 
         console.log('[WorkoutsTab] Found templates:', templates.size);
 
-        // Parse templates for discovery section
-        const discoveryWorkouts: DiscoveryWorkout[] = [];
+        // Parse templates directly without dependency service (to avoid author filtering)
+        const resolvedTemplates: Array<{
+          id: string;
+          name: string;
+          exercises: Array<{ exerciseRef: string; sets: number; reps: number; weight?: number }>;
+          estimatedDuration?: number;
+          difficulty?: string;
+          authorPubkey: string;
+          eventId?: string;
+          tags?: string[][];
+        }> = [];
         
         for (const template of Array.from(templates)) {
           try {
-            // Store raw template data for click logging (no console output during load)
-            eventDataMap.set(template.id, {
+            const dTag = template.tags.find(tag => tag[0] === 'd')?.[1];
+            if (!dTag) continue;
+
+            // Store raw template data for click logging
+            const templateData = {
               type: '33402_workout_template',
               hexId: template.id,
               naddr: template.encode ? template.encode() : 'encode() not available',
@@ -241,59 +315,96 @@ export default function WorkoutsTab() {
               created_at: template.created_at,
               tags: template.tags,
               rawEvent: template
-            });
+            };
+            
+            // Store using both the d-tag (template ID) and the hex event ID
+            eventDataMap.set(template.id, templateData);
+            eventDataMap.set(dTag, templateData);
 
+            // Parse template directly
             const tagMap = new Map(template.tags.map(tag => [tag[0], tag]));
             
-            const title = tagMap.get('title')?.[1] || tagMap.get('d')?.[1] || 'Untitled Workout';
-            const duration = parseInt(tagMap.get('duration')?.[1] || '1800') / 60; // Convert to minutes
-            const difficulty = tagMap.get('difficulty')?.[1] || 'intermediate';
+            const name = tagMap.get('title')?.[1] || tagMap.get('name')?.[1] || 'Untitled Template';
+            const difficulty = tagMap.get('difficulty')?.[1] as 'beginner' | 'intermediate' | 'advanced' | undefined;
+            const estimatedDuration = tagMap.get('duration')?.[1] ? parseInt(tagMap.get('duration')![1]) : undefined;
             
-            // Extract exercises from template
+            // Extract exercise references
             const exerciseTags = template.tags.filter(tag => tag[0] === 'exercise');
             const exercises = exerciseTags.map(tag => ({
-              name: tag[1]?.split(':')[2]?.replace(/-/g, ' ') || 'Unknown Exercise',
-              sets: parseInt(tag[2] || '3'),
-              reps: parseInt(tag[3] || '10'),
-              weight: parseInt(tag[4] || '0')
+              exerciseRef: tag[1],
+              sets: parseInt(tag[2]) || 3,
+              reps: parseInt(tag[3]) || 10,
+              weight: tag[4] ? parseInt(tag[4]) : undefined
             }));
 
+            resolvedTemplates.push({
+              id: dTag,
+              name,
+              exercises,
+              estimatedDuration,
+              difficulty,
+              authorPubkey: template.pubkey,
+              eventId: template.id,
+              tags: template.tags
+            });
+
+          } catch (parseError) {
+            console.warn('[WorkoutsTab] Failed to parse template:', template.id, parseError);
+          }
+        }
+        
+        const serviceLoadTime = Date.now() - templateStartTime;
+        console.log(`[WorkoutsTab] ✅ Parsed ${resolvedTemplates.length} templates directly in ${serviceLoadTime}ms`);
+
+        // Convert resolved templates to discovery format
+        const discoveryWorkouts: DiscoveryWorkout[] = [];
+        
+        for (const template of resolvedTemplates) {
+          try {
             // Store exercise data in event map
-            eventDataMap.set(`${template.id}_exercises`, {
+            eventDataMap.set(`${template.eventId || template.id}_exercises`, {
               type: 'template_exercises',
-              count: exercises.length,
-              exercises: exercises.map(e => e.name)
+              count: template.exercises.length,
+              exercises: template.exercises.map((ex) => ex.exerciseRef.split(':')[2]?.replace(/-/g, ' ') || 'Unknown Exercise')
             });
 
             const discoveryWorkout: DiscoveryWorkout = {
-              id: tagMap.get('d')?.[1] || template.id,
-              title,
-              exercises,
-              estimatedDuration: Math.round(duration),
-              difficulty: difficulty as 'beginner' | 'intermediate' | 'advanced',
+              id: template.id,
+              title: template.name,
+              exercises: template.exercises.map((ex) => ({
+                name: ex.exerciseRef.split(':')[2]?.replace(/-/g, ' ') || 'Unknown Exercise',
+                sets: ex.sets,
+                reps: ex.reps,
+                weight: ex.weight || 0
+              })),
+              estimatedDuration: Math.round((template.estimatedDuration || 1800) / 60), // Convert to minutes
+              difficulty: (template.difficulty as 'beginner' | 'intermediate' | 'advanced') || 'intermediate',
               rating: 8.5 + Math.random() * 1.5, // Mock rating for now
-              calories: Math.round(duration * 4.5), // Rough estimate
-              muscleGroups: ['full-body'], // Could be extracted from exercise tags
-              level: difficulty === 'beginner' ? 'low' : difficulty === 'advanced' ? 'hard' : 'moderate',
+              calories: Math.round(((template.estimatedDuration || 1800) / 60) * 4.5), // Rough estimate
+              muscleGroups: ['full-body'], // Could be extracted from exercise data
+              level: template.difficulty === 'beginner' ? 'low' : template.difficulty === 'advanced' ? 'hard' : 'moderate',
               author: {
-                pubkey: template.pubkey,
-                name: `${template.pubkey.slice(0, 8)}...`,
+                pubkey: template.authorPubkey,
+                name: `${template.authorPubkey.slice(0, 8)}...`,
                 picture: '/assets/workout-template-fallback.jpg'
               },
-              eventId: template.id,
+              eventId: template.eventId,
               eventTags: template.tags
             };
 
             discoveryWorkouts.push(discoveryWorkout);
 
           } catch (parseError) {
-            console.warn('[WorkoutsTab] Failed to parse template:', template.id, parseError);
+            console.warn('[WorkoutsTab] Failed to parse resolved template:', template.id, parseError);
           }
         }
 
         // Sort by rating (mock) and limit
         discoveryWorkouts.sort((a, b) => b.rating - a.rating);
         setDiscoveryTemplates(discoveryWorkouts.slice(0, 6));
+        
+        const totalTemplateTime = Date.now() - templateStartTime;
+        console.log(`[WorkoutsTab] ✅ Template discovery complete in ${totalTemplateTime}ms (service: ${serviceLoadTime}ms)`);
 
         // Generate workout indicators from parsed workouts
         const indicators: WorkoutIndicator[] = parsedWorkouts.slice(0, 10).map(workout => ({
@@ -309,7 +420,8 @@ export default function WorkoutsTab() {
         console.log('[WorkoutsTab] Data loading complete:', {
           socialWorkouts: parsedWorkouts.length,
           discoveryTemplates: discoveryWorkouts.length,
-          indicators: indicators.length
+          indicators: indicators.length,
+          optimizedService: serviceLoadTime > 0 ? `${serviceLoadTime}ms` : 'not used'
         });
 
       } catch (error) {
@@ -411,95 +523,67 @@ export default function WorkoutsTab() {
         console.warn('No event data found for workout:', workoutId);
       }
     }
-    
-    // Find the workout data and open modal
-    let workoutData = null;
+
+    // NEW ARCHITECTURE: Start machine with preselected template
+    // Find the template ID to pass to the machine
+    let templateId = workoutId;
     
     // Check if it's the POWR WOD
     if (workoutId === powrWOD.id) {
-      workoutData = {
-        title: powrWOD.title,
-        description: powrWOD.description,
-        content: powrWOD.eventContent,
-        exercises: powrWOD.exercises,
-        equipment: ['None - Bodyweight Only'],
-        tags: powrWOD.eventTags,
-        eventKind: powrWOD.eventKind
-      };
+      templateId = powrWOD.id;
     } else {
       // Check discovery templates
       const discoveryWorkout = discoveryTemplates.find(w => w.id === workoutId || w.eventId === workoutId);
       if (discoveryWorkout) {
-        workoutData = {
-          title: discoveryWorkout.title,
-          description: `${discoveryWorkout.difficulty} level workout targeting ${discoveryWorkout.muscleGroups.join(', ')}`,
-          content: JSON.stringify({
-            exercises: discoveryWorkout.exercises,
-            estimatedDuration: discoveryWorkout.estimatedDuration,
-            difficulty: discoveryWorkout.difficulty
-          }),
-          exercises: discoveryWorkout.exercises,
-          equipment: ['Various'], // Could be extracted from exercise data
-          tags: discoveryWorkout.eventTags || [['t', 'fitness']],
-          eventKind: 33402
-        };
+        templateId = discoveryWorkout.id;
       } else {
-        // Check social workouts (these are records, not templates)
+        // Check social workouts - if they have a referenced template, use that
         const socialWorkout = socialWorkouts.find(w => w.id === workoutId || w.eventId === workoutId);
         if (socialWorkout) {
-          // First, check if this workout has a referenced template
           const templateData = rawEventData.get(`${workoutId}_template`);
-          
-          if (templateData) {
-            // Use the referenced template data instead of the workout record
-            workoutData = {
-              title: templateData.title,
-              description: `Template: ${templateData.title}`,
-              content: `This is the template that was used for the workout completed by ${socialWorkout.author.name}`,
-              exercises: [], // Template exercises would be loaded separately
-              equipment: ['Various'],
-              tags: [['t', 'fitness']],
-              eventKind: 33402 // This is a template, not a workout record
-            };
-            
-            if (process.env.NODE_ENV === 'development') {
-              console.log('🎯 Opening referenced template:', {
-                templateTitle: templateData.title,
-                templateId: templateData.hexId,
-                originalWorkout: socialWorkout.title
-              });
-            }
-          } else {
-            // Fallback to workout record data if no template reference
-            workoutData = {
-              title: socialWorkout.title,
-              description: `Completed workout by ${socialWorkout.author.name}`,
-              content: socialWorkout.notes,
-              exercises: socialWorkout.exercises.map(ex => ({
-                name: ex.name,
-                sets: ex.sets.length,
-                reps: ex.sets[0]?.reps || 0,
-                description: `${ex.sets.length} sets completed`
-              })),
-              equipment: ['Various'],
-              tags: [['t', 'fitness']],
-              eventKind: 1301
-            };
-            
-            if (process.env.NODE_ENV === 'development') {
-              console.log('⚠️ No template reference found, showing workout record data');
-            }
+          if (templateData && templateData.hexId && typeof templateData.hexId === 'string') {
+            // Use the referenced template ID
+            templateId = templateData.hexId;
           }
         }
       }
     }
+
+    // Extract template author pubkey for proper template reference
+    let templateAuthorPubkey = 'user-pubkey'; // fallback
     
-    if (workoutData) {
-      setSelectedWorkout(workoutData);
-      setIsModalOpen(true);
+    // Check if it's the POWR WOD
+    if (workoutId === powrWOD.id) {
+      templateAuthorPubkey = 'powr-coach'; // POWR WOD author
     } else {
-      console.warn('Workout data not found for ID:', workoutId);
+      // Check discovery templates for real author
+      const discoveryWorkout = discoveryTemplates.find(w => w.id === workoutId || w.eventId === workoutId);
+      if (discoveryWorkout) {
+        templateAuthorPubkey = discoveryWorkout.author.pubkey;
+        console.log('🔍 Found template author from discovery:', templateAuthorPubkey.slice(0, 8) + '...');
+      } else {
+        // Check raw event data for template author
+        const eventData = rawEventData.get(workoutId);
+        if (eventData && eventData.pubkey) {
+          templateAuthorPubkey = eventData.pubkey as string;
+          console.log('🔍 Found template author from event data:', templateAuthorPubkey.slice(0, 8) + '...');
+        }
+      }
     }
+
+    console.log('🚀 Starting workout lifecycle machine with template:', templateId);
+    console.log('📝 Template author pubkey:', templateAuthorPubkey.slice(0, 8) + '...');
+    console.log('🔗 Will build template reference:', `33402:${templateAuthorPubkey}:${templateId}`);
+    
+    // Start the workout lifecycle machine with preselected template AND author info
+    workoutSend({ 
+      type: 'START_SETUP',
+      preselectedTemplateId: templateId,
+      templateAuthorPubkey: templateAuthorPubkey
+    });
+    
+    // DON'T open modal yet - wait for setup machine to resolve template data
+    // Modal will open when machine reaches 'active' state with resolved data
   };
 
   const handleCloseModal = () => {
@@ -509,8 +593,13 @@ export default function WorkoutsTab() {
   };
 
   const handleStartWorkout = () => {
-    console.log('Starting workout!');
-    alert('Workout started! This would normally navigate to the active workout screen.');
+    console.log('🚀 Starting workout from modal!');
+    
+    // Send event to machine to actually start the workout
+    // This should trigger the activeWorkoutMachine to begin
+    workoutSend({ type: 'START_WORKOUT' });
+    
+    // Close modal - the machine will handle the rest
     setIsModalOpen(false);
   };
 
@@ -670,7 +759,7 @@ export default function WorkoutsTab() {
       <WorkoutDetailModal
         isOpen={isModalOpen}
         isLoading={false}
-        templateData={selectedWorkout as any}
+        templateData={selectedWorkout || undefined}
         error={modalError}
         onClose={handleCloseModal}
         onStartWorkout={handleStartWorkout}

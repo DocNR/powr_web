@@ -12,7 +12,9 @@ import NDKDeduplicationTest from '@/components/test/NDKDeduplicationTest';
 import WorkflowValidationTest from '@/components/test/WorkflowValidationTest';
 import NIP101eTemplateReferenceTest from '@/components/test/NIP101eTemplateReferenceTest';
 import { WorkoutDetailModalTest } from '@/components/test/WorkoutDetailModalTest';
-import WorkoutLifecycleMachineTest from '@/components/test/WorkoutLifecycleMachineTest';
+import WorkoutLifecycleMachineIntegrationTest from '@/components/test/WorkoutLifecycleMachineIntegrationTest';
+import { DependencyResolutionServiceTest } from '@/components/test/DependencyResolutionServiceTest';
+import CompleteWorkoutFlowTest from '@/components/test/CompleteWorkoutFlowTest';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { TestTube, Target, Wifi, WifiOff } from 'lucide-react';
@@ -137,19 +139,53 @@ export function TestTab() {
           </Card>
         </div>
 
-        {/* 🔧 NEW: Workout Lifecycle Machine Test - Template Reference Fix */}
+        {/* 🎯 NEW: Workout Lifecycle Machine Integration Test - Dependency Resolution */}
         <div className="w-full">
-          <Card className="border-green-200 bg-green-50">
+          <Card className="border-emerald-200 bg-emerald-50">
             <CardHeader>
-              <CardTitle className="text-green-800 flex items-center gap-2">
-                🔧 NEW: Complete Workout Flow Test (Template Reference Fix)
+              <CardTitle className="text-emerald-800 flex items-center gap-2">
+                🎯 NEW: Workout Lifecycle Machine Integration Test (Dependency Resolution)
               </CardTitle>
-              <CardDescription className="text-green-700">
-                Test the fixed workoutLifecycleMachine that now includes proper template references in published 1301 events for social feed integration.
+              <CardDescription className="text-emerald-700">
+                Test the complete integration: WorkoutsTab → workoutLifecycleMachine → workoutSetupMachine → exercise dependency resolution. Verifies that setup invoke properly resolves exercise dependencies within the workout.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <WorkoutLifecycleMachineTest />
+              <WorkoutLifecycleMachineIntegrationTest />
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* 🧪 NEW: Dependency Resolution Service Test */}
+        <div className="w-full">
+          <Card className="border-cyan-200 bg-cyan-50">
+            <CardHeader>
+              <CardTitle className="text-cyan-800 flex items-center gap-2">
+                🧪 NEW: Dependency Resolution Service Test
+              </CardTitle>
+              <CardDescription className="text-cyan-700">
+                Test the extracted dependency resolution service with correctly formatted NIP-101e events. Validates exercise reference parsing and template resolution performance.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <DependencyResolutionServiceTest />
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* 🏗️ NEW: Complete Workout Flow Test - Parent-Child Architecture */}
+        <div className="w-full">
+          <Card className="border-indigo-200 bg-indigo-50">
+            <CardHeader>
+              <CardTitle className="text-indigo-800 flex items-center gap-2">
+                🏗️ NEW: Complete Workout Flow Test (Parent-Child Architecture)
+              </CardTitle>
+              <CardDescription className="text-indigo-700">
+                Comprehensive test of XState parent-child machine hierarchy with real NDK integration. Tests workoutLifecycleMachine → workoutSetupMachine → activeWorkoutMachine communication patterns.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <CompleteWorkoutFlowTest />
             </CardContent>
           </Card>
         </div>

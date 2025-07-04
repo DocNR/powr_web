@@ -7,7 +7,8 @@
 
 import { setup, assign, fromPromise } from 'xstate';
 import { getNDKInstance } from '@/lib/ndk';
-import { loadTemplateActor, type WorkoutTemplate } from './actors/loadTemplateActor';
+import { loadTemplateActor, type WorkoutTemplate, type ExerciseTemplate } from './actors/loadTemplateActor';
+import type { SetupMachineOutput } from './types/workoutLifecycleTypes';
 
 export interface WorkoutSetupContext {
   // Template selection
@@ -16,7 +17,7 @@ export interface WorkoutSetupContext {
   
   // Template loading
   loadedTemplate: WorkoutTemplate | null;
-  loadedExercises: any[];
+  loadedExercises: ExerciseTemplate[];
   loadTime: number;
   
   // Error handling
@@ -24,6 +25,10 @@ export interface WorkoutSetupContext {
   
   // User context
   userPubkey: string;
+  
+  // Preselected template support
+  preselectedTemplateId: string | null;
+  templateAuthorPubkey: string | null;
 }
 
 export type WorkoutSetupEvent =
@@ -36,7 +41,7 @@ export type WorkoutSetupEvent =
 /**
  * Load available workout templates for the authenticated user
  */
-const loadTemplatesActor = fromPromise(async ({ input }: {
+export const loadTemplatesActor = fromPromise(async ({ input }: {
   input: { userPubkey: string }
 }): Promise<WorkoutTemplate[]> => {
   console.log('[WorkoutSetupMachine] Loading available templates for user:', input.userPubkey.slice(0, 8) + '...');
@@ -48,10 +53,10 @@ const loadTemplatesActor = fromPromise(async ({ input }: {
   
   // Load all workout templates for this user
   const templateEvents = await ndk.fetchEvents({
-    kinds: [33402 as any], // NIP-101e workout template
+    kinds: [33402], // NIP-101e workout template
     authors: [input.userPubkey],
     '#t': ['fitness']
-  });
+  } as any);
   
   console.log('[WorkoutSetupMachine] Found template events:', templateEvents.size);
   
@@ -62,7 +67,10 @@ const loadTemplatesActor = fromPromise(async ({ input }: {
     const id = tagMap.get('d')?.[1] || 'unknown';
     const name = tagMap.get('title')?.[1] || 'Untitled Template';
     const description = event.content || 'No description';
-    const difficulty = tagMap.get('difficulty')?.[1];
+    const difficultyValue = tagMap.get('difficulty')?.[1];
+    const difficulty = (difficultyValue === 'beginner' || difficultyValue === 'intermediate' || difficultyValue === 'advanced') 
+      ? difficultyValue 
+      : undefined;
     const estimatedDuration = tagMap.get('duration')?.[1] ? parseInt(tagMap.get('duration')![1]) : undefined;
     
     // Extract exercise references
@@ -104,7 +112,8 @@ export const workoutSetupMachine = setup({
   types: {} as {
     context: WorkoutSetupContext;
     events: WorkoutSetupEvent;
-    input: { userPubkey: string };
+    input: { userPubkey: string; preselectedTemplateId?: string; templateAuthorPubkey?: string };
+    output: SetupMachineOutput;
   },
   actors: {
     loadTemplatesActor,
@@ -112,7 +121,7 @@ export const workoutSetupMachine = setup({
   }
 }).createMachine({
   id: 'workoutSetup',
-  initial: 'idle',
+  initial: 'checkingPreselection',
   
   context: ({ input }) => ({
     availableTemplates: [],
@@ -121,13 +130,130 @@ export const workoutSetupMachine = setup({
     loadedExercises: [],
     loadTime: 0,
     error: null,
-    userPubkey: input.userPubkey
+    userPubkey: input.userPubkey,
+    preselectedTemplateId: input.preselectedTemplateId || null,
+    templateAuthorPubkey: input.templateAuthorPubkey || null
   }),
+
+  // XState v5 requires output at machine level for invoke to capture it
+  output: ({ context }) => {
+    console.log('[WorkoutSetupMachine] Creating output from context:', {
+      hasLoadedTemplate: !!context.loadedTemplate,
+      hasLoadedExercises: !!context.loadedExercises,
+      loadedTemplate: context.loadedTemplate,
+      loadedExercises: context.loadedExercises?.length
+    });
+    
+    // The loadedTemplate comes from loadTemplateActor which uses dependency resolution service
+    const template = context.loadedTemplate;
+    const exercises = context.loadedExercises;
+    
+    // Ensure we always have valid data - create fallback if needed
+    const templateId = template?.id || context.selectedTemplateId || context.preselectedTemplateId || 'default-template';
+    const templatePubkey = template?.authorPubkey || context.templateAuthorPubkey || context.userPubkey;
+    const templateName = template?.name || 'Custom Workout';
+    
+    // Create template selection from loaded template
+    const templateSelection = {
+      templateId,
+      templatePubkey,
+      templateReference: `33402:${templatePubkey}:${templateId}`,
+      templateRelayUrl: ''
+    };
+    
+    // Convert template exercises to workout exercises using real template data
+    const workoutExercises = context.loadedTemplate?.exercises?.map((templateExercise) => {
+      // Find the corresponding exercise details for the name
+      const exerciseDetails = exercises?.find(ex => 
+        templateExercise.exerciseRef.includes(ex.id)
+      );
+      
+      return {
+        // Display fields for modal:
+        name: exerciseDetails?.name || 'Unknown Exercise',
+        sets: templateExercise.sets,        // From template (could be undefined)
+        reps: templateExercise.reps,        // From template (could be undefined)  
+        weight: templateExercise.weight,    // From template (could be undefined)
+        description: templateExercise.sets && templateExercise.reps 
+          ? `${templateExercise.sets} sets × ${templateExercise.reps} reps`
+          : 'Sets and reps to be determined',
+        
+        // Technical fields for business logic:
+        exerciseRef: templateExercise.exerciseRef,
+        restTime: templateExercise.restTime || 60  // Default rest time if not specified
+      };
+    }) || [];
+
+    // Create workout data from loaded template
+    const workoutId = `workout_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const workoutData = {
+      workoutId,
+      title: templateName,
+      startTime: Date.now(),
+      completedSets: [],
+      workoutType: 'strength' as const,
+      exercises: workoutExercises
+    };
+    
+    console.log('[WorkoutSetupMachine] Generated output:', {
+      templateSelection,
+      workoutData: {
+        ...workoutData,
+        exercises: workoutData.exercises.length
+      }
+    });
+    
+    // Always return valid output - never undefined
+    return {
+      templateSelection,
+      workoutData
+    };
+  },
   
   states: {
+    checkingPreselection: {
+      always: [
+        {
+          target: 'loadingPreselectedTemplate',
+          guard: ({ context }) => !!context.preselectedTemplateId,
+          actions: assign({
+            selectedTemplateId: ({ context }) => context.preselectedTemplateId
+          })
+        },
+        {
+          target: 'idle'
+        }
+      ]
+    },
+
     idle: {
       on: {
         'LOAD_TEMPLATES': 'loadingTemplates'
+      }
+    },
+
+    loadingPreselectedTemplate: {
+      invoke: {
+        src: 'loadTemplateActor',
+        input: ({ context }) => ({
+          templateId: context.selectedTemplateId!,
+          userPubkey: context.templateAuthorPubkey || context.userPubkey
+        }),
+        onDone: {
+          target: 'completed',
+          actions: assign({
+            loadedTemplate: ({ event }) => event.output.template,
+            loadedExercises: ({ event }) => event.output.exercises,
+            loadTime: ({ event }) => event.output.loadTime,
+            error: null
+          })
+        },
+        onError: {
+          target: 'error',
+          actions: assign({
+            error: ({ event }) => `Failed to load preselected template: ${event.error}`
+          })
+        }
       }
     },
     

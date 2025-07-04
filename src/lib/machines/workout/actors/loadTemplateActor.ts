@@ -1,211 +1,71 @@
 /**
  * Real NDK Template Loading Actor
  * 
- * Simplified version for Phase 2 that uses existing test content
- * and focuses on real NDK integration patterns.
+ * Updated to use DependencyResolutionService for optimized template + exercise resolution.
+ * Achieves <100ms single template resolution using proven CACHE_FIRST + batching patterns.
  */
 
 import { fromPromise } from 'xstate';
-import { getNDKInstance } from '@/lib/ndk';
-import type { NDKEvent } from '@nostr-dev-kit/ndk';
+import { dependencyResolutionService } from '@/lib/services/dependencyResolution';
+import type { ResolvedTemplate } from '@/lib/services/dependencyResolution';
 
 export interface LoadTemplateInput {
   templateId: string;
   userPubkey: string;
 }
 
-export interface LoadTemplateOutput {
-  template: WorkoutTemplate;
-  exercises: ExerciseTemplate[];
-  loadTime: number;
-}
-
-export interface WorkoutTemplate {
-  id: string;
-  name: string;
-  description: string;
-  exercises: TemplateExercise[];
-  estimatedDuration?: number;
-  difficulty?: 'beginner' | 'intermediate' | 'advanced';
-  authorPubkey: string;
-  createdAt: number;
-}
-
-export interface TemplateExercise {
-  exerciseRef: string; // Format: "33401:pubkey:exercise-d-tag"
-  sets: number;
-  reps: number;
-  weight?: number;
-  restTime?: number;
-}
-
-export interface ExerciseTemplate {
-  id: string;
-  name: string;
-  description: string;
-  muscleGroups: string[];
-  equipment: string;
-  difficulty: string;
-  instructions: string[];
-  authorPubkey: string;
-  createdAt: number;
-}
+// Re-export types from dependency resolution service for compatibility
+export type { 
+  WorkoutTemplate, 
+  TemplateExercise, 
+  Exercise as ExerciseTemplate,
+  ResolvedTemplate as LoadTemplateOutput 
+} from '@/lib/services/dependencyResolution';
 
 /**
- * Real NDK Template Loading Actor
+ * Optimized Template Loading Actor
  * 
- * Phase 2 implementation that loads real templates from NDK cache
- * using the Phase 1 test content as a foundation.
+ * Uses DependencyResolutionService for <100ms single template resolution
+ * with proven CACHE_FIRST + batching optimization patterns.
  */
 export const loadTemplateActor = fromPromise(async ({ input }: {
   input: LoadTemplateInput
-}): Promise<LoadTemplateOutput> => {
-  console.log('[LoadTemplateActor] Loading template:', {
+}): Promise<ResolvedTemplate> => {
+  console.log('[LoadTemplateActor] Loading template with optimized service:', {
     templateId: input.templateId,
     userPubkey: input.userPubkey.slice(0, 8) + '...'
   });
   
-  const startTime = Date.now();
-  
   try {
-    const ndk = getNDKInstance();
-    if (!ndk) {
-      throw new Error('NDK not initialized');
-    }
+    // Build template reference in NIP-01 format: kind:pubkey:d-tag
+    const templateRef = `33402:${input.userPubkey}:${input.templateId}`;
     
-    // Load template using NDK (cache-first, then relays)
-    console.log('[LoadTemplateActor] Fetching template event from NDK...');
-    const templateEvent = await ndk.fetchEvent({
-      kinds: [33402 as any], // NIP-101e workout template
-      authors: [input.userPubkey],
-      '#d': [input.templateId]
+    console.log('[LoadTemplateActor] Using dependency resolution service for:', templateRef);
+    
+    // Use optimized service for single template + exercises resolution
+    const result = await dependencyResolutionService.resolveSingleTemplate(templateRef);
+    
+    console.log('[LoadTemplateActor] ✅ Template loaded via service:', {
+      templateId: result.template.id,
+      templateName: result.template.name,
+      exerciseCount: result.exercises.length,
+      loadTime: `${result.loadTime}ms`
     });
     
-    if (!templateEvent) {
-      throw new Error(`Template not found: ${input.templateId} (checked cache and relays)`);
-    }
+    return result;
     
-    console.log('[LoadTemplateActor] Template event found:', {
-      id: templateEvent.id,
-      tags: templateEvent.tags.length,
-      createdAt: templateEvent.created_at
-    });
-    
-    // Parse template from NDK event
-    const template = parseTemplateFromEvent(templateEvent);
-    
-    // Resolve exercise dependencies
-    console.log('[LoadTemplateActor] Resolving exercise dependencies...');
-    const exercises = await resolveExerciseDependencies(template.exercises, ndk);
-    
-    const loadTime = Date.now() - startTime;
-    
-    console.log('[LoadTemplateActor] Template loaded successfully:', {
-      templateId: template.id,
-      exerciseCount: exercises.length,
-      loadTime: `${loadTime}ms`
-    });
-    
-    return {
-      template,
-      exercises,
-      loadTime
-    };
   } catch (error) {
-    const loadTime = Date.now() - startTime;
     const errorMessage = error instanceof Error ? error.message : 'Unknown template loading error';
     
-    console.error('[LoadTemplateActor] Template loading failed:', {
+    console.error('[LoadTemplateActor] ❌ Template loading failed:', {
       error: errorMessage,
-      templateId: input.templateId,
-      loadTime: `${loadTime}ms`
+      templateId: input.templateId
     });
     
-    // Re-throw error - no mock data fallback in Phase 2
-    throw new Error(`Failed to load template: ${errorMessage}`);
+    // Re-throw with context
+    throw new Error(`Failed to load template ${input.templateId}: ${errorMessage}`);
   }
 });
 
-/**
- * Parse workout template from NDK event
- */
-function parseTemplateFromEvent(event: NDKEvent): WorkoutTemplate {
-  const tagMap = new Map(event.tags.map(tag => [tag[0], tag]));
-  
-  const id = tagMap.get('d')?.[1] || 'unknown';
-  const name = tagMap.get('title')?.[1] || 'Untitled Template';
-  const description = event.content || 'No description';
-  const difficultyValue = tagMap.get('difficulty')?.[1];
-  const difficulty: 'beginner' | 'intermediate' | 'advanced' | undefined = 
-    difficultyValue === 'beginner' || difficultyValue === 'intermediate' || difficultyValue === 'advanced' 
-      ? difficultyValue 
-      : undefined;
-  const estimatedDuration = tagMap.get('duration')?.[1] ? parseInt(tagMap.get('duration')![1]) : undefined;
-  
-  // Extract exercise references
-  const exerciseTags = event.tags.filter(tag => tag[0] === 'exercise');
-  const exercises: TemplateExercise[] = exerciseTags.map(tag => ({
-    exerciseRef: tag[1],
-    sets: parseInt(tag[2]) || 3,
-    reps: parseInt(tag[3]) || 10,
-    weight: tag[4] ? parseInt(tag[4]) : undefined,
-    restTime: 60 // Default rest time
-  }));
-  
-  return {
-    id,
-    name,
-    description,
-    exercises,
-    estimatedDuration,
-    difficulty,
-    authorPubkey: event.pubkey,
-    createdAt: event.created_at || Math.floor(Date.now() / 1000)
-  };
-}
-
-/**
- * Resolve exercise dependencies for a workout template
- */
-async function resolveExerciseDependencies(
-  templateExercises: TemplateExercise[],
-  ndk: any
-): Promise<ExerciseTemplate[]> {
-  if (templateExercises.length === 0) {
-    return [];
-  }
-  
-  // Extract unique exercise references
-  const exerciseRefs = [...new Set(templateExercises.map(ex => ex.exerciseRef))];
-  
-  console.log('[LoadTemplateActor] Resolving exercise references:', {
-    totalExercises: templateExercises.length,
-    uniqueExercises: exerciseRefs.length,
-    references: exerciseRefs
-  });
-  
-  // For Phase 2, create mock exercise data based on references
-  const exercises: ExerciseTemplate[] = exerciseRefs.map(ref => {
-    const parts = ref.split(':');
-    const exerciseId = parts[2] || 'unknown';
-    
-    return {
-      id: exerciseId,
-      name: exerciseId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-      description: `Instructions for ${exerciseId}`,
-      muscleGroups: ['chest', 'arms'], // Mock data
-      equipment: 'bodyweight',
-      difficulty: 'beginner',
-      instructions: ['Step 1', 'Step 2', 'Step 3'],
-      authorPubkey: parts[1] || 'unknown',
-      createdAt: Math.floor(Date.now() / 1000)
-    };
-  });
-  
-  console.log('[LoadTemplateActor] Exercise dependencies resolved (mock data):', {
-    found: exercises.length,
-    total: exerciseRefs.length
-  });
-  
-  return exercises;
-}
+// Removed: parseTemplateFromEvent and resolveExerciseDependencies
+// These functions are now handled by DependencyResolutionService with proven optimization patterns
