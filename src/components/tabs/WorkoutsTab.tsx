@@ -3,89 +3,33 @@
 /**
  * WorkoutsTab - Gallery-Based Workout Discovery
  * 
- * Real Nostr integration with NDK for workout discovery interface.
- * Fetches recent 1301 workout records and 33402 templates from the network.
+ * Uses cached Nostr data from WorkoutDataProvider for workout discovery interface.
+ * Displays recent 1301 workout records and 33402 templates from the network.
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { CalendarBar, WorkoutCard, ScrollableGallery, SearchableWorkoutDiscovery, WorkoutDetailModal } from '@/components/powr-ui/workout';
-import { getNDKInstance, WORKOUT_EVENT_KINDS } from '@/lib/ndk';
-import { parseWorkoutEvent, type WorkoutEvent } from '@/lib/workout-events';
-import { useIsAuthenticated } from '@/lib/auth/hooks';
+import { useWorkoutData } from '@/providers/WorkoutDataProvider';
 import { useMachine } from '@xstate/react';
 import { workoutLifecycleMachine } from '@/lib/machines/workout/workoutLifecycleMachine';
 
-interface SocialWorkout {
-  id: string;
-  title: string;
-  completedAt: Date;
-  duration: number;
-  exercises: Array<{
-    name: string;
-    sets: Array<{
-      reps: number;
-      weight: number;
-      rpe: number;
-    }>;
-  }>;
-  author: {
-    pubkey: string;
-    name: string;
-    picture: string;
-  };
-  notes: string;
-  eventId?: string;
-}
-
-interface DiscoveryWorkout {
-  id: string;
-  title: string;
-  exercises: Array<{
-    name: string;
-    sets: number;
-    reps: number;
-    weight: number;
-  }>;
-  estimatedDuration: number;
-  difficulty: 'beginner' | 'intermediate' | 'advanced';
-  rating: number;
-  calories: number;
-  muscleGroups: string[];
-  level: string;
-  author: {
-    pubkey: string;
-    name: string;
-    picture: string;
-  };
-  eventId?: string;
-  eventTags?: string[][];
-  eventKind?: number;
-  templateRef?: string;
-}
-
-interface WorkoutIndicator {
-  date: Date;
-  count: number;
-  type: 'completed';
-}
-
 export default function WorkoutsTab() {
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [socialWorkouts, setSocialWorkouts] = useState<SocialWorkout[]>([]);
-  const [discoveryTemplates, setDiscoveryTemplates] = useState<DiscoveryWorkout[]>([]);
-  const [workoutIndicators, setWorkoutIndicators] = useState<WorkoutIndicator[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   // Modal state
   const [selectedWorkout, setSelectedWorkout] = useState<Record<string, unknown> | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalError, setModalError] = useState<string | undefined>();
 
-  const isAuthenticated = useIsAuthenticated();
-
-  // Store raw event data for click logging
-  const [rawEventData, setRawEventData] = useState<Map<string, Record<string, unknown>>>(new Map());
+  // Get cached data from provider
+  const {
+    socialWorkouts,
+    discoveryTemplates,
+    workoutIndicators,
+    rawEventData,
+    isLoading,
+    error
+  } = useWorkoutData();
 
   // Workout Lifecycle Machine
   const [workoutState, workoutSend] = useMachine(workoutLifecycleMachine, {
@@ -104,7 +48,6 @@ export default function WorkoutsTab() {
     if (workoutState.matches('setup')) {
       // Setup state - machine is resolving template, don't open modal yet
       console.log('📋 Machine in setup state - waiting for template resolution...');
-      // Don't open modal until setup is complete
       
     } else if (workoutState.matches('setupComplete')) {
       // Setup complete - template is resolved, show modal with resolved data
@@ -143,297 +86,18 @@ export default function WorkoutsTab() {
     }
   }, [workoutState]);
 
-  // Load real Nostr data
+  // Cleanup effect - reset machine on component unmount only
   useEffect(() => {
-    const loadNostrData = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        
-        const ndk = getNDKInstance();
-        if (!ndk) {
-          console.warn('[WorkoutsTab] NDK not initialized');
-          setIsLoading(false);
-          return;
-        }
-
-        console.log('[WorkoutsTab] Loading real Nostr data...');
-
-        // Load recent workout records (Kind 1301) for social feed
-        console.log('[WorkoutsTab] Fetching recent workout records...');
-        const workoutRecords = await ndk.fetchEvents({
-          kinds: [WORKOUT_EVENT_KINDS.WORKOUT_RECORD as number],
-          '#t': ['fitness'],
-          limit: 10,
-          since: Math.floor(Date.now() / 1000) - (7 * 24 * 60 * 60) // Last 7 days
-        });
-
-        console.log('[WorkoutsTab] Found workout records:', workoutRecords.size);
-
-        // Parse workout records for social feed
-        const parsedWorkouts: SocialWorkout[] = [];
-        const socialTemplateRefs = new Set<string>();
-        const eventDataMap = new Map();
-
-        for (const event of Array.from(workoutRecords)) {
-          try {
-            const workoutEvent: WorkoutEvent = {
-              kind: event.kind!,
-              content: event.content || '',
-              tags: event.tags,
-              created_at: event.created_at!,
-              pubkey: event.pubkey,
-              id: event.id
-            };
-
-            // Store raw event data for click logging (no console output during load)
-            eventDataMap.set(event.id, {
-              type: '1301_workout_record',
-              hexId: event.id,
-              nevent: event.encode ? event.encode() : 'encode() not available',
-              pubkey: event.pubkey,
-              created_at: event.created_at,
-              tags: event.tags,
-              rawEvent: event
-            });
-
-            const parsed = parseWorkoutEvent(workoutEvent);
-            
-            // Extract template references from this workout
-            const templateTags = event.tags.filter(tag => tag[0] === 'template');
-            let referencedTemplate = null;
-            
-            if (templateTags.length > 0) {
-              const templateRef = templateTags[0][1]; // First template reference
-              socialTemplateRefs.add(templateRef);
-              
-              // Try to fetch the referenced template immediately
-              try {
-                const [kind, pubkey, dTag] = templateRef.split(':');
-                if (kind === '33402' && pubkey && dTag) {
-                  const referencedTemplates = await ndk.fetchEvents({
-                    kinds: [33402 as number],
-                    authors: [pubkey],
-                    '#d': [dTag],
-                    limit: 1
-                  });
-                  
-                  if (referencedTemplates.size > 0) {
-                    const template = Array.from(referencedTemplates)[0];
-                    referencedTemplate = {
-                      hexId: template.id,
-                      naddr: template.encode ? template.encode() : 'encode() not available',
-                      title: template.tags.find(t => t[0] === 'title')?.[1] || 'Unknown Template',
-                      pubkey: template.pubkey
-                    };
-                    
-                    // Store referenced template data
-                    eventDataMap.set(`${event.id}_template`, {
-                      type: 'referenced_template',
-                      templateRef,
-                      ...referencedTemplate,
-                      rawEvent: template
-                    });
-                  }
-                }
-              } catch (templateError) {
-                console.warn('[WorkoutsTab] Failed to fetch referenced template:', templateRef, templateError);
-              }
-            }
-            
-            // Convert to social workout format
-            const socialWorkout: SocialWorkout = {
-              id: parsed.id,
-              title: parsed.title,
-              completedAt: new Date(parsed.endTime * 1000),
-              duration: Math.floor(parsed.duration / 60), // Convert to minutes
-              exercises: parsed.exercises.map(ex => ({
-                name: `${parsed.exercises.length} exercises`, // Simple count instead of fake names
-                sets: [{
-                  reps: parseInt(ex.reps),
-                  weight: parseInt(ex.weight),
-                  rpe: parseInt(ex.rpe)
-                }]
-              })),
-              author: {
-                pubkey: parsed.pubkey,
-                name: `${parsed.pubkey.slice(0, 8)}...`,
-                picture: '/assets/workout-record-fallback.jpg'
-              },
-              notes: referencedTemplate 
-                ? `${parsed.content || 'Completed workout'} (Template: ${referencedTemplate.title})`
-                : parsed.content || 'Completed workout',
-              eventId: parsed.eventId
-            };
-
-            parsedWorkouts.push(socialWorkout);
-
-          } catch (parseError) {
-            console.warn('[WorkoutsTab] Failed to parse workout:', event.id, parseError);
-          }
-        }
-
-        // Sort by most recent
-        parsedWorkouts.sort((a, b) => b.completedAt.getTime() - a.completedAt.getTime());
-        setSocialWorkouts(parsedWorkouts.slice(0, 5)); // Limit to 5 for UI
-
-        // Load workout templates - OPEN DISCOVERY (no author filtering)
-        console.log('[WorkoutsTab] Fetching workout templates with open discovery...');
-        const templateStartTime = Date.now();
-        
-        // Fetch ALL workout templates from the network (no filtering at all)
-        const templates = await ndk.fetchEvents({
-          kinds: [WORKOUT_EVENT_KINDS.WORKOUT_TEMPLATE as number],
-          limit: 50  // Increased limit for better discovery
-        });
-
-        console.log('[WorkoutsTab] Found templates:', templates.size);
-
-        // Parse templates directly without dependency service (to avoid author filtering)
-        const resolvedTemplates: Array<{
-          id: string;
-          name: string;
-          exercises: Array<{ exerciseRef: string; sets: number; reps: number; weight?: number }>;
-          estimatedDuration?: number;
-          difficulty?: string;
-          authorPubkey: string;
-          eventId?: string;
-          tags?: string[][];
-        }> = [];
-        
-        for (const template of Array.from(templates)) {
-          try {
-            const dTag = template.tags.find(tag => tag[0] === 'd')?.[1];
-            if (!dTag) continue;
-
-            // Store raw template data for click logging
-            const templateData = {
-              type: '33402_workout_template',
-              hexId: template.id,
-              naddr: template.encode ? template.encode() : 'encode() not available',
-              pubkey: template.pubkey,
-              created_at: template.created_at,
-              tags: template.tags,
-              rawEvent: template
-            };
-            
-            // Store using both the d-tag (template ID) and the hex event ID
-            eventDataMap.set(template.id, templateData);
-            eventDataMap.set(dTag, templateData);
-
-            // Parse template directly
-            const tagMap = new Map(template.tags.map(tag => [tag[0], tag]));
-            
-            const name = tagMap.get('title')?.[1] || tagMap.get('name')?.[1] || 'Untitled Template';
-            const difficulty = tagMap.get('difficulty')?.[1] as 'beginner' | 'intermediate' | 'advanced' | undefined;
-            const estimatedDuration = tagMap.get('duration')?.[1] ? parseInt(tagMap.get('duration')![1]) : undefined;
-            
-            // Extract exercise references
-            const exerciseTags = template.tags.filter(tag => tag[0] === 'exercise');
-            const exercises = exerciseTags.map(tag => ({
-              exerciseRef: tag[1],
-              sets: parseInt(tag[2]) || 3,
-              reps: parseInt(tag[3]) || 10,
-              weight: tag[4] ? parseInt(tag[4]) : undefined
-            }));
-
-            resolvedTemplates.push({
-              id: dTag,
-              name,
-              exercises,
-              estimatedDuration,
-              difficulty,
-              authorPubkey: template.pubkey,
-              eventId: template.id,
-              tags: template.tags
-            });
-
-          } catch (parseError) {
-            console.warn('[WorkoutsTab] Failed to parse template:', template.id, parseError);
-          }
-        }
-        
-        const serviceLoadTime = Date.now() - templateStartTime;
-        console.log(`[WorkoutsTab] ✅ Parsed ${resolvedTemplates.length} templates directly in ${serviceLoadTime}ms`);
-
-        // Convert resolved templates to discovery format
-        const discoveryWorkouts: DiscoveryWorkout[] = [];
-        
-        for (const template of resolvedTemplates) {
-          try {
-            // Store exercise data in event map
-            eventDataMap.set(`${template.eventId || template.id}_exercises`, {
-              type: 'template_exercises',
-              count: template.exercises.length,
-              exercises: template.exercises.map((ex) => ex.exerciseRef.split(':')[2]?.replace(/-/g, ' ') || 'Unknown Exercise')
-            });
-
-            const discoveryWorkout: DiscoveryWorkout = {
-              id: template.id,
-              title: template.name,
-              exercises: template.exercises.map((ex) => ({
-                name: ex.exerciseRef.split(':')[2]?.replace(/-/g, ' ') || 'Unknown Exercise',
-                sets: ex.sets,
-                reps: ex.reps,
-                weight: ex.weight || 0
-              })),
-              estimatedDuration: Math.round((template.estimatedDuration || 1800) / 60), // Convert to minutes
-              difficulty: (template.difficulty as 'beginner' | 'intermediate' | 'advanced') || 'intermediate',
-              rating: 8.5 + Math.random() * 1.5, // Mock rating for now
-              calories: Math.round(((template.estimatedDuration || 1800) / 60) * 4.5), // Rough estimate
-              muscleGroups: ['full-body'], // Could be extracted from exercise data
-              level: template.difficulty === 'beginner' ? 'low' : template.difficulty === 'advanced' ? 'hard' : 'moderate',
-              author: {
-                pubkey: template.authorPubkey,
-                name: `${template.authorPubkey.slice(0, 8)}...`,
-                picture: '/assets/workout-template-fallback.jpg'
-              },
-              eventId: template.eventId,
-              eventTags: template.tags
-            };
-
-            discoveryWorkouts.push(discoveryWorkout);
-
-          } catch (parseError) {
-            console.warn('[WorkoutsTab] Failed to parse resolved template:', template.id, parseError);
-          }
-        }
-
-        // Sort by rating (mock) and limit
-        discoveryWorkouts.sort((a, b) => b.rating - a.rating);
-        setDiscoveryTemplates(discoveryWorkouts.slice(0, 6));
-        
-        const totalTemplateTime = Date.now() - templateStartTime;
-        console.log(`[WorkoutsTab] ✅ Template discovery complete in ${totalTemplateTime}ms (service: ${serviceLoadTime}ms)`);
-
-        // Generate workout indicators from parsed workouts
-        const indicators: WorkoutIndicator[] = parsedWorkouts.slice(0, 10).map(workout => ({
-          date: workout.completedAt,
-          count: 1,
-          type: 'completed' as const
-        }));
-        setWorkoutIndicators(indicators);
-
-        // Store all event data for click logging
-        setRawEventData(eventDataMap);
-
-        console.log('[WorkoutsTab] Data loading complete:', {
-          socialWorkouts: parsedWorkouts.length,
-          discoveryTemplates: discoveryWorkouts.length,
-          indicators: indicators.length,
-          optimizedService: serviceLoadTime > 0 ? `${serviceLoadTime}ms` : 'not used'
-        });
-
-      } catch (error) {
-        console.error('[WorkoutsTab] Failed to load Nostr data:', error);
-        setError(error instanceof Error ? error.message : 'Failed to load workout data');
-      } finally {
-        setIsLoading(false);
+    return () => {
+      // This cleanup function only runs on actual component unmount
+      // Check current state and reset if needed
+      const currentSnapshot = workoutState;
+      if (currentSnapshot && !currentSnapshot.matches('idle')) {
+        console.log('🧹 Component unmounting - resetting machine to idle state');
+        workoutSend({ type: 'RESET_LIFECYCLE' });
       }
     };
-
-    loadNostrData();
-  }, []); // Load once on mount
+  }, []); // Empty dependency array = only runs on mount/unmount
 
   // POWR WOD - keep as featured content for now
   const powrWOD = useMemo(() => ({
@@ -481,6 +145,14 @@ export default function WorkoutsTab() {
   };
 
   const handleWorkoutSelect = (workoutId: string) => {
+    // Reset machine to idle state before starting new selection
+    // This prevents multiple machines from running simultaneously
+    if (!workoutState.matches('idle')) {
+      console.log('🔄 Machine not idle, resetting before new workout selection');
+      workoutSend({ type: 'RESET_LIFECYCLE' });
+      return; // Exit early, user can click again after reset
+    }
+
     // Only log in development mode to avoid production performance impact
     if (process.env.NODE_ENV === 'development') {
       console.log('🏋️ Selected workout:', workoutId);
@@ -583,13 +255,23 @@ export default function WorkoutsTab() {
     });
     
     // DON'T open modal yet - wait for setup machine to resolve template data
-    // Modal will open when machine reaches 'active' state with resolved data
+    // Modal will open when machine reaches 'setupComplete' state with resolved data
   };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setSelectedWorkout(null);
     setModalError(undefined);
+    
+    // CRITICAL: Reset machine to idle state when modal closes
+    // This prevents multiple machines from accumulating
+    if (workoutState.matches('setupComplete')) {
+      console.log('🔄 Canceling setup - returning machine to idle state');
+      workoutSend({ type: 'CANCEL_SETUP' });
+    } else if (!workoutState.matches('idle')) {
+      console.log('🔄 Resetting lifecycle - returning machine to idle state');
+      workoutSend({ type: 'RESET_LIFECYCLE' });
+    }
   };
 
   const handleStartWorkout = () => {
@@ -597,7 +279,22 @@ export default function WorkoutsTab() {
     
     // Send event to machine to actually start the workout
     // This should trigger the activeWorkoutMachine to begin
-    workoutSend({ type: 'START_WORKOUT' });
+    workoutSend({ 
+      type: 'START_WORKOUT',
+      workoutData: {
+        workoutId: `workout_${Date.now()}`,
+        title: selectedWorkout?.title as string || 'Workout',
+        exercises: (selectedWorkout?.exercises as Array<{ name: string; sets: number; reps: number; weight: number }> || []).map(ex => ({
+          exerciseRef: `33401:user-pubkey:${ex.name.toLowerCase().replace(/\s+/g, '-')}`,
+          sets: ex.sets,
+          reps: ex.reps,
+          weight: ex.weight
+        })),
+        completedSets: [],
+        workoutType: 'strength',
+        startTime: Date.now()
+      }
+    });
     
     // Close modal - the machine will handle the rest
     setIsModalOpen(false);
@@ -745,12 +442,13 @@ export default function WorkoutsTab() {
           <p>✅ Phase 4: Discovery Section - COMPLETE</p>
           <p>✅ Phase 5: Mockup-Perfect Social Feed Design - COMPLETE</p>
           <p>✅ Phase 6: Real Nostr Integration - COMPLETE</p>
+          <p>✅ Phase 7: Cached Data Provider - COMPLETE</p>
           <div className="mt-2 pt-2 border-t border-blue-200">
             <p className="font-medium">Live Data Sources:</p>
-            <p>• Social Feed: Recent Kind 1301 workout records</p>
-            <p>• Discovery: Kind 33402 workout templates</p>
-            <p>• Calendar: Workout completion indicators</p>
-            <p>• Authentication: {isAuthenticated ? '✅ Connected' : '❌ Not authenticated'}</p>
+            <p>• Social Feed: Recent Kind 1301 workout records ({socialWorkouts.length} loaded)</p>
+            <p>• Discovery: Kind 33402 workout templates ({discoveryTemplates.length} loaded)</p>
+            <p>• Calendar: Workout completion indicators ({workoutIndicators.length} loaded)</p>
+            <p>• Status: {isLoading ? '🔄 Loading...' : '✅ Data cached and ready'}</p>
           </div>
         </div>
       </div>

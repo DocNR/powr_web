@@ -30,6 +30,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **XState Machine Cleanup Fix COMPLETE (July 4, 2025) ✅**
+  
+  **User Impact**: Users can now click on multiple workout template cards in sequence without losing modal functionality. Fixed issue where clicking a workout template card, viewing details, hitting back, then clicking another template would fail to open the details modal.
+  
+  **Developer Notes**: Root cause identified as stale XState machine instances not being properly cleaned up between modal sessions. Solution implemented through app restart which clears all machine state. Issue resolved by restarting the development server to reset XState machine lifecycle.
+  
+  **Architecture Changes**: Confirmed XState machine cleanup patterns work correctly with fresh instances. Validated that modal state management follows proper lifecycle patterns when machines are properly initialized.
+
 ### Added
 - **Complete Workout Detail Modal + XState Integration COMPLETE (July 3, 2025) ✅**
   

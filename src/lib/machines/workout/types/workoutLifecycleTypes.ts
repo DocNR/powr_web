@@ -53,6 +53,7 @@ export interface ActiveWorkoutLifecycleContext extends WorkoutLifecycleContext {
 export type WorkoutLifecycleEvent =
   | { type: 'START_SETUP'; preselectedTemplateId?: string; templateAuthorPubkey?: string }
   | { type: 'SETUP_COMPLETE'; templateSelection: TemplateSelection }
+  | { type: 'CANCEL_SETUP' }
   | { type: 'START_WORKOUT'; workoutData: WorkoutData }
   | { type: 'WORKOUT_ACTIVE'; workoutData: WorkoutData }
   | { type: 'WORKOUT_PAUSED' }
