@@ -170,7 +170,7 @@
 If Phase 2 succeeds:
 - **Phase 3**: Advanced validation (duplicate handling, performance limits)
 - **Architecture Decision**: Confirm NDK-first approach viability
-- **Golf App Planning**: Document patterns for React Native migration
+- **Golf App Planning**: Document patterns for golf app migration
 
 If Phase 2 reveals limitations:
 - **Hybrid Approach**: NDK cache + supplementary storage

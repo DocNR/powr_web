@@ -28,7 +28,12 @@ export default function WorkoutsTab() {
     workoutIndicators,
     rawEventData,
     isLoading,
-    error
+    error,
+    loadMoreSocialWorkouts,
+    loadMoreDiscoveryTemplates,
+    hasMoreWorkouts,
+    hasMoreTemplates,
+    isLoadingMore
   } = useWorkoutData();
 
   // Workout Lifecycle Machine
@@ -397,21 +402,45 @@ export default function WorkoutsTab() {
             </p>
           </div>
         ) : (
-          <ScrollableGallery>
-            {socialWorkouts.map((workout) => (
-              <div key={workout.id} className="w-80 flex-shrink-0">
-                <WorkoutCard
-                  variant="social"
-                  workout={workout}
-                  onSelect={handleWorkoutSelect}
-                  onAuthorClick={handleAuthorClick}
-                  showImage={true}
-                  showAuthor={true}
-                  showStats={true}
-                />
+          <>
+            <ScrollableGallery>
+              {socialWorkouts.map((workout) => (
+                <div key={workout.id} className="w-80 flex-shrink-0">
+                  <WorkoutCard
+                    variant="social"
+                    workout={workout}
+                    onSelect={handleWorkoutSelect}
+                    onAuthorClick={handleAuthorClick}
+                    showImage={true}
+                    showAuthor={true}
+                    showStats={true}
+                  />
+                </div>
+              ))}
+            </ScrollableGallery>
+            
+            {/* Load More Social Workouts */}
+            {hasMoreWorkouts && (
+              <div className="flex justify-center mt-4">
+                <button
+                  onClick={loadMoreSocialWorkouts}
+                  disabled={isLoadingMore}
+                  className="px-4 py-2 text-sm bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {isLoadingMore ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Loading more...
+                    </>
+                  ) : (
+                    <>
+                      📥 Load more workouts
+                    </>
+                  )}
+                </button>
               </div>
-            ))}
-          </ScrollableGallery>
+            )}
+          </>
         )}
       </section>
 
@@ -430,6 +459,28 @@ export default function WorkoutsTab() {
           onMenuAction={handleMenuAction}
           isLoading={isLoading}
         />
+        
+        {/* Load More Discovery Templates */}
+        {hasMoreTemplates && (
+          <div className="flex justify-center mt-4">
+            <button
+              onClick={loadMoreDiscoveryTemplates}
+              disabled={isLoadingMore}
+              className="px-4 py-2 text-sm bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              {isLoadingMore ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  Loading more...
+                </>
+              ) : (
+                <>
+                  📥 Load more templates
+                </>
+              )}
+            </button>
+          </div>
+        )}
       </section>
 
       {/* Real Nostr Integration Status */}
@@ -443,12 +494,14 @@ export default function WorkoutsTab() {
           <p>✅ Phase 5: Mockup-Perfect Social Feed Design - COMPLETE</p>
           <p>✅ Phase 6: Real Nostr Integration - COMPLETE</p>
           <p>✅ Phase 7: Cached Data Provider - COMPLETE</p>
+          <p>✅ Phase 8: Real-Time Subscriptions & Infinite Scroll - COMPLETE</p>
           <div className="mt-2 pt-2 border-t border-blue-200">
             <p className="font-medium">Live Data Sources:</p>
             <p>• Social Feed: Recent Kind 1301 workout records ({socialWorkouts.length} loaded)</p>
             <p>• Discovery: Kind 33402 workout templates ({discoveryTemplates.length} loaded)</p>
             <p>• Calendar: Workout completion indicators ({workoutIndicators.length} loaded)</p>
-            <p>• Status: {isLoading ? '🔄 Loading...' : '✅ Data cached and ready'}</p>
+            <p>• Real-Time: {isLoading ? '🔄 Loading...' : '📡 Live WebSocket subscriptions active'}</p>
+            <p>• Infinite Scroll: {hasMoreWorkouts || hasMoreTemplates ? '📥 More content available' : '✅ All content loaded'}</p>
           </div>
         </div>
       </div>

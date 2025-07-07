@@ -211,7 +211,7 @@ states: {
 - [ ] **NEW**: Clean file structure with proper service organization
 
 ### **Golf App Migration Criteria**
-- [ ] Architecture patterns documented for React Native migration
+- [ ] Architecture patterns documented for NOGA golf app migration
 - [ ] Parent-child machine hierarchy proven for complex workflows
 - [ ] Spawning patterns validated for persistent child actors
 - [ ] Machine communication patterns established

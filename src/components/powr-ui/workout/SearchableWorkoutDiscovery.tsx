@@ -141,9 +141,9 @@ const SearchableWorkoutDiscovery: React.FC<SearchableWorkoutDiscoveryProps> = ({
           {/* Workout Cards */}
           {filteredWorkouts.length > 0 ? (
             <div className="space-y-3">
-              {filteredWorkouts.map((workout) => (
+              {filteredWorkouts.map((workout, index) => (
                 <CompactWorkoutCard
-                  key={workout.id}
+                  key={workout.eventId || workout.id || `workout-${index}`}
                   workout={workout}
                   onSelect={onWorkoutSelect}
                   onMenuAction={onMenuAction}

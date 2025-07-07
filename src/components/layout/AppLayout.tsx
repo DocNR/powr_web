@@ -11,6 +11,7 @@ import { navigationTabs } from '@/config/navigation';
 import { useNavigation } from '@/providers/NavigationProvider';
 import { useSubNavigation } from '@/providers/SubNavigationProvider';
 import { getSubNavigation } from '@/config/subNavigation';
+import { WorkoutDataProvider } from '@/providers/WorkoutDataProvider';
 
 export function AppLayout() {
   const isMobile = useMediaQuery('(max-width: 640px)');
@@ -57,7 +58,9 @@ export function AppLayout() {
 
         {/* Main Content */}
         <main className={`flex-1 flex flex-col ${isMobile && subNavItems ? 'pt-0' : ''}`}>
-          <TabRouter />
+          <WorkoutDataProvider>
+            <TabRouter />
+          </WorkoutDataProvider>
         </main>
 
         {/* Mobile Bottom Navigation */}

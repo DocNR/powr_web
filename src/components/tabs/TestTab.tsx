@@ -15,6 +15,7 @@ import { WorkoutDetailModalTest } from '@/components/test/WorkoutDetailModalTest
 import WorkoutLifecycleMachineIntegrationTest from '@/components/test/WorkoutLifecycleMachineIntegrationTest';
 import { DependencyResolutionServiceTest } from '@/components/test/DependencyResolutionServiceTest';
 import CompleteWorkoutFlowTest from '@/components/test/CompleteWorkoutFlowTest';
+import RealTimeInfiniteScrollTest from '@/components/test/RealTimeInfiniteScrollTest';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { TestTube, Target, Wifi, WifiOff } from 'lucide-react';
@@ -186,6 +187,23 @@ export function TestTab() {
             </CardHeader>
             <CardContent>
               <CompleteWorkoutFlowTest />
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* 📡 NEW: Real-Time & Infinite Scroll Test */}
+        <div className="w-full">
+          <Card className="border-teal-200 bg-teal-50">
+            <CardHeader>
+              <CardTitle className="text-teal-800 flex items-center gap-2">
+                📡 NEW: Real-Time & Infinite Scroll Test (Phase 1 Complete)
+              </CardTitle>
+              <CardDescription className="text-teal-700">
+                Test the transformed WorkoutDataProvider with live WebSocket subscriptions and timestamp-based infinite scroll. Validates NDK-first real-time social feed patterns for golf app migration.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <RealTimeInfiniteScrollTest />
             </CardContent>
           </Card>
         </div>
