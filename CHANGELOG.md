@@ -30,6 +30,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **NIP-101e Dependency Resolution Fix COMPLETE (July 7, 2025) ✅**
+  
+  **User Impact**: Workout templates now load reliably with proper exercise parameter interpretation. Users can access Bitcoin-themed workouts and other standardized content seamlessly with enhanced error reporting for malformed events.
+  
+  **Developer Notes**: Enhanced dependency resolution service with comprehensive NIP-101e validation, parameter interpretation service for standardized enum formats, and clear error messages for debugging. Performance maintained at <800ms for template resolution with batched optimization patterns.
+  
+  **Architecture Changes**: Established standardized enum format for exercise parameters with backward compatibility. Parameter interpretation service foundation ready for complex workout data across all content types.
+
 ### Fixed
 - **XState Machine Cleanup Fix COMPLETE (July 4, 2025) ✅**
   

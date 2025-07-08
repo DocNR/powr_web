@@ -6,6 +6,8 @@
  * 
  * This service provides pure business logic for resolving Nostr event dependencies
  * while leveraging NDK's IndexedDB cache for optimal performance.
+ * 
+ * Enhanced with NIP-101e validation for strict compliance.
  */
 
 import { getNDKInstance, WORKOUT_EVENT_KINDS } from '@/lib/ndk';
@@ -32,19 +34,61 @@ export interface TemplateExercise {
   reps: number;
   weight?: number;
   restTime?: number;
+  // Raw parameters from workout template (for parameter interpretation)
+  parameters?: {
+    param1?: string;
+    param2?: string;
+    param3?: string;
+    param4?: string;
+  };
+}
+
+// NEW: Interface for interpreted exercise parameters
+export interface InterpretedExercise {
+  exerciseRef: string;
+  exerciseTemplate: Exercise;
+  parameters: Record<string, {
+    value: string;
+    unit: string;
+    raw: string;
+  }>;
+  
+  // Common parameter interpretations for backward compatibility
+  weight: string;
+  reps: string;
+  rpe: string;
+  setType: string;
 }
 
 export interface Exercise {
   id: string;
   name: string;
   description: string;
-  muscleGroups: string[];
-  equipment: string;
-  difficulty: string;
+  
+  // NEW: NIP-101e required fields
+  format: string[];           // e.g., ['weight', 'reps', 'rpe', 'set_type']
+  format_units: string[];     // e.g., ['kg', 'count', '0-10', 'warmup|normal|drop|failure']
+  equipment: string;          // e.g., 'barbell', 'dumbbell', 'bodyweight'
+  
+  // NEW: Optional NIP-101e fields
+  difficulty?: string;        // e.g., 'beginner', 'intermediate', 'advanced'
+  hashtags: string[];         // All 't' tags
+  
+  // Derived fields
+  muscleGroups: string[];     // Filtered hashtags for muscle groups
   instructions: string[];
+  
+  // Metadata
   authorPubkey: string;
   createdAt: number;
   eventId?: string;
+}
+
+// Validation result interface
+interface ValidationResult {
+  isValid: boolean;
+  reason?: string;
+  eventRef?: string;
 }
 
 export interface Collection {
@@ -71,8 +115,162 @@ export interface ResolvedTemplate {
  * - Batched author grouping to minimize queries
  * - D-tag batching for efficient filtering
  * - Reference deduplication to avoid redundant work
+ * - NIP-101e validation with clear error messages
  */
 export class DependencyResolutionService {
+  
+  /**
+   * Validate exercise reference format
+   */
+  private validateExerciseReference(exerciseRef: string): ValidationResult {
+    const parts = exerciseRef.split(':');
+    
+    if (parts.length !== 3) {
+      return {
+        isValid: false,
+        reason: `Invalid exercise reference format: "${exerciseRef}". Expected "33401:pubkey:d-tag" but got ${parts.length} parts. Remove extra comma-separated data.`,
+        eventRef: exerciseRef
+      };
+    }
+    
+    if (parts[0] !== '33401') {
+      return {
+        isValid: false,
+        reason: `Invalid exercise kind: "${parts[0]}". Exercise templates must use kind 33401.`,
+        eventRef: exerciseRef
+      };
+    }
+    
+    if (parts[1].length !== 64) {
+      return {
+        isValid: false,
+        reason: `Invalid pubkey length: "${parts[1]}" (${parts[1].length} chars). Pubkeys must be exactly 64 hex characters.`,
+        eventRef: exerciseRef
+      };
+    }
+    
+    if (parts[2].includes(',')) {
+      return {
+        isValid: false,
+        reason: `Invalid d-tag: "${parts[2]}". D-tags cannot contain commas. This looks like workout parameters mixed into the reference.`,
+        eventRef: exerciseRef
+      };
+    }
+    
+    return { isValid: true };
+  }
+
+  /**
+   * Validate exercise template event for NIP-101e compliance
+   */
+  private validateExerciseTemplate(event: NDKEvent): ValidationResult {
+    const eventRef = `${event.kind}:${event.pubkey}:${this.getEventDTag(event)}`;
+    
+    // Check required NIP-101e fields
+    const required = ['d', 'title', 'format', 'format_units', 'equipment'];
+    for (const field of required) {
+      if (!this.hasTag(event, field)) {
+        return {
+          isValid: false,
+          reason: `Missing required ${field} tag. POWR needs this to display exercises correctly.`,
+          eventRef
+        };
+      }
+    }
+    
+    // Validate format/format_units match
+    const format = this.getTagValues(event, 'format');
+    const format_units = this.getTagValues(event, 'format_units');
+    
+    if (format.length !== format_units.length) {
+      return {
+        isValid: false,
+        reason: `Format units (${format_units.length}) don't match format parameters (${format.length}). Each parameter needs a unit.`,
+        eventRef
+      };
+    }
+    
+    return { isValid: true };
+  }
+
+  /**
+   * Helper: Check if event has a specific tag
+   */
+  private hasTag(event: NDKEvent, tagName: string): boolean {
+    return event.tags.some(tag => tag[0] === tagName);
+  }
+
+  /**
+   * Helper: Get all values for a specific tag
+   */
+  private getTagValues(event: NDKEvent, tagName: string): string[] {
+    const tag = event.tags.find(tag => tag[0] === tagName);
+    return tag ? tag.slice(1) : [];
+  }
+
+  /**
+   * Helper: Get d-tag value from event
+   */
+  private getEventDTag(event: NDKEvent): string {
+    const dTag = event.tags.find(tag => tag[0] === 'd');
+    return dTag ? dTag[1] : 'unknown';
+  }
+
+  /**
+   * Parse valid exercise template with NIP-101e fields
+   */
+  private parseValidExerciseTemplate(event: NDKEvent): Exercise {
+    const tagMap = new Map(event.tags.map(tag => [tag[0], tag]));
+    
+    const id = tagMap.get('d')![1];
+    const name = tagMap.get('title')![1] || tagMap.get('name')?.[1] || 'Unknown Exercise';
+    const description = event.content || 'No description';
+    
+    // NEW: NIP-101e required fields
+    const format = tagMap.get('format')!.slice(1);
+    const format_units = tagMap.get('format_units')!.slice(1);
+    const equipment = tagMap.get('equipment')![1];
+    
+    // NEW: Optional fields
+    const difficulty = tagMap.get('difficulty')?.[1];
+    const hashtags = event.tags.filter(t => t[0] === 't').map(t => t[1]);
+    
+    // NEW: Derived fields
+    const muscleGroups = event.tags
+      .filter(t => t[0] === 't')
+      .map(t => t[1])
+      .filter(tag => ['chest', 'back', 'shoulders', 'arms', 'legs', 'core', 'cardio'].includes(tag));
+    
+    // Parse instructions from content if JSON
+    let instructions: string[] = [];
+    try {
+      const contentData = JSON.parse(event.content || '{}');
+      instructions = contentData.instructions || [];
+    } catch {
+      instructions = ['No instructions available'];
+    }
+    
+    return {
+      id,
+      name,
+      description,
+      
+      // NEW: NIP-101e fields
+      format,
+      format_units,
+      equipment,
+      difficulty,
+      hashtags,
+      muscleGroups,
+      
+      // Existing fields
+      instructions,
+      authorPubkey: event.pubkey,
+      createdAt: event.created_at || Math.floor(Date.now() / 1000),
+      eventId: event.id
+    };
+  }
+
   /**
    * Optimized event fetching with CACHE_FIRST strategy
    * Extracted from WorkoutListManager lines 200-210
@@ -130,7 +328,7 @@ export class DependencyResolutionService {
 
     // PROVEN PATTERN: Single batched query instead of N individual requests
     const filter: NDKFilter = {
-      kinds: [WORKOUT_EVENT_KINDS.WORKOUT_TEMPLATE as any],
+      kinds: [WORKOUT_EVENT_KINDS.WORKOUT_TEMPLATE as number],
       authors: Array.from(templateAuthors),
       '#d': templateDTags
     };
@@ -178,8 +376,8 @@ export class DependencyResolutionService {
   }
 
   /**
-   * Resolve exercise dependencies with batched optimization
-   * Extracted from WorkoutListManager lines 300-350
+   * Resolve exercise dependencies with batched optimization and NIP-101e validation
+   * Enhanced with strict validation and clear error messages
    */
   async resolveExerciseReferences(exerciseRefs: string[]): Promise<Exercise[]> {
     if (exerciseRefs.length === 0) {
@@ -189,72 +387,65 @@ export class DependencyResolutionService {
     const startTime = Date.now();
     console.log('[DependencyResolutionService] Resolving exercise references:', exerciseRefs.length);
 
-    // PROVEN PATTERN: Deduplicate references to avoid redundant work
-    const uniqueRefs = [...new Set(exerciseRefs)];
+    const exercises: Exercise[] = [];
+    const errors: string[] = [];
 
-    // PROVEN PATTERN: Batched author grouping and d-tag collection
+    // Stage 1: Validate exercise reference format
+    const validRefs = exerciseRefs.filter(ref => {
+      const validation = this.validateExerciseReference(ref);
+      if (!validation.isValid) {
+        errors.push(`❌ ${validation.reason}`);
+        return false;
+      }
+      return true;
+    });
+
+    if (validRefs.length === 0) {
+      console.warn('[DependencyResolutionService] No valid exercise references found');
+      if (errors.length > 0) {
+        console.group('[DependencyResolutionService] ❌ NIP-101e Validation Failures');
+        errors.forEach(error => console.error(error));
+        console.groupEnd();
+      }
+      return [];
+    }
+
+    // Stage 2: Fetch and validate events (existing batched logic)
+    const uniqueRefs = [...new Set(validRefs)];
     const exerciseAuthors = new Set<string>();
     const exerciseDTags: string[] = [];
 
     for (const exerciseRef of uniqueRefs) {
-      const [kind, pubkey, dTag] = exerciseRef.split(':');
-      if (kind === '33401' && pubkey && dTag) {
-        exerciseDTags.push(dTag);
-        exerciseAuthors.add(pubkey);
-      }
+      const [, pubkey, dTag] = exerciseRef.split(':');
+      exerciseDTags.push(dTag);
+      exerciseAuthors.add(pubkey);
     }
 
-    if (exerciseAuthors.size === 0) {
-      console.warn('[DependencyResolutionService] No valid exercise references found');
-      return [];
-    }
-
-    // PROVEN PATTERN: Single batched query
     const filter: NDKFilter = {
-      kinds: [WORKOUT_EVENT_KINDS.EXERCISE_TEMPLATE as any],
+      kinds: [WORKOUT_EVENT_KINDS.EXERCISE_TEMPLATE as number],
       authors: Array.from(exerciseAuthors),
       '#d': exerciseDTags
     };
 
     const exerciseEvents = await this.fetchEventsOptimized(filter);
 
-    // Parse exercises from events
-    const exercises: Exercise[] = Array.from(exerciseEvents).map(event => {
-      const tagMap = new Map(event.tags.map(tag => [tag[0], tag]));
-      
-      const id = tagMap.get('d')?.[1] || 'unknown';
-      const name = tagMap.get('name')?.[1] || tagMap.get('title')?.[1] || 'Unknown Exercise';
-      const description = event.content || 'No description';
-      const equipment = tagMap.get('equipment')?.[1] || 'unknown';
-      const difficulty = tagMap.get('difficulty')?.[1] || 'beginner';
-      
-      // Extract muscle groups
-      const muscleGroups = event.tags
-        .filter(tag => tag[0] === 'muscle')
-        .map(tag => tag[1]);
-      
-      // Parse instructions from content if JSON
-      let instructions: string[] = [];
-      try {
-        const contentData = JSON.parse(event.content || '{}');
-        instructions = contentData.instructions || [];
-      } catch {
-        instructions = ['No instructions available'];
+    // Stage 3: Parse and validate events
+    for (const event of exerciseEvents) {
+      const validation = this.validateExerciseTemplate(event);
+      if (validation.isValid) {
+        exercises.push(this.parseValidExerciseTemplate(event));
+      } else {
+        errors.push(`❌ ${validation.eventRef}: ${validation.reason}`);
       }
-      
-      return {
-        id,
-        name,
-        description,
-        muscleGroups,
-        equipment,
-        difficulty,
-        instructions,
-        authorPubkey: event.pubkey,
-        createdAt: event.created_at || Math.floor(Date.now() / 1000),
-        eventId: event.id
-      };
-    });
+    }
+
+    // Enhanced error logging
+    if (errors.length > 0) {
+      console.group('[DependencyResolutionService] ❌ NIP-101e Validation Failures');
+      console.warn(`${errors.length} exercises skipped, ${exercises.length} loaded successfully`);
+      errors.forEach(error => console.error(error));
+      console.groupEnd();
+    }
 
     const resolveTime = Date.now() - startTime;
     console.log(`[DependencyResolutionService] ✅ Resolved ${exercises.length} exercises in ${resolveTime}ms`);
@@ -393,8 +584,8 @@ export class DependencyResolutionService {
     const collectionDTags: string[] = [];
 
     for (const collectionRef of collectionRefs) {
-      const [kind, pubkey, dTag] = collectionRef.split(':');
-      if (kind === '30003' && pubkey && dTag) {
+      const [kindStr, pubkey, dTag] = collectionRef.split(':');
+      if (kindStr === '30003' && pubkey && dTag) {
         collectionDTags.push(dTag);
         collectionAuthors.add(pubkey);
       }
@@ -407,7 +598,7 @@ export class DependencyResolutionService {
 
     // PROVEN PATTERN: Single batched query
     const filter: NDKFilter = {
-      kinds: [30003 as any],
+      kinds: [30003],
       authors: Array.from(collectionAuthors),
       '#d': collectionDTags
     };
