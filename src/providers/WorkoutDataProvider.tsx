@@ -1,12 +1,12 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
+import React, { createContext, useContext, useState, useCallback, ReactNode, useMemo, useEffect, useRef } from 'react';
 import { getNDKInstance, WORKOUT_EVENT_KINDS } from '@/lib/ndk';
-import { parseWorkoutEvent, type WorkoutEvent } from '@/lib/workout-events';
+import { parseWorkoutEvent } from '@/lib/workout-events';
 import { useIsAuthenticated } from '@/lib/auth/hooks';
-import type { NDKSubscription, NDKEvent } from '@nostr-dev-kit/ndk';
+import type { NDKEvent, NDKFilter, NDKSubscription } from '@nostr-dev-kit/ndk';
 
-// Types from WorkoutsTab
+// Types from WorkoutsTab - keeping exact same interface
 interface SocialWorkout {
   id: string;
   title: string;
@@ -39,15 +39,15 @@ interface DiscoveryWorkout {
     weight: number;
   }>;
   estimatedDuration: number;
-  difficulty: 'beginner' | 'intermediate' | 'advanced';
-  rating: number;
-  calories: number;
-  muscleGroups: string[];
-  level: string;
+  difficulty?: 'beginner' | 'intermediate' | 'advanced'; // Optional - only if present in event
+  rating?: number; // Optional - only if present in event
+  calories?: number; // Optional - only if calculable from real data
+  muscleGroups?: string[]; // Optional - only if extractable from event
+  level?: string; // Optional - only if derivable from real data
   author: {
     pubkey: string;
-    name: string;
-    picture: string;
+    name?: string; // Optional - only if profile data available
+    picture?: string; // Optional - only if profile data available
   };
   eventId?: string;
   eventTags?: string[][];
@@ -70,7 +70,6 @@ interface WorkoutDataContextType {
   error: string | null;
   lastFetch: number;
   refreshData: () => Promise<void>;
-  // New infinite scroll functions
   loadMoreSocialWorkouts: () => Promise<void>;
   loadMoreDiscoveryTemplates: () => Promise<void>;
   hasMoreWorkouts: boolean;
@@ -93,53 +92,252 @@ interface WorkoutDataProviderProps {
 }
 
 export function WorkoutDataProvider({ children }: WorkoutDataProviderProps) {
-  const [socialWorkouts, setSocialWorkouts] = useState<SocialWorkout[]>([]);
-  const [discoveryTemplates, setDiscoveryTemplates] = useState<DiscoveryWorkout[]>([]);
-  const [workoutIndicators, setWorkoutIndicators] = useState<WorkoutIndicator[]>([]);
-  const [rawEventData, setRawEventData] = useState<Map<string, Record<string, unknown>>>(new Map());
-  const [isLoading, setIsLoading] = useState(true);
+  // Simple state management following NDK best practices
+  const [socialEvents, setSocialEvents] = useState<NDKEvent[]>([]);
+  const [discoveryEvents, setDiscoveryEvents] = useState<NDKEvent[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [lastFetch, setLastFetch] = useState(0);
+  const [lastFetch, setLastFetch] = useState(Date.now());
+  const [socialLimit, setSocialLimit] = useState(5);
+  const [discoveryLimit, setDiscoveryLimit] = useState(6);
 
   const isAuthenticated = useIsAuthenticated();
-
-  // Real-time subscription refs (using refs to avoid stale closures)
-  const socialSubscriptionRef = useRef<NDKSubscription | null>(null);
-  const discoverySubscriptionRef = useRef<NDKSubscription | null>(null);
   
-  // Olas-inspired deduplication pattern
-  const addedSocialIds = useRef(new Set<string>());
-  const addedDiscoveryIds = useRef(new Set<string>());
-  const socialEosed = useRef(false);
-  const discoveryEosed = useRef(false);
+  // Subscription refs for cleanup
+  const socialSubRef = useRef<NDKSubscription | null>(null);
+  const discoverySubRef = useRef<NDKSubscription | null>(null);
   
-  // Pagination state for infinite scroll
-  const [oldestWorkoutTimestamp, setOldestWorkoutTimestamp] = useState<number>(0);
-  const [oldestTemplateTimestamp, setOldestTemplateTimestamp] = useState<number>(0);
-  const [hasMoreWorkouts, setHasMoreWorkouts] = useState(true);
-  const [hasMoreTemplates, setHasMoreTemplates] = useState(true);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  // Event maps for deduplication (NDK best practice)
+  const socialEventsMapRef = useRef<Map<string, NDKEvent>>(new Map());
+  const discoveryEventsMapRef = useRef<Map<string, NDKEvent>>(new Map());
 
-  // Helper function to convert NDK event to social workout
-  const convertToSocialWorkout = useCallback((event: NDKEvent, eventDataMap: Map<string, Record<string, unknown>>): SocialWorkout | null => {
-    try {
-      console.log('[WorkoutDataProvider] 🔍 DEBUGGING Social Workout Conversion for event:', event.id);
-      console.log('[WorkoutDataProvider] 📅 Raw event.created_at:', event.created_at, 'Type:', typeof event.created_at);
-      console.log('[WorkoutDataProvider] 📅 Raw event.created_at as Date:', new Date(event.created_at! * 1000));
-      console.log('[WorkoutDataProvider] 🏷️ Event tags:', event.tags);
-      console.log('[WorkoutDataProvider] 📝 Event content:', event.content);
+  // Simple useSubscribe pattern following NDK best practices
+  const setupSocialSubscription = useCallback((limit: number) => {
+    const ndk = getNDKInstance();
+    if (!ndk || !isAuthenticated) return;
 
-      const workoutEvent: WorkoutEvent = {
-        kind: event.kind!,
-        content: event.content || '',
-        tags: event.tags,
-        created_at: event.created_at!,
-        pubkey: event.pubkey,
-        id: event.id
-      };
+    console.log('[WorkoutDataProvider] Setting up social subscription, limit:', limit);
 
-      // Store raw event data for click logging
-      eventDataMap.set(event.id, {
+    // Clean up existing subscription
+    if (socialSubRef.current) {
+      socialSubRef.current.stop();
+    }
+
+    // Clear events map
+    socialEventsMapRef.current.clear();
+
+    const filters: NDKFilter[] = [{
+      kinds: [WORKOUT_EVENT_KINDS.WORKOUT_RECORD as number], // 1301 - workout records only
+      limit
+    }];
+
+    // Use NDK singleton subscribe method
+    const subscription = ndk.subscribe(filters);
+    socialSubRef.current = subscription;
+
+    subscription.on('event', (event: NDKEvent) => {
+      console.log('[WorkoutDataProvider] Social event received:', event.id);
+      
+      // NDK automatic deduplication using Map
+      socialEventsMapRef.current.set(event.id, event);
+      
+      // Update state with sorted events (newest first)
+      const sortedEvents = Array.from(socialEventsMapRef.current.values())
+        .sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
+      
+      setSocialEvents(sortedEvents);
+    });
+
+    subscription.on('eose', () => {
+      console.log('[WorkoutDataProvider] Social EOSE received');
+      setIsLoading(false);
+    });
+
+  }, [isAuthenticated]);
+
+  const setupDiscoverySubscription = useCallback((limit: number) => {
+    const ndk = getNDKInstance();
+    if (!ndk || !isAuthenticated) return;
+
+    console.log('[WorkoutDataProvider] Setting up discovery subscription, limit:', limit);
+
+    // Clean up existing subscription
+    if (discoverySubRef.current) {
+      discoverySubRef.current.stop();
+    }
+
+    // Clear events map
+    discoveryEventsMapRef.current.clear();
+
+    const filters: NDKFilter[] = [{
+      kinds: [WORKOUT_EVENT_KINDS.WORKOUT_TEMPLATE as number], // 33402 - workout templates only
+      limit
+    }];
+
+    // Use NDK singleton subscribe method
+    const subscription = ndk.subscribe(filters);
+    discoverySubRef.current = subscription;
+
+    subscription.on('event', (event: NDKEvent) => {
+      console.log('[WorkoutDataProvider] Discovery event received:', event.id);
+      
+      // NDK automatic deduplication using Map
+      discoveryEventsMapRef.current.set(event.id, event);
+      
+      // Update state with sorted events (newest first)
+      const sortedEvents = Array.from(discoveryEventsMapRef.current.values())
+        .sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
+      
+      setDiscoveryEvents(sortedEvents);
+    });
+
+    subscription.on('eose', () => {
+      console.log('[WorkoutDataProvider] Discovery EOSE received');
+      setIsLoading(false);
+    });
+
+  }, [isAuthenticated]);
+
+  // Initial subscription setup
+  useEffect(() => {
+    if (!isAuthenticated) {
+      // Clean up when not authenticated
+      if (socialSubRef.current) socialSubRef.current.stop();
+      if (discoverySubRef.current) discoverySubRef.current.stop();
+      setSocialEvents([]);
+      setDiscoveryEvents([]);
+      return;
+    }
+
+    console.log('[WorkoutDataProvider] Setting up initial subscriptions');
+    setIsLoading(true);
+    setError(null);
+
+    setupSocialSubscription(socialLimit);
+    setupDiscoverySubscription(discoveryLimit);
+    setLastFetch(Date.now());
+
+    // Cleanup function
+    return () => {
+      console.log('[WorkoutDataProvider] Cleaning up subscriptions');
+      if (socialSubRef.current) socialSubRef.current.stop();
+      if (discoverySubRef.current) discoverySubRef.current.stop();
+    };
+  }, [isAuthenticated, socialLimit, discoveryLimit, setupSocialSubscription, setupDiscoverySubscription]);
+
+  // Transform social events to UI format (minimal processing)
+  const socialWorkouts = useMemo(() => {
+    return socialEvents.map((event: NDKEvent) => {
+      try {
+        const parsed = parseWorkoutEvent({
+          kind: event.kind!,
+          content: event.content || '',
+          tags: event.tags,
+          created_at: event.created_at!,
+          pubkey: event.pubkey,
+          id: event.id
+        });
+
+        // Extract first exercise for preview
+        const firstExercise = parsed.exercises[0];
+        const exercisePreview = firstExercise ? {
+          name: firstExercise.reference.split(':')[2]?.replace(/-/g, ' ') || 'Exercise',
+          sets: [{
+            reps: parseInt(firstExercise.reps) || 0,
+            weight: parseInt(firstExercise.weight) || 0,
+            rpe: parseInt(firstExercise.rpe) || 7
+          }]
+        } : {
+          name: `${parsed.exercises.length} exercises`,
+          sets: [{ reps: 0, weight: 0, rpe: 7 }]
+        };
+
+        return {
+          id: parsed.id,
+          title: parsed.title,
+          completedAt: new Date(parsed.endTime * 1000),
+          duration: Math.floor(parsed.duration / 60), // Convert to minutes
+          exercises: [exercisePreview],
+          author: {
+            pubkey: parsed.pubkey,
+            name: `${parsed.pubkey.slice(0, 8)}...`, // Keep minimal display name for UI compatibility
+            picture: '/assets/workout-record-fallback.jpg' // Keep fallback for UI compatibility
+          },
+          notes: parsed.content || 'Completed workout',
+          eventId: parsed.eventId
+        };
+      } catch (error) {
+        console.warn('[WorkoutDataProvider] Failed to parse social workout:', error);
+        return null;
+      }
+    }).filter(Boolean) as SocialWorkout[];
+  }, [socialEvents]);
+
+  // Transform discovery events to UI format (minimal processing)
+  const discoveryTemplates = useMemo(() => {
+    return discoveryEvents.map((event: NDKEvent) => {
+      try {
+        const dTag = event.tags.find(tag => tag[0] === 'd')?.[1];
+        if (!dTag) return null;
+
+        const tagMap = new Map(event.tags.map(tag => [tag[0], tag]));
+        const name = tagMap.get('title')?.[1] || tagMap.get('name')?.[1] || 'Untitled Template';
+        const difficulty = tagMap.get('difficulty')?.[1] as 'beginner' | 'intermediate' | 'advanced' | undefined;
+        const estimatedDuration = tagMap.get('duration')?.[1] ? parseInt(tagMap.get('duration')![1]) : undefined;
+        
+        // Extract exercise references
+        const exerciseTags = event.tags.filter(tag => tag[0] === 'exercise');
+        const exercises = exerciseTags.map(tag => ({
+          name: tag[1]?.split(':')[2]?.replace(/-/g, ' ') || 'Unknown Exercise',
+          sets: parseInt(tag[2]) || 3,
+          reps: parseInt(tag[3]) || 10,
+          weight: tag[4] ? parseInt(tag[4]) : 0
+        }));
+
+        return {
+          id: dTag,
+          title: name,
+          exercises,
+          estimatedDuration: estimatedDuration ? Math.round(estimatedDuration / 60) : 30, // Convert to minutes or default to 30
+          difficulty, // Only include if present in event tags
+          // rating: removed - no fake data
+          // calories: removed - no fake data  
+          // muscleGroups: removed - no fake data
+          // level: removed - no fake data
+          author: {
+            pubkey: event.pubkey,
+            // name: removed - only pubkey available
+            // picture: removed - no fake fallback images
+          },
+          eventId: event.id,
+          eventTags: event.tags,
+          eventKind: event.kind,
+          templateRef: `33402:${event.pubkey}:${dTag}`
+        };
+      } catch (error) {
+        console.warn('[WorkoutDataProvider] Failed to parse discovery template:', error);
+        return null;
+      }
+    }).filter(Boolean) as DiscoveryWorkout[];
+  }, [discoveryEvents]);
+
+  // Generate workout indicators from social workouts
+  const workoutIndicators = useMemo(() => {
+    return socialWorkouts.slice(0, 10).map(workout => ({
+      date: workout.completedAt,
+      count: 1,
+      type: 'completed' as const
+    }));
+  }, [socialWorkouts]);
+
+  // Create raw event data map for UI compatibility
+  const rawEventData = useMemo(() => {
+    const eventMap = new Map<string, Record<string, unknown>>();
+    
+    // Add social workout events
+    socialEvents.forEach((event: NDKEvent) => {
+      eventMap.set(event.id, {
         type: '1301_workout_record',
         hexId: event.id,
         nevent: event.encode ? event.encode() : 'encode() not available',
@@ -148,85 +346,11 @@ export function WorkoutDataProvider({ children }: WorkoutDataProviderProps) {
         tags: event.tags,
         rawEvent: event
       });
+    });
 
-      console.log('[WorkoutDataProvider] 🔄 Calling parseWorkoutEvent...');
-      const parsed = parseWorkoutEvent(workoutEvent);
-      console.log('[WorkoutDataProvider] ✅ Parsed workout event:', {
-        id: parsed.id,
-        title: parsed.title,
-        startTime: parsed.startTime,
-        endTime: parsed.endTime,
-        duration: parsed.duration,
-        exerciseCount: parsed.exercises.length
-      });
-
-      // Debug timestamp conversion
-      const endTimeMs = parsed.endTime * 1000;
-      const completedAtDate = new Date(endTimeMs);
-      console.log('[WorkoutDataProvider] 📅 Timestamp conversion:');
-      console.log('  - parsed.endTime (Unix):', parsed.endTime);
-      console.log('  - endTimeMs:', endTimeMs);
-      console.log('  - completedAtDate:', completedAtDate);
-      console.log('  - completedAtDate.getTime():', completedAtDate.getTime());
-      console.log('  - Is valid date?', !isNaN(completedAtDate.getTime()));
-
-      // Validate the date
-      if (isNaN(completedAtDate.getTime())) {
-        console.error('[WorkoutDataProvider] ❌ Invalid date created from endTime:', parsed.endTime);
-        return null;
-      }
-
-      // Convert to social workout format
-      const socialWorkout: SocialWorkout = {
-        id: parsed.id,
-        title: parsed.title,
-        completedAt: completedAtDate,
-        duration: Math.floor(parsed.duration / 60), // Convert to minutes
-        exercises: parsed.exercises.map(ex => ({
-          name: `${parsed.exercises.length} exercises`, // Simple count instead of fake names
-          sets: [{
-            reps: parseInt(ex.reps),
-            weight: parseInt(ex.weight),
-            rpe: parseInt(ex.rpe)
-          }]
-        })),
-        author: {
-          pubkey: parsed.pubkey,
-          name: `${parsed.pubkey.slice(0, 8)}...`,
-          picture: '/assets/workout-record-fallback.jpg'
-        },
-        notes: parsed.content || 'Completed workout',
-        eventId: parsed.eventId
-      };
-
-      console.log('[WorkoutDataProvider] ✅ Created social workout:', {
-        id: socialWorkout.id,
-        title: socialWorkout.title,
-        completedAt: socialWorkout.completedAt,
-        duration: socialWorkout.duration,
-        exerciseCount: socialWorkout.exercises.length
-      });
-
-      return socialWorkout;
-    } catch (parseError) {
-      console.error('[WorkoutDataProvider] ❌ Failed to parse workout:', event.id, parseError);
-      console.error('[WorkoutDataProvider] ❌ Event details:', {
-        kind: event.kind,
-        created_at: event.created_at,
-        tags: event.tags,
-        content: event.content
-      });
-      return null;
-    }
-  }, []);
-
-  // Helper function to convert NDK event to discovery template
-  const convertToDiscoveryTemplate = useCallback((event: NDKEvent, eventDataMap: Map<string, Record<string, unknown>>): DiscoveryWorkout | null => {
-    try {
+    // Add discovery template events
+    discoveryEvents.forEach((event: NDKEvent) => {
       const dTag = event.tags.find(tag => tag[0] === 'd')?.[1];
-      if (!dTag) return null;
-
-      // Store raw template data for click logging
       const templateData = {
         type: '33402_workout_template',
         hexId: event.id,
@@ -237,421 +361,69 @@ export function WorkoutDataProvider({ children }: WorkoutDataProviderProps) {
         rawEvent: event
       };
       
-      // Store using both the d-tag (template ID) and the hex event ID
-      eventDataMap.set(event.id, templateData);
-      eventDataMap.set(dTag, templateData);
-
-      // Parse template directly
-      const tagMap = new Map(event.tags.map(tag => [tag[0], tag]));
-      
-      const name = tagMap.get('title')?.[1] || tagMap.get('name')?.[1] || 'Untitled Template';
-      const difficulty = tagMap.get('difficulty')?.[1] as 'beginner' | 'intermediate' | 'advanced' | undefined;
-      const estimatedDuration = tagMap.get('duration')?.[1] ? parseInt(tagMap.get('duration')![1]) : undefined;
-      
-      // Extract exercise references
-      const exerciseTags = event.tags.filter(tag => tag[0] === 'exercise');
-      const exercises = exerciseTags.map(tag => ({
-        exerciseRef: tag[1],
-        sets: parseInt(tag[2]) || 3,
-        reps: parseInt(tag[3]) || 10,
-        weight: tag[4] ? parseInt(tag[4]) : undefined
-      }));
-
-      const discoveryWorkout: DiscoveryWorkout = {
-        id: dTag,
-        title: name,
-        exercises: exercises.map((ex) => ({
-          name: ex.exerciseRef.split(':')[2]?.replace(/-/g, ' ') || 'Unknown Exercise',
-          sets: ex.sets,
-          reps: ex.reps,
-          weight: ex.weight || 0
-        })),
-        estimatedDuration: Math.round((estimatedDuration || 1800) / 60), // Convert to minutes
-        difficulty: difficulty || 'intermediate',
-        rating: 8.5 + Math.random() * 1.5, // Mock rating for now
-        calories: Math.round(((estimatedDuration || 1800) / 60) * 4.5), // Rough estimate
-        muscleGroups: ['full-body'], // Could be extracted from exercise data
-        level: difficulty === 'beginner' ? 'low' : difficulty === 'advanced' ? 'hard' : 'moderate',
-        author: {
-          pubkey: event.pubkey,
-          name: `${event.pubkey.slice(0, 8)}...`,
-          picture: '/assets/workout-template-fallback.jpg'
-        },
-        eventId: event.id,
-        eventTags: event.tags
-      };
-
-      return discoveryWorkout;
-    } catch (parseError) {
-      console.warn('[WorkoutDataProvider] Failed to parse template:', event.id, parseError);
-      return null;
-    }
-  }, []);
-
-  const loadNostrData = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      
-      const ndk = getNDKInstance();
-      if (!ndk) {
-        console.warn('[WorkoutDataProvider] NDK not initialized');
-        setIsLoading(false);
-        return;
+      eventMap.set(event.id, templateData);
+      if (dTag) {
+        eventMap.set(dTag, templateData);
       }
+    });
 
-      console.log('[WorkoutDataProvider] Setting up real-time subscriptions...');
+    return eventMap;
+  }, [socialEvents, discoveryEvents]);
 
-      // Clean up existing subscriptions and reset deduplication state
-      if (socialSubscriptionRef.current) {
-        socialSubscriptionRef.current.stop();
-        socialSubscriptionRef.current = null;
-      }
-      if (discoverySubscriptionRef.current) {
-        discoverySubscriptionRef.current.stop();
-        discoverySubscriptionRef.current = null;
-      }
-      
-      // Reset Olas-style deduplication state
-      addedSocialIds.current.clear();
-      addedDiscoveryIds.current.clear();
-      socialEosed.current = false;
-      discoveryEosed.current = false;
-
-      const eventDataMap = new Map();
-
-      // Create real-time subscription for workout records (Kind 1301) - Social Feed
-      console.log('[WorkoutDataProvider] Creating social feed subscription...');
-      const socialSub = ndk.subscribe({
-        kinds: [WORKOUT_EVENT_KINDS.WORKOUT_RECORD as number],
-        '#t': ['fitness'],
-        limit: 5, // Small initial load for testing with current data volume
-      }, {
-        closeOnEose: false, // Keep subscription open for real-time updates
-        groupableDelay: 100 // Batch subscriptions for performance
-      });
-
-      socialSubscriptionRef.current = socialSub;
-
-      // Track initial load vs real-time updates
-      const initialSocialWorkouts: SocialWorkout[] = [];
-
-      // Set up real-time event handler for social feed with Olas-style deduplication
-      socialSub.on('event', (event: NDKEvent) => {
-        console.log('[WorkoutDataProvider] Social workout event received:', event.id);
-        
-        // Olas-style deduplication check
-        const eventId = event.id;
-        if (addedSocialIds.current.has(eventId)) {
-          console.log('[WorkoutDataProvider] Social event already processed:', eventId);
-          return;
-        }
-        addedSocialIds.current.add(eventId);
-        
-        const socialWorkout = convertToSocialWorkout(event, eventDataMap);
-        if (socialWorkout) {
-          if (!socialEosed.current) {
-            // During initial load, collect events
-            initialSocialWorkouts.push(socialWorkout);
-          } else {
-            // Real-time update: add to top of existing list
-            setSocialWorkouts(prev => {
-              const updated = [socialWorkout, ...prev];
-              return updated.sort((a, b) => b.completedAt.getTime() - a.completedAt.getTime()).slice(0, 10);
-            });
-          }
-        }
-      });
-
-      socialSub.on('eose', () => {
-        console.log('[WorkoutDataProvider] Social feed initial load complete');
-        if (!socialEosed.current) {
-          // Sort and set initial social workouts
-          initialSocialWorkouts.sort((a, b) => b.completedAt.getTime() - a.completedAt.getTime());
-          setSocialWorkouts(initialSocialWorkouts.slice(0, 5));
-          
-          // Track oldest timestamp for pagination
-          if (initialSocialWorkouts.length > 0) {
-            const oldest = Math.min(...initialSocialWorkouts.map(w => w.completedAt.getTime() / 1000));
-            setOldestWorkoutTimestamp(oldest);
-          }
-          
-          // Mark EOSE complete for real-time behavior
-          socialEosed.current = true;
-        }
-      });
-
-      // Create real-time subscription for workout templates (Kind 33402) - Discovery Feed
-      console.log('[WorkoutDataProvider] Creating discovery feed subscription...');
-      const discoverySub = ndk.subscribe({
-        kinds: [WORKOUT_EVENT_KINDS.WORKOUT_TEMPLATE as number],
-        limit: 6, // Small initial load for testing
-      }, {
-        closeOnEose: false, // Keep subscription open for real-time updates
-        groupableDelay: 100 // Batch subscriptions for performance
-      });
-
-      discoverySubscriptionRef.current = discoverySub;
-
-      // Track initial load vs real-time updates
-      const initialDiscoveryTemplates: DiscoveryWorkout[] = [];
-
-      // Set up real-time event handler for discovery feed with Olas-style deduplication
-      discoverySub.on('event', (event: NDKEvent) => {
-        console.log('[WorkoutDataProvider] Discovery template event received:', event.id);
-        
-        // Olas-style deduplication check
-        const eventId = event.id;
-        if (addedDiscoveryIds.current.has(eventId)) {
-          console.log('[WorkoutDataProvider] Discovery event already processed:', eventId);
-          return;
-        }
-        addedDiscoveryIds.current.add(eventId);
-        
-        const discoveryTemplate = convertToDiscoveryTemplate(event, eventDataMap);
-        if (discoveryTemplate) {
-          if (!discoveryEosed.current) {
-            // During initial load, collect events
-            initialDiscoveryTemplates.push(discoveryTemplate);
-          } else {
-            // Real-time update: add to top of existing list
-            setDiscoveryTemplates(prev => {
-              const updated = [discoveryTemplate, ...prev];
-              return updated.sort((a, b) => b.rating - a.rating).slice(0, 10);
-            });
-          }
-        }
-      });
-
-      discoverySub.on('eose', () => {
-        console.log('[WorkoutDataProvider] Discovery feed initial load complete');
-        if (!discoveryEosed.current) {
-          // Sort and set initial discovery templates
-          initialDiscoveryTemplates.sort((a, b) => b.rating - a.rating);
-          setDiscoveryTemplates(initialDiscoveryTemplates.slice(0, 6));
-          
-          // Track oldest timestamp for pagination
-          if (initialDiscoveryTemplates.length > 0) {
-            const oldest = Math.min(...initialDiscoveryTemplates.map(t => {
-              if (t.eventId) {
-                const eventData = eventDataMap.get(t.eventId);
-                return (eventData?.created_at as number) || Date.now() / 1000;
-              }
-              return Date.now() / 1000;
-            }));
-            setOldestTemplateTimestamp(oldest);
-          }
-          
-          // Mark EOSE complete for real-time behavior
-          discoveryEosed.current = true;
-        }
-      });
-
-      // Generate workout indicators from social workouts (will update when socialWorkouts changes)
-      // This will be handled in a separate useEffect
-
-      // Store all event data for click logging
-      setRawEventData(eventDataMap);
-      setLastFetch(Date.now());
-
-      console.log('[WorkoutDataProvider] Real-time subscriptions setup complete');
-
-    } catch (error) {
-      console.error('[WorkoutDataProvider] Failed to setup subscriptions:', error);
-      setError(error instanceof Error ? error.message : 'Failed to load workout data');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [convertToSocialWorkout, convertToDiscoveryTemplate]);
-
-  // Update workout indicators when social workouts change
-  useEffect(() => {
-    const indicators: WorkoutIndicator[] = socialWorkouts.slice(0, 10).map(workout => ({
-      date: workout.completedAt,
-      count: 1,
-      type: 'completed' as const
-    }));
-    setWorkoutIndicators(indicators);
-  }, [socialWorkouts]);
-
-  // Load more social workouts (infinite scroll)
+  // Simple infinite scroll - increase limits
   const loadMoreSocialWorkouts = useCallback(async () => {
-    if (isLoadingMore || !hasMoreWorkouts) return;
+    if (isLoadingMore || !isAuthenticated) return;
     
+    console.log('[WorkoutDataProvider] Loading more social workouts...');
     setIsLoadingMore(true);
     
     try {
-      const ndk = getNDKInstance();
-      if (!ndk) return;
-
-      const olderEvents = await ndk.fetchEvents({
-        kinds: [WORKOUT_EVENT_KINDS.WORKOUT_RECORD as number],
-        '#t': ['fitness'],
-        limit: 3, // Small page size for testing
-        until: oldestWorkoutTimestamp
-      });
-      
-      if (olderEvents.size === 0) {
-        setHasMoreWorkouts(false);
-      } else {
-        const eventDataMap = new Map(rawEventData);
-        const newWorkouts: SocialWorkout[] = [];
-        
-        for (const event of Array.from(olderEvents)) {
-          // Check if we've already processed this event ID
-          if (addedSocialIds.current.has(event.id)) {
-            console.log('[WorkoutDataProvider] Skipping duplicate workout in infinite scroll:', event.id);
-            continue;
-          }
-          
-          const socialWorkout = convertToSocialWorkout(event, eventDataMap);
-          if (socialWorkout) {
-            // Add to deduplication set
-            addedSocialIds.current.add(event.id);
-            newWorkouts.push(socialWorkout);
-          }
-        }
-        
-        if (newWorkouts.length > 0) {
-          setSocialWorkouts(prev => [...prev, ...newWorkouts]);
-          setRawEventData(eventDataMap);
-          
-          // Update oldest timestamp
-          const oldest = Math.min(...newWorkouts.map(w => w.completedAt.getTime() / 1000));
-          setOldestWorkoutTimestamp(oldest);
-        }
-      }
+      const newLimit = socialLimit + 3;
+      setSocialLimit(newLimit);
+      // Subscription will automatically update with new limit
     } catch (error) {
-      console.error('[WorkoutDataProvider] Failed to load more workouts:', error);
+      console.error('[WorkoutDataProvider] Failed to load more social workouts:', error);
+      setError('Failed to load more workouts');
     } finally {
       setIsLoadingMore(false);
     }
-  }, [isLoadingMore, hasMoreWorkouts, oldestWorkoutTimestamp, rawEventData, convertToSocialWorkout]);
+  }, [isLoadingMore, isAuthenticated, socialLimit]);
 
-  // Load more discovery templates (infinite scroll)
   const loadMoreDiscoveryTemplates = useCallback(async () => {
-    if (isLoadingMore || !hasMoreTemplates) return;
+    if (isLoadingMore || !isAuthenticated) return;
     
-    console.log('[WorkoutDataProvider] 🔄 DEBUGGING Infinite Scroll - Discovery Templates');
-    console.log('[WorkoutDataProvider] 📅 Current oldestTemplateTimestamp:', oldestTemplateTimestamp);
-    console.log('[WorkoutDataProvider] 📅 Current oldestTemplateTimestamp as Date:', new Date(oldestTemplateTimestamp * 1000));
-    console.log('[WorkoutDataProvider] 🔢 Current template count:', discoveryTemplates.length);
-    
+    console.log('[WorkoutDataProvider] Loading more discovery templates...');
     setIsLoadingMore(true);
     
     try {
-      const ndk = getNDKInstance();
-      if (!ndk) return;
-
-      const fetchQuery = {
-        kinds: [WORKOUT_EVENT_KINDS.WORKOUT_TEMPLATE as number],
-        limit: 3, // Small page size for testing
-        until: oldestTemplateTimestamp
-      };
-      
-      console.log('[WorkoutDataProvider] 🔍 Fetching with query:', fetchQuery);
-
-      const olderEvents = await ndk.fetchEvents(fetchQuery);
-      
-      console.log('[WorkoutDataProvider] 📦 Fetched events count:', olderEvents.size);
-      console.log('[WorkoutDataProvider] 📦 Fetched event IDs:', Array.from(olderEvents).map(e => e.id));
-      console.log('[WorkoutDataProvider] 📦 Fetched event timestamps:', Array.from(olderEvents).map(e => ({
-        id: e.id,
-        created_at: e.created_at,
-        date: new Date(e.created_at! * 1000)
-      })));
-      
-      if (olderEvents.size === 0) {
-        console.log('[WorkoutDataProvider] ❌ No more templates available - setting hasMoreTemplates to false');
-        setHasMoreTemplates(false);
-      } else {
-        const eventDataMap = new Map(rawEventData);
-        const newTemplates: DiscoveryWorkout[] = [];
-        let duplicateCount = 0;
-        
-        for (const event of Array.from(olderEvents)) {
-          // Check if we've already processed this event ID
-          if (addedDiscoveryIds.current.has(event.id)) {
-            console.log('[WorkoutDataProvider] Skipping duplicate template in infinite scroll:', event.id);
-            duplicateCount++;
-            continue;
-          }
-          
-          const discoveryTemplate = convertToDiscoveryTemplate(event, eventDataMap);
-          if (discoveryTemplate) {
-            // Add to deduplication set
-            addedDiscoveryIds.current.add(event.id);
-            newTemplates.push(discoveryTemplate);
-          }
-        }
-        
-        console.log('[WorkoutDataProvider] 📊 Processing results:');
-        console.log('  - Total fetched:', olderEvents.size);
-        console.log('  - Duplicates skipped:', duplicateCount);
-        console.log('  - New templates:', newTemplates.length);
-        
-        if (newTemplates.length > 0) {
-          setDiscoveryTemplates(prev => [...prev, ...newTemplates]);
-          setRawEventData(eventDataMap);
-          
-          // Update oldest timestamp
-          const oldest = Math.min(...newTemplates.map(t => {
-            if (t.eventId) {
-              const eventData = eventDataMap.get(t.eventId);
-              return (eventData?.created_at as number) || Date.now() / 1000;
-            }
-            return Date.now() / 1000;
-          }));
-          
-          console.log('[WorkoutDataProvider] 📅 Updating oldestTemplateTimestamp:');
-          console.log('  - Previous:', oldestTemplateTimestamp, new Date(oldestTemplateTimestamp * 1000));
-          console.log('  - New:', oldest, new Date(oldest * 1000));
-          
-          setOldestTemplateTimestamp(oldest);
-        } else if (duplicateCount === olderEvents.size) {
-          // All events were duplicates - we need to move the timestamp window
-          console.log('[WorkoutDataProvider] ⚠️ All events were duplicates - moving timestamp window');
-          const eventTimestamps = Array.from(olderEvents).map(e => e.created_at!);
-          const oldestFetched = Math.min(...eventTimestamps);
-          
-          console.log('[WorkoutDataProvider] 📅 Moving timestamp window:');
-          console.log('  - Previous:', oldestTemplateTimestamp, new Date(oldestTemplateTimestamp * 1000));
-          console.log('  - Oldest fetched:', oldestFetched, new Date(oldestFetched * 1000));
-          console.log('  - Setting to:', oldestFetched - 1, new Date((oldestFetched - 1) * 1000));
-          
-          setOldestTemplateTimestamp(oldestFetched - 1); // Move window past these events
-        }
-      }
+      const newLimit = discoveryLimit + 3;
+      setDiscoveryLimit(newLimit);
+      // Subscription will automatically update with new limit
     } catch (error) {
-      console.error('[WorkoutDataProvider] Failed to load more templates:', error);
+      console.error('[WorkoutDataProvider] Failed to load more discovery templates:', error);
+      setError('Failed to load more templates');
     } finally {
       setIsLoadingMore(false);
     }
-  }, [isLoadingMore, hasMoreTemplates, oldestTemplateTimestamp, rawEventData, convertToDiscoveryTemplate, discoveryTemplates.length]);
+  }, [isLoadingMore, isAuthenticated, discoveryLimit]);
 
+  // Simple refresh function
   const refreshData = useCallback(async () => {
+    if (!isAuthenticated) return;
+    
     console.log('[WorkoutDataProvider] Manual refresh requested');
-    await loadNostrData();
-  }, [loadNostrData]);
+    setError(null);
+    setIsLoading(true);
+    
+    // Reset limits and restart subscriptions
+    setSocialLimit(5);
+    setDiscoveryLimit(6);
+    setLastFetch(Date.now());
+  }, [isAuthenticated]);
 
-  // Load data on mount and when authentication changes
-  useEffect(() => {
-    if (isAuthenticated) {
-      loadNostrData();
-    }
-  }, [isAuthenticated]); // Remove loadNostrData from dependencies to prevent re-runs
-
-  // Cleanup subscriptions on unmount
-  useEffect(() => {
-    return () => {
-      if (socialSubscriptionRef.current) {
-        socialSubscriptionRef.current.stop();
-      }
-      if (discoverySubscriptionRef.current) {
-        discoverySubscriptionRef.current.stop();
-      }
-    };
-  }, []);
+  // Simple hasMore logic - assume there's more if we got the full limit
+  const hasMoreWorkouts = socialEvents.length >= socialLimit;
+  const hasMoreTemplates = discoveryEvents.length >= discoveryLimit;
 
   const value: WorkoutDataContextType = {
     socialWorkouts,

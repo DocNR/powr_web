@@ -16,6 +16,7 @@ import WorkoutLifecycleMachineIntegrationTest from '@/components/test/WorkoutLif
 import { DependencyResolutionServiceTest } from '@/components/test/DependencyResolutionServiceTest';
 import CompleteWorkoutFlowTest from '@/components/test/CompleteWorkoutFlowTest';
 import RealTimeInfiniteScrollTest from '@/components/test/RealTimeInfiniteScrollTest';
+import ParameterInterpretationTest from '@/components/test/ParameterInterpretationTest';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { TestTube, Target, Wifi, WifiOff } from 'lucide-react';
@@ -204,6 +205,23 @@ export function TestTab() {
             </CardHeader>
             <CardContent>
               <RealTimeInfiniteScrollTest />
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* 🧪 NEW: Parameter Interpretation Test */}
+        <div className="w-full">
+          <Card className="border-violet-200 bg-violet-50">
+            <CardHeader>
+              <CardTitle className="text-violet-800 flex items-center gap-2">
+                🧪 NEW: Parameter Interpretation Test (Phase 2B)
+              </CardTitle>
+              <CardDescription className="text-violet-700">
+                Test the parameter interpretation service with real leg workout data. Validates NIP-101e format/format_units parsing and parameter validation for enhanced workout tracking.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ParameterInterpretationTest />
             </CardContent>
           </Card>
         </div>

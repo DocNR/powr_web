@@ -195,7 +195,7 @@ export default function RealTimeInfiniteScrollTest() {
                     <div className="text-xs text-gray-600 space-y-1">
                       <div>Duration: ~{template.estimatedDuration} min</div>
                       <div>Exercises: {template.exercises.length}</div>
-                      <div>Rating: ⭐ {template.rating.toFixed(1)}</div>
+                      {template.rating && <div>Rating: ⭐ {template.rating.toFixed(1)}</div>}
                       <div>Author: {template.author.name}</div>
                       {template.eventId && (
                         <div className="font-mono text-xs bg-white p-1 rounded">
@@ -252,7 +252,7 @@ export default function RealTimeInfiniteScrollTest() {
                 <li>Timestamp-based pagination using `until` parameter</li>
                 <li>Small page sizes (3 events) for testing with current data volume</li>
                 <li>Separate pagination state for workouts and templates</li>
-                <li>Loading states and "no more data" indicators</li>
+                <li>Loading states and &ldquo;no more data&rdquo; indicators</li>
                 <li>Maintains chronological order during pagination</li>
               </ul>
             </div>
@@ -266,7 +266,7 @@ export default function RealTimeInfiniteScrollTest() {
                   <li>Use WorkoutPublisher component to publish new events</li>
                   <li>Watch both tabs update automatically</li>
                   <li>Check console logs for subscription activity</li>
-                  <li>Test infinite scroll with "Load More" buttons</li>
+                  <li>Test infinite scroll with &ldquo;Load More&rdquo; buttons</li>
                 </ol>
               </div>
             </div>
