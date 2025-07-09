@@ -1,7 +1,18 @@
 # NIP-101e Standards Rule
 
 ## Brief overview
-This rule establishes comprehensive standards for NIP-101e event generation, parsing, and validation in the POWR Workout PWA, ensuring strict compliance with Nostr conventions and preventing malformed events.
+This rule establishes comprehensive standards for NIP-101e event generation, parsing, and validation in the POWR Workout PWA, ensuring strict compliance with Nostr conventions and preventing malformed events. Includes the new enum format system for extensible parameter validation.
+
+## 📋 SOURCE OF TRUTH
+**ALWAYS refer to `/Users/danielwyler/powr_web/docs/nip-101e-specification.md` as the authoritative specification.**
+
+This rule provides implementation guidance and best practices, but the official specification document is the definitive source for:
+- Event kind definitions and requirements
+- Tag structure and validation rules  
+- Parameter formats and constraints
+- Official examples and reference implementations
+
+When in doubt, consult the specification file first.
 
 ## NIP-101e Event Generation Standards
 
@@ -10,6 +21,62 @@ This rule establishes comprehensive standards for NIP-101e event generation, par
 - **No Workarounds**: Never generate malformed events and fix them later
 - **Validation First**: Validate all data before event creation
 - **Forward Compatibility**: Design for extensibility without breaking changes
+- **Enum Format System**: Use format/format_units for extensible parameter validation
+
+## 🚨 CRITICAL: Parameter Array Structure
+
+### ✅ CORRECT: Parameters as Separate Array Elements
+```typescript
+// Each parameter is a SEPARATE array element
+["exercise", "33401:pubkey:pushups", "", "0", "10", "7", "normal"]
+//                                      ↑   ↑   ↑   ↑      ↑
+//                                   relay weight reps rpe set_type
+```
+
+### ❌ FORBIDDEN: Comma-Separated String Parameters
+```typescript
+// NEVER use comma-separated strings - this breaks parsing!
+["exercise", "33401:pubkey:pushups", "0,10,7,normal"]  // ❌ WRONG!
+["exercise", "33401:pubkey:pushups", "relay", "0,10,7,normal"]  // ❌ WRONG!
+```
+
+**Why This Matters**: The parameter interpretation service expects each parameter as a separate array element to match against the exercise template's `format` and `format_units` arrays.
+
+## Enum Format System for Exercise Templates
+
+### Format + Format_Units Pattern
+Exercise templates (Kind 33401) now use a schema-driven approach for parameter validation:
+
+```typescript
+// Exercise Template Tags (Kind 33401)
+["d", "pushups"]                                    // Unique identifier
+["title", "Push ups"]                              // Display name (NIP-101e uses "title", not "name")
+["format", "weight", "reps", "rpe", "set_type"]   // Parameter schema
+["format_units", "bodyweight", "count", "0-10", "enum"]  // Unit validation
+["equipment", "bodyweight"]                        // Equipment required
+["difficulty", "beginner"]                         // Skill level (optional)
+["t", "chest"]                                     // Muscle group hashtag
+["t", "push"]                                      // Movement pattern hashtag
+["t", "fitness"]                                   // General fitness hashtag
+```
+
+### Parameter Interpretation Rules
+The `format` and `format_units` arrays work together:
+
+| Parameter | Unit Type | Validation | Examples |
+|-----------|-----------|------------|----------|
+| `weight` | `kg`, `lbs`, `bodyweight` | Numeric ≥ 0 | `"60"`, `"0"` (bodyweight) |
+| `reps` | `count`, `reps` | Integer > 0 | `"10"`, `"15"` |
+| `rpe` | `0-10`, `1-10`, `rpe` | Float in range | `"7"`, `"8.5"` |
+| `set_type` | `enum`, `type` | Predefined values | `"normal"`, `"warmup"`, `"drop"`, `"failure"`, `"working"` |
+| `duration` | `seconds`, `minutes`, `sec`, `min` | Numeric ≥ 0 | `"30"`, `"1.5"` |
+| `distance` | `meters`, `km`, `miles`, `yards`, `m` | Numeric ≥ 0 | `"100"`, `"5.2"` |
+
+### Extensibility Benefits
+- **Self-Describing**: Each exercise defines its own parameter schema
+- **Validation**: Type-safe parameter validation based on units
+- **Future-Proof**: New parameter types without code changes
+- **Gym-Specific**: Custom parameters for specialized equipment/tracking
 
 ### Tag Formatting Requirements
 
@@ -111,24 +178,29 @@ function generateExerciseTags(exerciseData: ValidatedExerciseData): string[][] {
   
   // Required tags first
   tags.push(['d', exerciseData.id]);
-  tags.push(['name', exerciseData.name]);
+  tags.push(['title', exerciseData.name]); // NIP-101e uses "title", not "name"
+  tags.push(['format', ...exerciseData.format]); // Parameter schema
+  tags.push(['format_units', ...exerciseData.formatUnits]); // Unit validation
+  tags.push(['equipment', exerciseData.equipment]); // Required equipment tag
   
-  // Muscle group tags
-  exerciseData.muscleGroups.forEach(muscle => {
-    tags.push(['muscle', muscle]);
-  });
-  
-  // Equipment tag (if specified)
-  if (exerciseData.equipment) {
-    tags.push(['equipment', exerciseData.equipment]);
-  }
-  
-  // Difficulty tag
+  // Optional difficulty tag
   if (exerciseData.difficulty) {
     tags.push(['difficulty', exerciseData.difficulty]);
   }
   
-  // Optional topic tag
+  // Muscle groups as hashtags (not separate "muscle" tags)
+  exerciseData.muscleGroups.forEach(muscle => {
+    tags.push(['t', muscle]);
+  });
+  
+  // Movement patterns as hashtags
+  if (exerciseData.movementPatterns) {
+    exerciseData.movementPatterns.forEach(pattern => {
+      tags.push(['t', pattern]);
+    });
+  }
+  
+  // General fitness hashtag
   tags.push(['t', 'fitness']);
   
   return tags;
@@ -174,30 +246,40 @@ function generateWorkoutTemplateTags(templateData: ValidatedWorkoutTemplateData)
   
   // Required tags
   tags.push(['d', templateData.id]);
-  tags.push(['name', templateData.name]);
+  tags.push(['title', templateData.name]); // NIP-101e uses "title", not "name"
+  tags.push(['type', templateData.type]); // Required workout type
   
-  // Exercise references (in order)
+  // Exercise references (in order) - follow NIP-101e format
   templateData.exercises.forEach((exercise, index) => {
     tags.push([
       'exercise', 
-      exercise.exerciseId, 
-      exercise.sets.toString(), 
+      exercise.exerciseId, // Should be "kind:pubkey:d-tag" format
+      '', // relay-url (empty string)
+      exercise.weight?.toString() || '', 
       exercise.reps.toString(),
-      exercise.weight?.toString() || '0'
+      exercise.rpe?.toString() || '7',
+      exercise.setType || 'normal'
     ]);
   });
   
-  // Duration estimate (if provided)
-  if (templateData.estimatedDuration) {
-    tags.push(['duration', templateData.estimatedDuration.toString()]);
+  // Optional tags
+  if (templateData.rounds) {
+    tags.push(['rounds', templateData.rounds.toString()]);
   }
   
-  // Difficulty level
-  if (templateData.difficulty) {
-    tags.push(['difficulty', templateData.difficulty]);
+  if (templateData.duration) {
+    tags.push(['duration', templateData.duration.toString()]);
   }
   
-  // Topic tag
+  if (templateData.interval) {
+    tags.push(['interval', templateData.interval.toString()]);
+  }
+  
+  if (templateData.restBetweenRounds) {
+    tags.push(['rest_between_rounds', templateData.restBetweenRounds.toString()]);
+  }
+  
+  // Topic tags
   tags.push(['t', 'fitness']);
   
   return tags;
@@ -256,11 +338,15 @@ function generateWorkoutTags(workoutData: ValidatedWorkoutData): string[][] {
   
   // Required tags
   tags.push(['d', workoutData.id]);
-  tags.push(['date', workoutData.date]);
+  tags.push(['title', workoutData.title]); // NIP-101e uses "title", not "name"
+  tags.push(['type', workoutData.type]); // Required workout type
+  tags.push(['start', workoutData.startTime.toString()]); // Unix timestamp
+  tags.push(['end', workoutData.endTime.toString()]); // Unix timestamp
+  tags.push(['completed', workoutData.completed.toString()]); // true/false
   
   // Template reference (if used)
   if (workoutData.templateId && workoutData.templatePubkey) {
-    tags.push(['template', `33402:${workoutData.templatePubkey}:${workoutData.templateId}`]);
+    tags.push(['template', `33402:${workoutData.templatePubkey}:${workoutData.templateId}`, '']);
   }
   
   // Individual exercise set tags (in workout order)
@@ -273,20 +359,28 @@ function generateWorkoutTags(workoutData: ValidatedWorkoutData): string[][] {
         set.weight.toString(), 
         set.reps.toString(),
         set.rpe?.toString() || '7',
-        set.setType || 'normal'
+        set.setType || 'normal',
+        set.setNumber?.toString() || '1' // Optional set_number for NDK deduplication
       ]);
     });
   });
   
-  // Total duration
-  if (workoutData.duration) {
-    tags.push(['duration', workoutData.duration.toString()]);
+  // Optional tags
+  if (workoutData.roundsCompleted) {
+    tags.push(['rounds_completed', workoutData.roundsCompleted.toString()]);
   }
   
-  // Standard Nostr user tags
-  workoutData.participants?.forEach(pubkey => {
-    tags.push(['p', pubkey]);
+  if (workoutData.interval) {
+    tags.push(['interval', workoutData.interval.toString()]);
+  }
+  
+  // Personal records (if any)
+  workoutData.personalRecords?.forEach(pr => {
+    tags.push(['pr', `${pr.exerciseRef},${pr.metric},${pr.value}`]);
   });
+  
+  // Topic tags
+  tags.push(['t', 'fitness']);
   
   return tags;
 }
