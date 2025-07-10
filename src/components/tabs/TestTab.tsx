@@ -14,6 +14,7 @@ import NIP101eTemplateReferenceTest from '@/components/test/NIP101eTemplateRefer
 import { WorkoutDetailModalTest } from '@/components/test/WorkoutDetailModalTest';
 import WorkoutLifecycleMachineIntegrationTest from '@/components/test/WorkoutLifecycleMachineIntegrationTest';
 import ActiveWorkoutNIP101eTest from '@/components/test/ActiveWorkoutNIP101eTest';
+import { ActiveWorkoutUITest } from '@/components/test/ActiveWorkoutUITest';
 import { DependencyResolutionServiceTest } from '@/components/test/DependencyResolutionServiceTest';
 import CompleteWorkoutFlowTest from '@/components/test/CompleteWorkoutFlowTest';
 import RealTimeInfiniteScrollTest from '@/components/test/RealTimeInfiniteScrollTest';
@@ -240,6 +241,23 @@ export function TestTab() {
             </CardHeader>
             <CardContent>
               <ActiveWorkoutNIP101eTest />
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* 🎨 NEW: Active Workout UI Test */}
+        <div className="w-full">
+          <Card className="border-green-200 bg-green-50">
+            <CardHeader>
+              <CardTitle className="text-green-800 flex items-center gap-2">
+                🎨 NEW: Active Workout UI Test
+              </CardTitle>
+              <CardDescription className="text-green-700">
+                Test the complete Active Workout UI system with XState integration. Full-screen workout interface with set completion, timer, and Nostr publishing workflow.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ActiveWorkoutUITest />
             </CardContent>
           </Card>
         </div>

@@ -18,5 +18,10 @@ export { FilterButton } from './FilterButton';
 export { default as CompactWorkoutCard } from './CompactWorkoutCard';
 export { default as SearchableWorkoutDiscovery } from './SearchableWorkoutDiscovery';
 export { WorkoutDetailModal } from './WorkoutDetailModal';
+export { ActiveWorkoutContainer } from './ActiveWorkoutContainer';
+export { ActiveWorkoutInterface } from './ActiveWorkoutInterface';
+export { SetRow } from './SetRow';
+export { ExerciseSection } from './ExerciseSection';
+export { WorkoutMiniBar } from './WorkoutMiniBar';
 
 // Types are available for import directly from individual components

@@ -12,6 +12,7 @@ import { CalendarBar, WorkoutCard, ScrollableGallery, SearchableWorkoutDiscovery
 import { useWorkoutData } from '@/providers/WorkoutDataProvider';
 import { useMachine } from '@xstate/react';
 import { workoutLifecycleMachine } from '@/lib/machines/workout/workoutLifecycleMachine';
+import { usePubkey } from '@/lib/auth/hooks';
 
 export default function WorkoutsTab() {
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -20,6 +21,9 @@ export default function WorkoutsTab() {
   const [selectedWorkout, setSelectedWorkout] = useState<Record<string, unknown> | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalError, setModalError] = useState<string | undefined>();
+
+  // Get authenticated user pubkey
+  const userPubkey = usePubkey();
 
   // Get cached data from provider
   const {
@@ -40,7 +44,7 @@ export default function WorkoutsTab() {
   const [workoutState, workoutSend] = useMachine(workoutLifecycleMachine, {
     input: {
       userInfo: {
-        pubkey: 'user-pubkey', // TODO: Get from auth context
+        pubkey: userPubkey || 'user-pubkey', // Use real pubkey from auth
         displayName: 'User'
       }
     }
@@ -78,8 +82,8 @@ export default function WorkoutsTab() {
     } else if (workoutState.matches('active')) {
       // Active state - activeWorkoutMachine is running
       console.log('🏃‍♂️ Machine in active state - workout is running');
-      // Keep modal closed during active workout
-      setIsModalOpen(false);
+      // Keep modal OPEN to show active workout UI
+      setIsModalOpen(true);
       
     } else if (workoutState.matches('completed')) {
       // Completed state - show completion UI or navigate back
@@ -248,15 +252,15 @@ export default function WorkoutsTab() {
       }
     }
 
-    console.log('🚀 Starting workout lifecycle machine with template:', templateId);
-    console.log('📝 Template author pubkey:', templateAuthorPubkey.slice(0, 8) + '...');
-    console.log('🔗 Will build template reference:', `33402:${templateAuthorPubkey}:${templateId}`);
+    // Create template reference in unified format
+    const templateReference = `33402:${templateAuthorPubkey}:${templateId}`;
     
-    // Start the workout lifecycle machine with preselected template AND author info
+    console.log('🚀 Starting workout lifecycle machine with template reference:', templateReference);
+    
+    // Start the workout lifecycle machine with unified template reference
     workoutSend({ 
       type: 'START_SETUP',
-      preselectedTemplateId: templateId,
-      templateAuthorPubkey: templateAuthorPubkey
+      templateReference: templateReference
     });
     
     // DON'T open modal yet - wait for setup machine to resolve template data
@@ -514,6 +518,8 @@ export default function WorkoutsTab() {
         error={modalError}
         onClose={handleCloseModal}
         onStartWorkout={handleStartWorkout}
+        isWorkoutActive={workoutState.matches('active')}
+        userPubkey={userPubkey}
       />
     </div>
   );

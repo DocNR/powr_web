@@ -34,14 +34,8 @@ export interface WorkoutLifecycleContext extends BaseMachineContext {
   lastUpdated: number;
   lifecycleStartTime: number;
   
-  // Temporary setup state (for testing auto-progression)
-  availableTemplates?: any[];
-  selectedTemplateId?: string;
-  loadedTemplate?: any;
-  loadedExercises?: any[];
-  
-  // Preselected template from START_SETUP event
-  preselectedTemplateId?: string;
+  // Template reference from START_SETUP event
+  templateReference?: string;
 }
 
 // Active state context - guarantees workoutData is present
@@ -51,7 +45,7 @@ export interface ActiveWorkoutLifecycleContext extends WorkoutLifecycleContext {
 
 // Workout lifecycle events
 export type WorkoutLifecycleEvent =
-  | { type: 'START_SETUP'; preselectedTemplateId?: string; templateAuthorPubkey?: string }
+  | { type: 'START_SETUP'; templateReference?: string }
   | { type: 'SETUP_COMPLETE'; templateSelection: TemplateSelection }
   | { type: 'CANCEL_SETUP' }
   | { type: 'START_WORKOUT'; workoutData: WorkoutData }
@@ -67,9 +61,8 @@ export type WorkoutLifecycleEvent =
 
 // Setup machine input (for invoked setup machine)
 export interface SetupMachineInput {
-  userInfo: UserInfo;
-  preselectedTemplateId?: string;
-  templateAuthorPubkey?: string;
+  userPubkey: string;
+  templateReference?: string;
 }
 
 // Setup machine output

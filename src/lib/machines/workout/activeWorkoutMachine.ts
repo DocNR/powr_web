@@ -31,6 +31,38 @@ import type {
 import type { LoadTemplateOutput, WorkoutTemplate } from './actors/loadTemplateActor';
 
 /**
+ * Helper function to validate and clean template reference
+ * Fixes React StrictMode corruption where template reference gets duplicated
+ */
+const validateAndCleanTemplateReference = (templateReference: string): string => {
+  if (!templateReference || templateReference.trim() === '') {
+    throw new Error('Template reference is empty or undefined');
+  }
+  
+  // Check for corruption pattern: 33402:pubkey:33402:pubkey:d-tag
+  const parts = templateReference.split(':');
+  
+  // Valid format should be: kind:pubkey:d-tag (3 parts)
+  if (parts.length === 3) {
+    console.log('[ActiveWorkoutMachine] ✅ Template reference format is correct:', templateReference);
+    return templateReference;
+  }
+  
+  // Check for corruption pattern: kind:pubkey:kind:pubkey:d-tag (5 parts)
+  if (parts.length === 5 && parts[0] === parts[2] && parts[1] === parts[3]) {
+    const cleanReference = `${parts[0]}:${parts[1]}:${parts[4]}`;
+    console.log('[ActiveWorkoutMachine] 🔧 FIXED corrupted template reference:', {
+      original: templateReference,
+      cleaned: cleanReference
+    });
+    return cleanReference;
+  }
+  
+  // If we can't fix it, throw an error with details
+  throw new Error(`Invalid template reference format: ${templateReference}. Expected format: kind:pubkey:d-tag`);
+};
+
+/**
  * Helper function to create error info
  * Following Noga's error handling patterns
  */
@@ -71,7 +103,13 @@ export const activeWorkoutMachine = setup({
       const { templateReference } = input;
       
       try {
-        console.log('[ActiveWorkoutMachine] Loading template data for:', templateReference);
+        console.log('[ActiveWorkoutMachine] 🔍 DEBUG: Raw input templateReference:', templateReference);
+        
+        // 🔧 FIX: Validate and clean template reference to prevent corruption
+        const cleanTemplateReference = validateAndCleanTemplateReference(templateReference);
+        console.log('[ActiveWorkoutMachine] 🔧 Cleaned templateReference:', cleanTemplateReference);
+        
+        console.log('[ActiveWorkoutMachine] Loading template data for:', cleanTemplateReference);
         
         // Import required modules
         const { loadTemplateActor } = await import('./actors/loadTemplateActor');
@@ -83,15 +121,15 @@ export const activeWorkoutMachine = setup({
           throw new Error('No template selected. Please select a workout template to continue.');
         }
         
-        // Use the loadTemplateActor with the provided template reference
+        // Use the loadTemplateActor with the cleaned template reference
         const templateResult = await new Promise<LoadTemplateOutput>((resolve, reject) => {
           // Set timeout to prevent infinite hangs
           const timeoutId = setTimeout(() => {
-            reject(new Error(`Template loading timeout after 10 seconds for: ${templateReference}`));
+            reject(new Error(`Template loading timeout after 10 seconds for: ${cleanTemplateReference}`));
           }, 10000);
           
           const actor = createActor(loadTemplateActor, {
-            input: { templateReference }
+            input: { templateReference: cleanTemplateReference }
           });
           
           actor.subscribe((snapshot) => {

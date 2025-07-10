@@ -26,9 +26,8 @@ export interface WorkoutSetupContext {
   // User context
   userPubkey: string;
   
-  // Preselected template support
-  preselectedTemplateId: string | null;
-  templateAuthorPubkey: string | null;
+  // Preselected template support - unified reference format
+  templateReference: string | null;
 }
 
 export type WorkoutSetupEvent =
@@ -53,10 +52,10 @@ export const loadTemplatesActor = fromPromise(async ({ input }: {
   
   // Load all workout templates for this user
   const templateEvents = await ndk.fetchEvents({
-    kinds: [33402], // NIP-101e workout template
+    kinds: [33402 as any], // NIP-101e workout template
     authors: [input.userPubkey],
     '#t': ['fitness']
-  } as any);
+  });
   
   console.log('[WorkoutSetupMachine] Found template events:', templateEvents.size);
   
@@ -112,7 +111,7 @@ export const workoutSetupMachine = setup({
   types: {} as {
     context: WorkoutSetupContext;
     events: WorkoutSetupEvent;
-    input: { userPubkey: string; preselectedTemplateId?: string; templateAuthorPubkey?: string };
+    input: { userPubkey: string; templateReference?: string };
     output: SetupMachineOutput;
   },
   actors: {
@@ -131,8 +130,7 @@ export const workoutSetupMachine = setup({
     loadTime: 0,
     error: null,
     userPubkey: input.userPubkey,
-    preselectedTemplateId: input.preselectedTemplateId || null,
-    templateAuthorPubkey: input.templateAuthorPubkey || null
+    templateReference: input.templateReference || null
   }),
 
   // XState v5 requires output at machine level for invoke to capture it
@@ -148,16 +146,18 @@ export const workoutSetupMachine = setup({
     const template = context.loadedTemplate;
     const exercises = context.loadedExercises;
     
-    // Ensure we always have valid data - create fallback if needed
-    const templateId = template?.id || context.selectedTemplateId || context.preselectedTemplateId || 'default-template';
-    const templatePubkey = template?.authorPubkey || context.templateAuthorPubkey || context.userPubkey;
+    // Extract template info from loaded template or use provided reference
+    const templateReference = context.templateReference || `33402:${context.userPubkey}:default-template`;
+    const templateParts = templateReference.split(':');
+    const templateId = templateParts[2] || 'default-template';
+    const templatePubkey = templateParts[1] || context.userPubkey;
     const templateName = template?.name || 'Custom Workout';
     
-    // Create template selection from loaded template
+    // Create template selection using the unified reference
     const templateSelection = {
       templateId,
       templatePubkey,
-      templateReference: `33402:${templatePubkey}:${templateId}`,
+      templateReference,
       templateRelayUrl: ''
     };
     
@@ -215,9 +215,13 @@ export const workoutSetupMachine = setup({
       always: [
         {
           target: 'loadingPreselectedTemplate',
-          guard: ({ context }) => !!context.preselectedTemplateId,
+          guard: ({ context }) => !!context.templateReference,
           actions: assign({
-            selectedTemplateId: ({ context }) => context.preselectedTemplateId
+            selectedTemplateId: ({ context }) => {
+              // Extract template ID from reference for internal tracking
+              const parts = context.templateReference?.split(':');
+              return parts?.[2] || null;
+            }
           })
         },
         {
@@ -236,8 +240,7 @@ export const workoutSetupMachine = setup({
       invoke: {
         src: 'loadTemplateActor',
         input: ({ context }) => ({
-          templateId: context.selectedTemplateId!,
-          userPubkey: context.templateAuthorPubkey || context.userPubkey
+          templateReference: context.templateReference!
         }),
         onDone: {
           target: 'completed',
@@ -294,8 +297,7 @@ export const workoutSetupMachine = setup({
       invoke: {
         src: 'loadTemplateActor',
         input: ({ context }) => ({
-          templateId: context.selectedTemplateId!,
-          userPubkey: context.userPubkey
+          templateReference: `33402:${context.userPubkey}:${context.selectedTemplateId!}`
         }),
         onDone: {
           target: 'templateLoaded',

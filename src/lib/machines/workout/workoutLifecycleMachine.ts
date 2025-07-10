@@ -24,15 +24,15 @@ export const workoutLifecycleMachine = setup({
   types: {
     context: {} as WorkoutLifecycleContext,
     events: {} as WorkoutLifecycleEvent,
-    input: {} as { userInfo: UserInfo; preselectedTemplateId?: string }
+    input: {} as { userInfo: UserInfo; templateReference?: string }
   },
   
   guards: {
     hasPreselectedTemplate: ({ context, event }) => {
       if (event.type === 'START_SETUP') {
-        return !!event.preselectedTemplateId;
+        return !!event.templateReference;
       }
-      return !!context.templateSelection.templateId;
+      return !!context.templateReference;
     },
     
     hasValidWorkoutData: ({ context }) => {
@@ -97,9 +97,16 @@ export const workoutLifecycleMachine = setup({
         }
         
         // Type-safe context - we know workoutData is present after the check
+        const workoutData = context.workoutData;
+        if (!workoutData) {
+          console.error('[WorkoutLifecycleMachine] No workout data available for spawning');
+          self.send({ type: 'ERROR_OCCURRED', error: { message: 'No workout data available for spawning', timestamp: Date.now() } });
+          return undefined;
+        }
+        
         const input = {
           userInfo: context.userInfo,
-          workoutData: context.workoutData as WorkoutData, // Type assertion needed for spawn
+          workoutData: workoutData,
           templateSelection: context.templateSelection
         };
         
@@ -168,8 +175,8 @@ export const workoutLifecycleMachine = setup({
     lifecycleStartTime: Date.now(),
     // Add activeWorkoutActor to context (following NOGA pattern)
     activeWorkoutActor: undefined,
-    // Add preselectedTemplateId from input
-    preselectedTemplateId: input.preselectedTemplateId
+    // Add templateReference from input
+    templateReference: input.templateReference
   }),
   
   states: {
@@ -179,12 +186,7 @@ export const workoutLifecycleMachine = setup({
           target: 'setup',
           actions: [
             assign({
-              preselectedTemplateId: ({ event }) => event.preselectedTemplateId,
-              // Store templateAuthorPubkey from the event for passing to setup machine
-              templateSelection: ({ event, context }) => ({
-                ...context.templateSelection,
-                templatePubkey: event.templateAuthorPubkey
-              })
+              templateReference: ({ event }) => event.templateReference
             }),
             'logTransition', 
             'updateLastActivity'
@@ -199,8 +201,7 @@ export const workoutLifecycleMachine = setup({
         src: 'setupMachine',
         input: ({ context }) => ({
           userPubkey: context.userInfo.pubkey,
-          preselectedTemplateId: context.preselectedTemplateId,
-          templateAuthorPubkey: context.templateSelection.templatePubkey
+          templateReference: context.templateReference
         }),
         onDone: {
           target: 'setupComplete',

@@ -4,6 +4,7 @@ import { Button } from '@/components/powr-ui/primitives/Button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Play, ArrowLeft, User, Settings, AlertCircle } from 'lucide-react';
 import { WorkoutImageHandler } from './WorkoutImageHandler';
+import { ActiveWorkoutContainer } from './ActiveWorkoutContainer';
 
 interface Exercise {
   name: string;
@@ -29,6 +30,8 @@ interface WorkoutDetailModalProps {
   isLoading: boolean;
   templateData?: TemplateData;
   error?: string;
+  isWorkoutActive?: boolean;
+  userPubkey?: string;
   onClose: () => void;
   onStartWorkout: () => void;
 }
@@ -38,6 +41,8 @@ export const WorkoutDetailModal = ({
   isLoading,
   templateData,
   error,
+  isWorkoutActive,
+  userPubkey,
   onClose,
   onStartWorkout,
 }: WorkoutDetailModalProps) => {
@@ -103,6 +108,36 @@ export const WorkoutDetailModal = ({
   const description = templateData.description || templateData.content || '';
   const exercises = templateData.exercises || [];
   const equipment = templateData.equipment || [];
+
+  // If workout is active, show the Active Workout UI instead of template details
+  if (isWorkoutActive && templateData && userPubkey) {
+    // Transform templateData to match ActiveWorkoutContainer's expected format
+    const containerTemplateData = {
+      id: templateData.templateRef || `template_${Date.now()}`,
+      name: title,
+      description: description,
+      exercises: exercises.map(ex => ({
+        exerciseRef: `33401:${userPubkey}:${ex.name.toLowerCase().replace(/\s+/g, '-')}`,
+        sets: ex.sets || 3,
+        reps: ex.reps || 10,
+        weight: 0, // Default weight
+        rpe: 7, // Default RPE
+        setType: 'normal' as const
+      }))
+    };
+
+    return (
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="max-w-full max-h-full w-screen h-[100dvh] supports-[height:100dvh]:h-[100dvh] p-0 m-0 rounded-none border-none" showCloseButton={false}>
+          <ActiveWorkoutContainer 
+            templateData={containerTemplateData}
+            userPubkey={userPubkey}
+            onClose={onClose}
+          />
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
       <Dialog open={isOpen} onOpenChange={onClose}>
