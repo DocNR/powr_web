@@ -10,8 +10,7 @@ import { dependencyResolutionService } from '@/lib/services/dependencyResolution
 import type { ResolvedTemplate } from '@/lib/services/dependencyResolution';
 
 export interface LoadTemplateInput {
-  templateId: string;
-  userPubkey: string;
+  templateReference: string;
 }
 
 // Re-export types from dependency resolution service for compatibility
@@ -32,13 +31,12 @@ export const loadTemplateActor = fromPromise(async ({ input }: {
   input: LoadTemplateInput
 }): Promise<ResolvedTemplate> => {
   console.log('[LoadTemplateActor] Loading template with optimized service:', {
-    templateId: input.templateId,
-    userPubkey: input.userPubkey.slice(0, 8) + '...'
+    templateReference: input.templateReference
   });
   
   try {
-    // Build template reference in NIP-01 format: kind:pubkey:d-tag
-    const templateRef = `33402:${input.userPubkey}:${input.templateId}`;
+    // Use the provided template reference directly (already in correct NIP-01 format)
+    const templateRef = input.templateReference;
     
     console.log('[LoadTemplateActor] Using dependency resolution service for:', templateRef);
     
@@ -59,11 +57,11 @@ export const loadTemplateActor = fromPromise(async ({ input }: {
     
     console.error('[LoadTemplateActor] ❌ Template loading failed:', {
       error: errorMessage,
-      templateId: input.templateId
+      templateReference: input.templateReference
     });
     
     // Re-throw with context
-    throw new Error(`Failed to load template ${input.templateId}: ${errorMessage}`);
+    throw new Error(`Failed to load template ${input.templateReference}: ${errorMessage}`);
   }
 });
 

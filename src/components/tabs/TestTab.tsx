@@ -13,6 +13,7 @@ import WorkflowValidationTest from '@/components/test/WorkflowValidationTest';
 import NIP101eTemplateReferenceTest from '@/components/test/NIP101eTemplateReferenceTest';
 import { WorkoutDetailModalTest } from '@/components/test/WorkoutDetailModalTest';
 import WorkoutLifecycleMachineIntegrationTest from '@/components/test/WorkoutLifecycleMachineIntegrationTest';
+import ActiveWorkoutNIP101eTest from '@/components/test/ActiveWorkoutNIP101eTest';
 import { DependencyResolutionServiceTest } from '@/components/test/DependencyResolutionServiceTest';
 import CompleteWorkoutFlowTest from '@/components/test/CompleteWorkoutFlowTest';
 import RealTimeInfiniteScrollTest from '@/components/test/RealTimeInfiniteScrollTest';
@@ -222,6 +223,23 @@ export function TestTab() {
             </CardHeader>
             <CardContent>
               <ParameterInterpretationTest />
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* 🧪 NEW: Active Workout NIP-101e Compliance Test */}
+        <div className="w-full">
+          <Card className="border-rose-200 bg-rose-50">
+            <CardHeader>
+              <CardTitle className="text-rose-800 flex items-center gap-2">
+                🧪 NEW: Active Workout NIP-101e Compliance Test
+              </CardTitle>
+              <CardDescription className="text-rose-700">
+                Test the fixed activeWorkoutMachine to ensure it uses actual template data instead of hardcoded progressive set generation. Validates NIP-101e compliance and template-driven workout execution.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ActiveWorkoutNIP101eTest />
             </CardContent>
           </Card>
         </div>

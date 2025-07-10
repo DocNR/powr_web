@@ -30,6 +30,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Active Workout Machine NIP-101e Compliance Fix COMPLETE (July 9, 2025) ✅**
+  
+  **User Impact**: Workouts now use actual template data instead of hardcoded progressions. Users get prescribed weight, reps, and RPE from workout templates with ability to override during execution, ensuring authentic template-driven workouts.
+  
+  **Developer Notes**: Fixed template loading actor input mapping from `templateId/userPubkey` to `templateReference`. Removed hardcoded `generateProgressiveSet` function and implemented template-driven set completion using prescribed parameters from 33402 events. Enhanced COMPLETE_SET handler with template data parsing and user override support.
+  
+  **Architecture Changes**: Achieved full NIP-101e compliance with template-driven workout execution. Established template parameter parsing patterns for prescribed weight/reps/RPE/setType. Maintained NDK deduplication fix with per-exercise set counters.
+
 ### Added
 - **NIP-101e Dependency Resolution Fix COMPLETE (July 7, 2025) ✅**
   

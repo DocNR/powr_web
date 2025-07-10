@@ -54,6 +54,16 @@ export interface ActiveWorkoutContext extends BaseMachineContext {
   // Per-exercise set counters for NDK deduplication fix
   exerciseSetCounters: Map<string, number>;
   
+  // NEW: Parsed template exercises with prescribed parameters
+  templateExercises: Array<{
+    exerciseRef: string;
+    prescribedWeight?: number;    // Optional - may not be in template
+    prescribedReps?: number;      // Optional - may not be in template
+    prescribedRPE?: number;       // Optional - may not be in template
+    prescribedSetType?: 'warmup' | 'normal' | 'drop' | 'failure'; // Optional
+    plannedSets: number;          // Required - defaults to 3 if not specified
+  }>;
+  
   // Error handling
   error?: ErrorInfo;
   
@@ -195,6 +205,7 @@ export const defaultActiveWorkoutContext: Omit<ActiveWorkoutContext, 'userInfo' 
     publishAttempts: 0
   },
   exerciseSetCounters: new Map<string, number>(),
+  templateExercises: [],
   lastUpdated: Date.now(),
   lastActivityAt: Date.now()
 };

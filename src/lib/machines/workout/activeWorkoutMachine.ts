@@ -47,50 +47,6 @@ const createErrorInfo = (
   originalError
 });
 
-/**
- * 🧪 PROGRESSIVE SET TESTING: Generate realistic workout progressions
- * 
- * This function creates unique set data to test if NDK's mergeTags() deduplication
- * can be bypassed with realistic workout progressions instead of identical sets.
- * 
- * Based on research findings from docs/research/ndk-tag-deduplication-research-findings.md
- */
-const generateProgressiveSet = (
-  exercise: { reps: number; weight?: number; sets: number },
-  setNumber: number,
-  totalSets: number
-) => {
-  // Calculate progression factor (0.0 to 1.0)
-  const progressionFactor = totalSets > 1 ? (setNumber - 1) / (totalSets - 1) : 0;
-  
-  // Base values from exercise template
-  const baseReps = exercise.reps || 10;
-  const baseWeight = exercise.weight || 0;
-  
-  // Progressive patterns based on research scenarios
-  const progressiveReps = Math.max(1, Math.round(baseReps - (progressionFactor * 4))); // Decreasing reps (fatigue)
-  const progressiveWeight = baseWeight + Math.floor(progressionFactor * 10); // Increasing weight (if applicable)
-  const progressiveRPE = Math.min(10, Math.max(1, Math.round(6 + (progressionFactor * 4)))); // Increasing RPE (6→10)
-  
-  // Set type progression: warmup → normal → failure
-  let setType: 'warmup' | 'normal' | 'drop' | 'failure';
-  if (setNumber === 1) {
-    setType = 'warmup';
-  } else if (setNumber === totalSets && totalSets > 2) {
-    setType = 'failure';
-  } else {
-    setType = 'normal';
-  }
-  
-  console.log(`[generateProgressiveSet] Set ${setNumber}/${totalSets}: reps=${progressiveReps}, weight=${progressiveWeight}, rpe=${progressiveRPE}, type=${setType}`);
-  
-  return {
-    reps: progressiveReps,
-    weight: progressiveWeight,
-    rpe: progressiveRPE,
-    setType
-  };
-};
 
 /**
  * Define the Active Workout Machine following Noga's structure
@@ -111,94 +67,54 @@ export const activeWorkoutMachine = setup({
   // Inline actors following XState v5 patterns
   actors: {
     // Load template data with fallback strategy (like Noga's loadCourseData)
-    loadTemplateData: fromPromise<WorkoutTemplate, { templateId: string; userPubkey: string }>(async ({ input }) => {
-      const { templateId, userPubkey } = input;
+    loadTemplateData: fromPromise<WorkoutTemplate, { templateReference: string }>(async ({ input }) => {
+      const { templateReference } = input;
       
       try {
-        console.log('[ActiveWorkoutMachine] Loading template data for:', templateId);
+        console.log('[ActiveWorkoutMachine] Loading template data for:', templateReference);
         
         // Import required modules
         const { loadTemplateActor } = await import('./actors/loadTemplateActor');
         const { createActor } = await import('xstate');
         
-        // Helper function to try loading a specific template
-        const tryLoadTemplate = async (targetTemplateId: string): Promise<LoadTemplateOutput> => {
-          return new Promise((resolve, reject) => {
-            // Set timeout to prevent infinite hangs
-            const timeoutId = setTimeout(() => {
-              reject(new Error(`Template loading timeout after 10 seconds for: ${targetTemplateId}`));
-            }, 10000);
-            
-            const actor = createActor(loadTemplateActor, {
-              input: { templateId: targetTemplateId, userPubkey }
-            });
-            
-            actor.subscribe((snapshot) => {
-              if (snapshot.status === 'done') {
-                clearTimeout(timeoutId);
-                resolve(snapshot.output);
-              } else if (snapshot.status === 'error') {
-                clearTimeout(timeoutId);
-                reject(snapshot.error);
-              }
-            });
-            
-            actor.start();
-          });
-        };
-        
-        // Strategy 1: Try the selected template first (if provided and not empty)
-        if (templateId && templateId.trim() !== '' && templateId !== 'default-template' && templateId !== '') {
-          try {
-            const templateResult = await tryLoadTemplate(templateId);
-            const loadedTemplate = templateResult.template;
-            console.log('[ActiveWorkoutMachine] ✅ Loaded selected template:', loadedTemplate.name, 'with', loadedTemplate.exercises.length, 'exercises');
-            return loadedTemplate;
-          } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : String(error);
-            console.warn('[ActiveWorkoutMachine] ⚠️ Selected template failed to load:', templateId, errorMessage);
-            // Continue to fallback strategy
-          }
+        // Check if we have a valid template reference
+        if (!templateReference || templateReference.trim() === '' || templateReference === 'default-template') {
+          console.error('[ActiveWorkoutMachine] ❌ No template selected - user must choose template');
+          throw new Error('No template selected. Please select a workout template to continue.');
         }
         
-        // Strategy 2: No automatic fallback - require explicit template selection
-        console.log('[ActiveWorkoutMachine] ⚠️ No fallback strategy - template must be explicitly provided');
-        
-        // Strategy 3: Last resort - Create minimal template for testing
-        console.log('[ActiveWorkoutMachine] 🆘 Creating minimal template as last resort...');
-        const minimalTemplate: WorkoutTemplate = {
-          id: 'minimal-template',
-          name: 'Basic Workout',
-          description: 'Minimal template for testing',
-          exercises: [
-            {
-              exerciseRef: '33401:test:pushups',
-              sets: 3,
-              reps: 10,
-              weight: 0,
-              restTime: 60
-            },
-            {
-              exerciseRef: '33401:test:squats',
-              sets: 3,
-              reps: 15,
-              weight: 0,
-              restTime: 60
+        // Use the loadTemplateActor with the provided template reference
+        const templateResult = await new Promise<LoadTemplateOutput>((resolve, reject) => {
+          // Set timeout to prevent infinite hangs
+          const timeoutId = setTimeout(() => {
+            reject(new Error(`Template loading timeout after 10 seconds for: ${templateReference}`));
+          }, 10000);
+          
+          const actor = createActor(loadTemplateActor, {
+            input: { templateReference }
+          });
+          
+          actor.subscribe((snapshot) => {
+            if (snapshot.status === 'done') {
+              clearTimeout(timeoutId);
+              resolve(snapshot.output);
+            } else if (snapshot.status === 'error') {
+              clearTimeout(timeoutId);
+              reject(snapshot.error);
             }
-          ],
-          estimatedDuration: 900, // 15 minutes
-          difficulty: 'beginner',
-          authorPubkey: userPubkey,
-          createdAt: Math.floor(Date.now() / 1000)
-        };
+          });
+          
+          actor.start();
+        });
         
-        console.log('[ActiveWorkoutMachine] ✅ Created minimal template with', minimalTemplate.exercises.length, 'exercises');
-        return minimalTemplate;
+        const loadedTemplate = templateResult.template;
+        console.log('[ActiveWorkoutMachine] ✅ Loaded template:', loadedTemplate.name, 'with', loadedTemplate.exercises.length, 'exercises');
+        return loadedTemplate;
         
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
-        console.error('[ActiveWorkoutMachine] ❌ All template loading strategies failed:', error);
-        throw new Error(`Failed to load any template: ${errorMessage}`);
+        console.error('[ActiveWorkoutMachine] ❌ Template loading failed:', error);
+        throw new Error(`Failed to load template: ${errorMessage}`);
       }
     }),
 
@@ -297,6 +213,7 @@ export const activeWorkoutMachine = setup({
     })
   }
 }).createMachine({
+  /** @xstate-layout N4IgpgJg5mDOIC5QEMDGAXAlgNzAdQHsAnAawIFd0A6AGwOQkwDsoAVMAWwAcbl0wAxBAJMwVZtgIkxaLLkKkK1Og2ZtOPPmAQSCqPphEBtAAwBdU2cSguBWJiwjrIAB6IATAE4AzFQAc7n4mPt5eAGwALCYA7ACsADQgAJ6IfgCMVBGe2Z5+fmHeWdHuEQC+pYmyOPjEZJS09Iws7Ny8-AJgRETEVJroAGbEHFRV8rVKDarNGm3auvqOTJaWzrb2i85uCF6+AUEh4VFxiSnb0RlhsWHu3iZhfp7FJmne5ZUY1Qp1yo1qLX2CABKAFFWICAJoAfQA8gAFYGAgCCrAAktCAHIrJAgNYOQxMTaITzBKjZMLBNLuaKeKn5E6INJpTxUMJpc5BbyxNJ+aIRMJvECjGqKepgFydVCYewsATo4EADVYkIVCIAwiiAMrArE2Ox4pzYraPekIPxZfzE2LUiKxYKPfkVQUfMYi6hiiVStQCDUAaRRsOV8rVmu15lWeo2hqJ0RNcV83kpfJe1qir0dQq+E3dREl0qgAlhIIAamiAKoawPBrU6nER-GEhDG5KIS5hKjRQqd27RPKBAUZ8ai8U5z0y2GI8vAyF4aGAn3Q0usGu4yOgLaMtKxTJpVNciJRTd+WPRExURmxWJBdyBdw7-vO4XfKjZ3Ne1XQgCysIAMqCpzO5wXJcw2xFd6yjBANy3CIdxMTkdwPS8TTCDsqFibxeWuTcwlbB13jkR8s2HV8WF6TpBiIDg1A1MB0AEd8v1-Vgpy1YCrFAusDTXRBii3GIgnySJ0k3GNmwQHDokyaJLmvTd3BMCJomie8CMzIcPTzKgiDgdBYU6QwICEEQxF0aQRgfNS3WI0coC0nS9KIAydCYSQFnxZYQN1dZwO4hAT3cFlgm8IIoh8GCjzE6SIioExYj5KJr28clYhUz5BysjS1Ds2BdP0ghDOBdEABFIRBDUlXhQE0SK5dOIJCD-MCnwQqC8KTWEtC4oKbwesTHDUpdJ8XxsqgACNaIAdzAMAmGBazYDgb1WERQElRVQF1WrTza28rjXB4kwAvJZqFNa7l2uuGKuu7C8lMeAbCPqLhkHIBbDLK0sP3-Wd50XWrdvq3zrhNNJDt8FDPAKM18iUgoHss3oXre2VERLABxZEp1YaFKw2kN-v1QH9sg2JbxZCI-G8SHIlih4TU8G1ydi1kYM5YL4fSxHXsgejPx-P9px+oCCdXYnNwTNDsO5Hs8itTwQZMRWWTZuJYp7EoynTCzOee7nDNVRF0VVYFv0FwC-u2sC9vXdCMi5K5pbyPw5YV9CzxVncHn3NkOddKhUAIVpaJ5kWfOJ+S3YU+5uTC7I2Xphn-Gd4Koh5EpL19p8uHIUaaClAALL1hFEcQXKkGRtb97Pc4LtRnNcgxjHMUPrcQHq-FJY6YmkzwL28EHeqodwrTiS5Lx69mtdUnWc7z2BC5lTpuiIXo2go4YByr2fa5Yeu9EbpZm8tuqG3bzvgm7sJe-QkHSYyVnckps0LxQzOJmruf8+BLpiAEEEwShLCUsAAhb8moAASLciZbDPpDC+sNr79zEjuEo-hOQ8jgpSHIaZ8JpT9vPAgE1qLkA4BwZARAkgCCKpqD8moKwak+h+Fa4IoENiUluKmZoXjPEtHSZBnIArUmjopG4VNchv1FD-Igf9QQQhhJVZEaJMTHwBg2HY-hAhBVCJDI4CRkFxBij2Rk7hWTpGuD2CRbopEyIAfIhEiiMRGDSOxLyhM2GXQCIdWGOEmT7hNCY6KVpAjSVuEyGk7hyiOiYPlOAzhN7fHDKoiCABaNIJpkl4SdNPP2KgmjqFaFoRJbiIKKRBgYxk5wlKwyOPdKeeChrzTUEU0WWwsgmiuMyG4ERCj7n3MFK4ljnyNNIlwciQxqK0WaWHI0JiqDBSpI-e4itYjyzEukAKxI+RUxMWIqkgzhqaW0jlByBkpmtwQLaSSexKR5GKI8XIsYMJXXioEbIDxrz7OGbZca6ApozTmhpWJHEkm+S5L4BSoMTE4RiDSNJazLoXiTDuW4l57iDN1m9M50CGSaOefcR4GFbiXAVopIe3IIYU1tL3TWuDBoTADkHfgEAsUNiZNedsWRciHWdt0uFpxsi7B5c8YeuzPDou3vPJpwLimgtEqcHcjJ-C8myFES4lLxU13nt-ZeLKIJqrPM8OKglHg8j0fK9CVyr4dgZomOWgyCFEJYBqEhZCKG6tBTSUk6ETCePJJTDsA83bhEplESlPhBn6CYKgMANAaCQHdWLa1Gi4IJlvHBOmyDYoBX6UlRWgQ7x1LpfUfozBkA0ATUafImQcj7hQj2aSgaApRw5CY+SuQaVZPqVmKRFaWyoVTbaC8VwrgJn8XkM8jIeT5E5cPNIkTShAA */
   id: 'activeWorkout',
   
   // Initial context from input
@@ -340,8 +257,7 @@ export const activeWorkoutMachine = setup({
       invoke: {
         src: 'loadTemplateData',
         input: ({ context }) => ({
-          templateId: context.templateSelection.templateId || 'default-template',
-          userPubkey: context.userInfo.pubkey
+          templateReference: context.templateSelection.templateReference || 'default-template'
         }),
         onDone: {
           target: 'exercising',
@@ -355,7 +271,39 @@ export const activeWorkoutMachine = setup({
             exerciseProgression: ({ context, event }) => ({
               ...context.exerciseProgression,
               totalExercises: event.output.exercises.length
-            })
+            }),
+            // NEW: Parse template exercises to extract prescribed parameters
+            templateExercises: ({ event }) => {
+              const template = event.output;
+              console.log('[ActiveWorkoutMachine] 📋 Parsing template exercises for prescribed parameters');
+              
+              return template.exercises.map((exercise, index) => {
+                // Extract prescribed parameters from template exercise
+                const prescribedWeight = exercise.weight || 0;
+                const prescribedReps = exercise.reps || 10;
+                // Note: Current template structure doesn't have rpe/setType, use defaults
+                const prescribedRPE = 7; // Default RPE since not in current template structure
+                const prescribedSetType = 'normal' as const; // Default set type
+                const plannedSets = exercise.sets || 3; // Default to 3 sets
+                
+                console.log(`[ActiveWorkoutMachine] 📋 Exercise ${index + 1}: ${exercise.exerciseRef}`, {
+                  prescribedWeight,
+                  prescribedReps,
+                  prescribedRPE,
+                  prescribedSetType,
+                  plannedSets
+                });
+                
+                return {
+                  exerciseRef: exercise.exerciseRef,
+                  prescribedWeight,
+                  prescribedReps,
+                  prescribedRPE,
+                  prescribedSetType,
+                  plannedSets
+                };
+              });
+            }
           })
         },
         onError: {
@@ -426,26 +374,16 @@ export const activeWorkoutMachine = setup({
                     
                     console.log(`[ActiveWorkoutMachine] 🔢 NDK Deduplication Fix: Exercise ${exerciseRef} set number ${currentExerciseSetNumber}`);
                     
-                    // 🧪 PROGRESSIVE SET TESTING: Generate realistic workout progressions
-                    // This tests if NDK's mergeTags() deduplication can be bypassed with unique tag content
-                    
-                    // Calculate total planned sets for this exercise
-                    const totalSets = currentExercise.sets || 3;
-                    
-                    // Generate progressive set data based on research findings
-                    const progressiveSetData = generateProgressiveSet(
-                      currentExercise, 
-                      currentExerciseSetNumber, 
-                      totalSets
-                    );
+                    // NEW: Use parsed template prescribed values as defaults, allow user overrides via event.setData
+                    const templateExercise = context.templateExercises.find(te => te.exerciseRef === currentExercise.exerciseRef);
                     
                     const autoGeneratedSetData = {
                       exerciseRef: currentExercise.exerciseRef,
                       setNumber: currentExerciseSetNumber, // Use per-exercise set number for NDK deduplication fix
-                      reps: event.setData?.reps || progressiveSetData.reps,
-                      weight: event.setData?.weight ?? progressiveSetData.weight,
-                      rpe: event.setData?.rpe || progressiveSetData.rpe,
-                      setType: (event.setData?.setType || progressiveSetData.setType) as 'warmup' | 'normal' | 'drop' | 'failure',
+                      reps: event.setData?.reps ?? templateExercise?.prescribedReps ?? currentExercise.reps ?? 10,
+                      weight: event.setData?.weight ?? templateExercise?.prescribedWeight ?? currentExercise.weight ?? 0,
+                      rpe: event.setData?.rpe ?? templateExercise?.prescribedRPE ?? 7, // Use template RPE or default
+                      setType: (event.setData?.setType ?? templateExercise?.prescribedSetType ?? 'normal') as 'warmup' | 'normal' | 'drop' | 'failure',
                       completedAt: Date.now()
                     };
                     
