@@ -30,6 +30,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Template Reference Corruption Fix COMPLETE (July 10, 2025) ✅**
+  
+  **User Impact**: Users can now reliably start workouts from templates without errors. Fixed critical bug where template references were being corrupted from `33402:pubkey:d-tag` to `33402:pubkey:33402:pubkey:d-tag` during XState machine execution, preventing workout templates from loading.
+  
+  **Developer Notes**: Implemented normalizeTemplateReference utility function in src/lib/utils/templateReference.ts that detects and fixes corrupted references. Added comprehensive test component (TemplateReferenceCorruptionTest) to verify the fix works with both original and corrupted reference formats. Root cause was React StrictMode double-rendering causing reference duplication.
+  
+  **Architecture Changes**: Enhanced template reference handling with robust normalization patterns. Established defensive programming approach for XState context state management with React StrictMode compatibility. Foundation ready for reliable template-driven workout execution.
+
 ### Added
 - **Active Workout UI Implementation COMPLETE (July 10, 2025) ✅**
   

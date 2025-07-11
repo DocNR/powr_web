@@ -135,20 +135,45 @@ export const workoutSetupMachine = setup({
 
   // XState v5 requires output at machine level for invoke to capture it
   output: ({ context }) => {
-    console.log('[WorkoutSetupMachine] Creating output from context:', {
+    console.log('[WorkoutSetupMachine] 🔍 OUTPUT DEBUG: Creating output from context:', {
       hasLoadedTemplate: !!context.loadedTemplate,
       hasLoadedExercises: !!context.loadedExercises,
       loadedTemplate: context.loadedTemplate,
       loadedExercises: context.loadedExercises?.length
     });
     
+    // 🔍 ROOT CAUSE INVESTIGATION: Log the exact templateReference we have
+    console.log('[WorkoutSetupMachine] 🔍 OUTPUT DEBUG: Raw context.templateReference:', context.templateReference);
+    console.log('[WorkoutSetupMachine] 🔍 OUTPUT DEBUG: context.userPubkey:', context.userPubkey);
+    
     // The loadedTemplate comes from loadTemplateActor which uses dependency resolution service
     const template = context.loadedTemplate;
     const exercises = context.loadedExercises;
     
+    // 🔍 CRITICAL: Check if templateReference is already corrupted when we receive it
+    const originalTemplateReference = context.templateReference;
+    if (originalTemplateReference) {
+      const parts = originalTemplateReference.split(':');
+      console.log('[WorkoutSetupMachine] 🔍 OUTPUT DEBUG: Original templateReference parts:', parts);
+      console.log('[WorkoutSetupMachine] 🔍 OUTPUT DEBUG: Parts length:', parts.length);
+      
+      if (parts.length !== 3) {
+        console.error('[WorkoutSetupMachine] ❌ CORRUPTION DETECTED IN SETUP MACHINE OUTPUT:', {
+          originalTemplateReference,
+          parts,
+          partsLength: parts.length,
+          expectedFormat: 'kind:pubkey:d-tag'
+        });
+      }
+    }
+    
     // Extract template info from loaded template or use provided reference
     const templateReference = context.templateReference || `33402:${context.userPubkey}:default-template`;
+    console.log('[WorkoutSetupMachine] 🔍 OUTPUT DEBUG: Final templateReference:', templateReference);
+    
     const templateParts = templateReference.split(':');
+    console.log('[WorkoutSetupMachine] 🔍 OUTPUT DEBUG: Final templateParts:', templateParts);
+    
     const templateId = templateParts[2] || 'default-template';
     const templatePubkey = templateParts[1] || context.userPubkey;
     const templateName = template?.name || 'Custom Workout';
@@ -160,6 +185,8 @@ export const workoutSetupMachine = setup({
       templateReference,
       templateRelayUrl: ''
     };
+    
+    console.log('[WorkoutSetupMachine] 🔍 OUTPUT DEBUG: Created templateSelection:', templateSelection);
     
     // Convert template exercises to workout exercises using real template data
     const workoutExercises = context.loadedTemplate?.exercises?.map((templateExercise) => {

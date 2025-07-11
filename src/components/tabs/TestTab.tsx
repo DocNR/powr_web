@@ -19,6 +19,7 @@ import { DependencyResolutionServiceTest } from '@/components/test/DependencyRes
 import CompleteWorkoutFlowTest from '@/components/test/CompleteWorkoutFlowTest';
 import RealTimeInfiniteScrollTest from '@/components/test/RealTimeInfiniteScrollTest';
 import ParameterInterpretationTest from '@/components/test/ParameterInterpretationTest';
+import TemplateReferenceCorruptionTest from '@/components/test/TemplateReferenceCorruptionTest';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { TestTube, Target, Wifi, WifiOff } from 'lucide-react';
@@ -258,6 +259,23 @@ export function TestTab() {
             </CardHeader>
             <CardContent>
               <ActiveWorkoutUITest />
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* 🐛 DEBUG: Template Reference Corruption Test */}
+        <div className="w-full">
+          <Card className="border-red-300 bg-red-100">
+            <CardHeader>
+              <CardTitle className="text-red-900 flex items-center gap-2">
+                🐛 DEBUG: Template Reference Corruption Test
+              </CardTitle>
+              <CardDescription className="text-red-800">
+                Debug the template reference corruption bug where "33402:pubkey:d-tag" becomes "33402:pubkey:33402:pubkey:d-tag" during XState machine execution.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <TemplateReferenceCorruptionTest />
             </CardContent>
           </Card>
         </div>

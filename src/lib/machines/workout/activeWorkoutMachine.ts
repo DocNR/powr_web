@@ -29,38 +29,8 @@ import type {
   ErrorInfo 
 } from './types/workoutTypes';
 import type { LoadTemplateOutput, WorkoutTemplate } from './actors/loadTemplateActor';
+import { normalizeTemplateReference } from '@/lib/utils/templateReference';
 
-/**
- * Helper function to validate and clean template reference
- * Fixes React StrictMode corruption where template reference gets duplicated
- */
-const validateAndCleanTemplateReference = (templateReference: string): string => {
-  if (!templateReference || templateReference.trim() === '') {
-    throw new Error('Template reference is empty or undefined');
-  }
-  
-  // Check for corruption pattern: 33402:pubkey:33402:pubkey:d-tag
-  const parts = templateReference.split(':');
-  
-  // Valid format should be: kind:pubkey:d-tag (3 parts)
-  if (parts.length === 3) {
-    console.log('[ActiveWorkoutMachine] ✅ Template reference format is correct:', templateReference);
-    return templateReference;
-  }
-  
-  // Check for corruption pattern: kind:pubkey:kind:pubkey:d-tag (5 parts)
-  if (parts.length === 5 && parts[0] === parts[2] && parts[1] === parts[3]) {
-    const cleanReference = `${parts[0]}:${parts[1]}:${parts[4]}`;
-    console.log('[ActiveWorkoutMachine] 🔧 FIXED corrupted template reference:', {
-      original: templateReference,
-      cleaned: cleanReference
-    });
-    return cleanReference;
-  }
-  
-  // If we can't fix it, throw an error with details
-  throw new Error(`Invalid template reference format: ${templateReference}. Expected format: kind:pubkey:d-tag`);
-};
 
 /**
  * Helper function to create error info
@@ -100,16 +70,41 @@ export const activeWorkoutMachine = setup({
   actors: {
     // Load template data with fallback strategy (like Noga's loadCourseData)
     loadTemplateData: fromPromise<WorkoutTemplate, { templateReference: string }>(async ({ input }) => {
-      const { templateReference } = input;
+      // Get the raw template reference from input
+      const rawTemplateReference = input.templateReference;
       
       try {
-        console.log('[ActiveWorkoutMachine] 🔍 DEBUG: Raw input templateReference:', templateReference);
+        console.log('[ActiveWorkoutMachine] 🔍 DEBUG: Raw input templateReference:', rawTemplateReference);
+        console.log('[ActiveWorkoutMachine] 🔍 DEBUG: templateReference type:', typeof rawTemplateReference);
+        console.log('[ActiveWorkoutMachine] 🔍 DEBUG: templateReference length:', rawTemplateReference?.length);
         
-        // 🔧 FIX: Validate and clean template reference to prevent corruption
-        const cleanTemplateReference = validateAndCleanTemplateReference(templateReference);
-        console.log('[ActiveWorkoutMachine] 🔧 Cleaned templateReference:', cleanTemplateReference);
+        // Normalize the template reference to fix any corruption
+        const templateReference = normalizeTemplateReference(rawTemplateReference);
+        console.log('[ActiveWorkoutMachine] 🧹 NORMALIZED template reference:', {
+          original: rawTemplateReference,
+          cleaned: templateReference
+        });
         
-        console.log('[ActiveWorkoutMachine] Loading template data for:', cleanTemplateReference);
+        // Basic validation after normalization
+        if (!templateReference || templateReference.trim() === '') {
+          throw new Error('Template reference is empty or undefined after normalization');
+        }
+        
+        // Check for corruption pattern and FAIL if normalization didn't fix it
+        const parts = templateReference.split(':');
+        if (parts.length !== 3) {
+          console.error('[ActiveWorkoutMachine] ❌ CORRUPTION DETECTED AFTER NORMALIZATION:', {
+            originalReference: rawTemplateReference,
+            normalizedReference: templateReference,
+            parts,
+            partsLength: parts.length,
+            expectedFormat: 'kind:pubkey:d-tag'
+          });
+          throw new Error(`Template reference corruption detected: ${templateReference}. Expected format: kind:pubkey:d-tag but got ${parts.length} parts`);
+        }
+        
+        console.log('[ActiveWorkoutMachine] ✅ Template reference format is valid:', templateReference);
+        console.log('[ActiveWorkoutMachine] Loading template data for:', templateReference);
         
         // Import required modules
         const { loadTemplateActor } = await import('./actors/loadTemplateActor');
@@ -121,15 +116,15 @@ export const activeWorkoutMachine = setup({
           throw new Error('No template selected. Please select a workout template to continue.');
         }
         
-        // Use the loadTemplateActor with the cleaned template reference
+        // Use the loadTemplateActor with the normalized template reference
         const templateResult = await new Promise<LoadTemplateOutput>((resolve, reject) => {
           // Set timeout to prevent infinite hangs
           const timeoutId = setTimeout(() => {
-            reject(new Error(`Template loading timeout after 10 seconds for: ${cleanTemplateReference}`));
+            reject(new Error(`Template loading timeout after 10 seconds for: ${templateReference}`));
           }, 10000);
           
           const actor = createActor(loadTemplateActor, {
-            input: { templateReference: cleanTemplateReference }
+            input: { templateReference: templateReference }
           });
           
           actor.subscribe((snapshot) => {
@@ -255,33 +250,43 @@ export const activeWorkoutMachine = setup({
   id: 'activeWorkout',
   
   // Initial context from input
-  context: ({ input }) => ({
-    // Spread default context
-    ...defaultActiveWorkoutContext,
+  context: ({ input }) => {
+    // 🔍 ROOT CAUSE INVESTIGATION: Log the exact input we receive
+    console.log('[ActiveWorkoutMachine] 🔍 CONTEXT INIT: Raw input received:', {
+      templateReference: input.templateSelection.templateReference,
+      templateReferenceType: typeof input.templateSelection.templateReference,
+      templateReferenceLength: input.templateSelection.templateReference?.length,
+      fullTemplateSelection: input.templateSelection
+    });
     
-    // Override with input data
-    userInfo: input.userInfo,
-    workoutData: input.workoutData,
-    templateSelection: input.templateSelection,
-    
-    // Initialize exercise progression
-    exerciseProgression: {
-      currentExerciseIndex: 0,
-      totalExercises: input.workoutData.exercises?.length || 0,
-      currentSetNumber: 1,
-      isLastSet: false,
-      isLastExercise: false
-    },
-    
-    // Initialize timing
-    timingInfo: {
-      startTime: Date.now(),
-      pauseTime: 0
-    },
-    
-    // Initialize exercise set counters for NDK deduplication fix
-    exerciseSetCounters: new Map<string, number>()
-  }),
+    return {
+      // Spread default context
+      ...defaultActiveWorkoutContext,
+      
+      // Override with input data - NO MODIFICATION, use exactly what we receive
+      userInfo: input.userInfo,
+      workoutData: input.workoutData,
+      templateSelection: input.templateSelection, // Use original, unmodified
+      
+      // Initialize exercise progression
+      exerciseProgression: {
+        currentExerciseIndex: 0,
+        totalExercises: input.workoutData.exercises?.length || 0,
+        currentSetNumber: 1,
+        isLastSet: false,
+        isLastExercise: false
+      },
+      
+      // Initialize timing
+      timingInfo: {
+        startTime: Date.now(),
+        pauseTime: 0
+      },
+      
+      // Initialize exercise set counters for NDK deduplication fix
+      exerciseSetCounters: new Map<string, number>()
+    };
+  },
   
   // Initial state
   initial: 'loadingTemplate',

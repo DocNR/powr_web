@@ -11,6 +11,7 @@ import type {
   WorkoutLifecycleEvent,
   SetupMachineOutput
 } from './types/workoutLifecycleTypes';
+import { normalizeTemplateReference } from '@/lib/utils/templateReference';
 import { defaultWorkoutLifecycleContext } from './types/workoutLifecycleTypes';
 import type { UserInfo, WorkoutData } from './types/workoutTypes';
 import { workoutAnalyticsService } from '@/lib/services/workoutAnalytics';
@@ -87,31 +88,67 @@ export const workoutLifecycleMachine = setup({
     // Spawn active workout actor (following NOGA pattern exactly)
     spawnActiveWorkout: assign({
       activeWorkoutActor: ({ spawn, context, self }) => {
-        console.log('[WorkoutLifecycleMachine] Spawning active workout actor...');
-        console.log('[WorkoutLifecycleMachine] Context workoutData:', context.workoutData);
+        console.log('[WorkoutLifecycleMachine] 🚀 SPAWN DEBUG: Starting spawn process...');
+        console.log('[WorkoutLifecycleMachine] 🚀 SPAWN DEBUG: Context templateSelection:', JSON.stringify(context.templateSelection, null, 2));
+        console.log('[WorkoutLifecycleMachine] 🚀 SPAWN DEBUG: Context workoutData:', context.workoutData);
         
+        // Verify we have required data before proceeding
         if (!context.workoutData) {
-          console.error('[WorkoutLifecycleMachine] No workout data available for spawning');
-          self.send({ type: 'ERROR_OCCURRED', error: { message: 'No workout data available for spawning', timestamp: Date.now() } });
+          console.error('[WorkoutLifecycleMachine] ❌ Cannot spawn active workout: workoutData is missing');
+          self.send({ type: 'ERROR_OCCURRED', error: { message: 'Cannot start workout: missing workout data', code: 'MISSING_DATA', timestamp: Date.now() } });
           return undefined;
         }
         
-        // Type-safe context - we know workoutData is present after the check
-        const workoutData = context.workoutData;
-        if (!workoutData) {
-          console.error('[WorkoutLifecycleMachine] No workout data available for spawning');
-          self.send({ type: 'ERROR_OCCURRED', error: { message: 'No workout data available for spawning', timestamp: Date.now() } });
+        // 🔍 CRITICAL DEBUG: Check templateSelection.templateReference before passing to activeWorkoutMachine
+        const originalTemplateReference = context.templateSelection.templateReference;
+        const normalizedTemplateReference = normalizeTemplateReference(originalTemplateReference);
+        
+        console.log('[WorkoutLifecycleMachine] 🧹 NORMALIZED template reference:', {
+          original: originalTemplateReference,
+          cleaned: normalizedTemplateReference
+        });
+        
+        console.log('[WorkoutLifecycleMachine] 🔍 CRITICAL DEBUG: templateReference before spawn:', normalizedTemplateReference);
+        console.log('[WorkoutLifecycleMachine] 🔍 CRITICAL DEBUG: templateReference type:', typeof normalizedTemplateReference);
+        console.log('[WorkoutLifecycleMachine] 🔍 CRITICAL DEBUG: templateReference length:', normalizedTemplateReference?.length);
+        
+        if (!normalizedTemplateReference) {
+          console.error('[WorkoutLifecycleMachine] ❌ Cannot spawn active workout: template reference is missing after normalization');
+          self.send({ type: 'ERROR_OCCURRED', error: { message: 'Cannot start workout: invalid template reference', code: 'INVALID_TEMPLATE', timestamp: Date.now() } });
           return undefined;
         }
+        
+        const parts = normalizedTemplateReference.split(':');
+        console.log('[WorkoutLifecycleMachine] 🔍 CRITICAL DEBUG: templateReference parts:', parts);
+        console.log('[WorkoutLifecycleMachine] 🔍 CRITICAL DEBUG: parts length:', parts.length);
+        
+        if (parts.length !== 3) {
+          console.error('[WorkoutLifecycleMachine] ❌ CORRUPTION DETECTED IN LIFECYCLE MACHINE:', {
+            templateReference: normalizedTemplateReference,
+            parts,
+            partsLength: parts.length,
+            expectedFormat: 'kind:pubkey:d-tag'
+          });
+          self.send({ type: 'ERROR_OCCURRED', error: { message: 'Cannot start workout: corrupted template reference', code: 'CORRUPTED_REFERENCE', timestamp: Date.now() } });
+          return undefined;
+        }
+        
+        console.log('[WorkoutLifecycleMachine] ✅ Template reference format is valid in lifecycle machine');
+        
+        // Create a clean templateSelection with normalized reference
+        const cleanTemplateSelection = {
+          ...context.templateSelection,
+          templateReference: normalizedTemplateReference
+        };
         
         const input = {
           userInfo: context.userInfo,
-          workoutData: workoutData,
-          templateSelection: context.templateSelection
+          workoutData: context.workoutData as WorkoutData, // Safe assertion since we've already checked it exists
+          templateSelection: cleanTemplateSelection
         };
         
-        console.log('[WorkoutLifecycleMachine] Spawn input:', input);
-        console.log('[WorkoutLifecycleMachine] activeWorkoutMachine:', activeWorkoutMachine);
+        console.log('[WorkoutLifecycleMachine] 🚀 SPAWN DEBUG: Final spawn input:', JSON.stringify(input, null, 2));
+        console.log('[WorkoutLifecycleMachine] 🚀 SPAWN DEBUG: activeWorkoutMachine:', activeWorkoutMachine);
         
         try {
           const activeWorkoutActor = spawn('activeWorkoutMachine', {
@@ -119,7 +156,7 @@ export const workoutLifecycleMachine = setup({
             input
           });
           
-          console.log('[WorkoutLifecycleMachine] Spawned actor:', activeWorkoutActor);
+          console.log('[WorkoutLifecycleMachine] 🚀 SPAWN DEBUG: Spawned actor successfully:', activeWorkoutActor);
           
           // Subscribe to actor state changes to detect completion
           activeWorkoutActor.subscribe((snapshot) => {
@@ -201,7 +238,7 @@ export const workoutLifecycleMachine = setup({
         src: 'setupMachine',
         input: ({ context }) => ({
           userPubkey: context.userInfo.pubkey,
-          templateReference: context.templateReference
+          templateReference: normalizeTemplateReference(context.templateReference)
         }),
         onDone: {
           target: 'setupComplete',
@@ -258,6 +295,7 @@ export const workoutLifecycleMachine = setup({
       on: {
         START_WORKOUT: {
           target: 'active',
+          guard: 'hasValidWorkoutData',
           actions: [
             'spawnActiveWorkout',
             'logTransition'
@@ -347,9 +385,7 @@ export const workoutLifecycleMachine = setup({
             // NEW: Include template reference information for NIP-101e compliance
             templateId: context.templateSelection.templateId,
             templatePubkey: context.templateSelection.templatePubkey || context.userInfo.pubkey, // Fallback to user's pubkey for now
-            templateReference: context.templateSelection.templateId && context.templateSelection.templatePubkey 
-              ? `33402:${context.templateSelection.templatePubkey}:${context.templateSelection.templateId}`
-              : undefined,
+            templateReference: context.templateSelection.templateReference,
             templateRelayUrl: context.templateSelection.templateRelayUrl || '' // Optional relay URL
           };
           
