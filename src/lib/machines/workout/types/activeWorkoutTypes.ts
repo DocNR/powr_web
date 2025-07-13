@@ -88,7 +88,8 @@ export type ActiveWorkoutEvent =
   | { type: 'SKIP_EXERCISE' }
   | { type: 'SKIP_EXERCISE' }
   | { type: 'NAVIGATE_TO_EXERCISE'; exerciseIndex: number }
-  
+  | { type: 'ADD_SET'; exerciseId: string }
+
   // Set completion events
   | { type: 'START_SET'; setNumber: number }
   | { type: 'COMPLETE_SET'; setData?: Partial<CompletedSet> } // Optional - machine auto-generates

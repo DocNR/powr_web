@@ -48,6 +48,7 @@ export interface WorkoutData {
   notes?: string;
   workoutType: 'strength' | 'circuit' | 'emom' | 'amrap';
   template?: WorkoutTemplate; // Loaded template data
+  extraSetsRequested?: { [exerciseRef: string]: number };
 }
 
 // User and authentication types

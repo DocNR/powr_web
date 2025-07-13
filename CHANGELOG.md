@@ -31,6 +31,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Set Progression Flow** - Fixed automatic set highlighting progression during active workouts
+  
+  **User Impact**: Users can now smoothly progress through workout sets with proper visual feedback. After completing a set, the next set automatically highlights for immediate input, creating an intuitive workout flow.
+  
+  **Developer Notes**: Fixed XState machine logic where `currentSetNumber` wasn't properly updating `currentSetIndex` in the UI. Updated `ActiveWorkoutContainer.tsx` calculation from `(currentSetNumber - 1) || 0` to `Math.max(0, (currentSetNumber || 1) - 1)` to handle falsy values correctly. Disabled rest timer temporarily to allow rapid set progression testing.
+  
+  **Architecture Changes**: Improved XState event flow between `COMPLETE_SET` actions and UI state updates. Enhanced set progression reliability in `activeWorkoutMachine.ts` with proper context updates.
+
+- **Add Set Functionality** - Implemented user-controlled extra set addition beyond template prescriptions
+  
+  **User Impact**: Users can now add unlimited extra sets to any exercise by clicking the "Add Set" button. Extra sets only appear when explicitly requested - no automatic extra sets after completing template sets.
+  
+  **Developer Notes**: Added `ADD_SET` event type to `ActiveWorkoutEvent` and implemented `extraSetsRequested` tracking in workout context. Updated UI calculation logic to use `templateSets + extraSetsRequested` instead of auto-showing pending sets. Fixed ESLint dependency warnings in `useMemo` hooks.
+  
+  **Architecture Changes**: Extended XState machine with `ADD_SET` event handler that tracks user-requested extra sets per exercise. Enhanced `WorkoutData` interface with `extraSetsRequested?: { [exerciseRef: string]: number }` field for granular extra set control.
+
+### Technical
+- **Updated Components**: `ActiveWorkoutContainer.tsx`, `activeWorkoutMachine.ts`, `activeWorkoutTypes.ts`
+- **Enhanced State Management**: Proper XState event handling for both set completion and set addition workflows
+- **Improved Type Safety**: Added missing event types and resolved TypeScript compilation errors
+- **Code Quality**: Fixed ESLint warnings and improved useMemo dependency arrays for better performance
+
+### Fixed
 - **Template Reference Corruption Fix COMPLETE (July 10, 2025) ✅**
   
   **User Impact**: Users can now reliably start workouts from templates without errors. Fixed critical bug where template references were being corrupted from `33402:pubkey:d-tag` to `33402:pubkey:33402:pubkey:d-tag` during XState machine execution, preventing workout templates from loading.

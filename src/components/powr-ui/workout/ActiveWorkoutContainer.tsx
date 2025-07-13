@@ -87,12 +87,16 @@ export const ActiveWorkoutContainer: React.FC<ActiveWorkoutContainerProps> = ({
     }
   });
 
-  // Extract workout state using direct context access for type safety
-  const workoutTitle = state.context.workoutData.template?.name || templateData.name || 'Workout';
-  const templateExercises = state.context.workoutData.template?.exercises || [];
-  const completedSets = state.context.workoutData.completedSets || [];
+  // Extract these values outside useMemo to fix ESLint dependency warnings
   const currentExerciseIndex = state.context.exerciseProgression.currentExerciseIndex || 0;
-  const currentSetIndex = (state.context.exerciseProgression.currentSetNumber - 1) || 0;
+  const currentSetIndex = Math.max(0, (state.context.exerciseProgression.currentSetNumber || 1) - 1);
+
+  // ADD THIS DEBUG LOG
+  console.log('[ActiveWorkoutContainer] 🐛 DEBUG:', {
+    currentSetNumber: state.context.exerciseProgression.currentSetNumber,
+    currentSetIndex: currentSetIndex,
+    currentExerciseIndex: state.context.exerciseProgression.currentExerciseIndex
+  });
 
   const elapsedTime = useMemo(() => {
     const startTime = state.context.timingInfo.startTime;
@@ -111,16 +115,32 @@ export const ActiveWorkoutContainer: React.FC<ActiveWorkoutContainerProps> = ({
   const isPaused = state.context.workoutSession.isPaused || false;
   const isCompleted = state.matches('completed') || state.matches('publishing') || state.matches('showingSummary');
 
-  // Transform template exercises into UI format with completed sets
+  // FIXED: Extract workout title inside useMemo
+  const workoutTitle = useMemo(() => {
+    return state.context.workoutData.template?.name || templateData.name || 'Workout';
+  }, [state.context.workoutData.template?.name, templateData.name]);
+
+  // FIXED: Transform template exercises into UI format with completed sets
   const exercises: ExerciseData[] = useMemo(() => {
+    // Extract these values inside useMemo to fix ESLint dependency warnings
+    const templateExercises = state.context.workoutData.template?.exercises || [];
+    const completedSets = state.context.workoutData.completedSets || [];
+
     return (templateExercises as TemplateExercise[]).map((templateExercise: TemplateExercise) => {
       // Find completed sets for this exercise
       const exerciseSets = (completedSets as CompletedSet[]).filter(
         (set: CompletedSet) => set.exerciseRef === templateExercise.exerciseRef
       );
 
-      // Create sets array with completed and pending sets
-      const totalSets = templateExercise.sets || 3;
+      // FIXED: Handle user-requested extra sets properly
+      const templateSets = templateExercise.sets || 3;
+      
+      // Check if user has requested extra sets via ADD_SET events
+      const extraSetsRequested = state.context.workoutData.extraSetsRequested?.[templateExercise.exerciseRef] || 0;
+      
+      // Total sets = template sets + any extra sets the user has requested
+      const totalSets = templateSets + extraSetsRequested;
+
       const sets: SetData[] = [];
 
       // Add completed sets
@@ -134,7 +154,7 @@ export const ActiveWorkoutContainer: React.FC<ActiveWorkoutContainerProps> = ({
         });
       });
 
-      // Add remaining pending sets
+      // Add remaining pending sets (only up to template amount unless user has done more)
       const remainingSets = totalSets - exerciseSets.length;
       for (let i = 0; i < remainingSets; i++) {
         sets.push({
@@ -152,12 +172,12 @@ export const ActiveWorkoutContainer: React.FC<ActiveWorkoutContainerProps> = ({
         equipment: undefined, // Not available in current template structure
         notes: undefined, // Not available in current template structure
         sets,
-        prescribedSets: totalSets,
+        prescribedSets: templateSets, // Use original template count
         prescribedReps: templateExercise.reps,
         prescribedWeight: templateExercise.weight
       };
     });
-  }, [templateExercises, completedSets]);
+  }, [state.context.workoutData.template?.exercises, state.context.workoutData.completedSets, state.context.workoutData.extraSetsRequested]);
 
   // Event handlers
   const handleSetComplete = (exerciseId: string, setIndex: number, setData: SetData) => {
@@ -181,9 +201,15 @@ export const ActiveWorkoutContainer: React.FC<ActiveWorkoutContainerProps> = ({
     // This could be implemented with an EDIT_SET event in the future
   };
 
+  // FIXED: Send ADD_SET event to machine
   const handleAddSet = (exerciseId: string) => {
     console.log('[ActiveWorkoutContainer] Add set requested for:', exerciseId);
-    // This could be implemented with an ADD_SET event in the future
+    
+    // Send ADD_SET event to the machine
+    send({ 
+      type: 'ADD_SET',
+      exerciseId: exerciseId
+    });
   };
 
   const handlePause = () => {

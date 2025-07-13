@@ -397,7 +397,7 @@ export const activeWorkoutMachine = setup({
             // Set completion (like Noga's RECORD_SCORE)
             // FIX: Auto-generate set data from machine context instead of requiring UI to provide it
             COMPLETE_SET: {
-              target: 'restPeriod',
+              target: 'performingSet',
               actions: [
                 // Record the completed set with auto-generated data and per-exercise set tracking
                 assign({
@@ -476,6 +476,26 @@ export const activeWorkoutMachine = setup({
                   lastActivityAt: Date.now()
                 })
               ]
+            },
+            
+            // ADD THIS NEW EVENT HANDLER:
+            ADD_SET: {
+              actions: assign({
+                workoutData: ({ context, event }) => {
+                  console.log(`[ActiveWorkoutMachine] ➕ ADD_SET: User requested extra set for ${event.exerciseId}`);
+                  
+                  const currentExtra = context.workoutData.extraSetsRequested?.[event.exerciseId] || 0;
+                  
+                  return {
+                    ...context.workoutData,
+                    extraSetsRequested: {
+                      ...context.workoutData.extraSetsRequested,
+                      [event.exerciseId]: currentExtra + 1
+                    }
+                  };
+                },
+                lastActivityAt: Date.now()
+              })
             }
           }
         },
