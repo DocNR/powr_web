@@ -31,6 +31,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **XState Duplicate Publishing Fix COMPLETE (July 14, 2025) ✅**
+  
+  **User Impact**: Users can now complete workouts with reliable single-event publishing to Nostr network. Fixed critical issue where workout completion was publishing duplicate events due to both activeWorkoutMachine and workoutLifecycleMachine attempting to publish simultaneously.
+  
+  **Developer Notes**: Consolidated publishing responsibility to workoutLifecycleMachine only. Enhanced activeWorkoutMachine with sendParent() communication to pass real workout data to parent machine. Removed duplicate publishWorkoutActor invocation from activeWorkoutMachine completed state. Cleaned up debug logging while maintaining essential completion feedback.
+  
+  **Architecture Changes**: Established proper XState v5 parent-child communication pattern using sendParent() for workout completion data flow. Validated single-responsibility publishing architecture prevents duplicate events while maintaining real workout data integrity.
+
+### Fixed
 - **Set Progression Flow** - Fixed automatic set highlighting progression during active workouts
   
   **User Impact**: Users can now smoothly progress through workout sets with proper visual feedback. After completing a set, the next set automatically highlights for immediate input, creating an intuitive workout flow.

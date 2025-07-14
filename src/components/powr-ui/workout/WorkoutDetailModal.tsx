@@ -4,7 +4,7 @@ import { Button } from '@/components/powr-ui/primitives/Button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Play, ArrowLeft, User, Settings, AlertCircle } from 'lucide-react';
 import { WorkoutImageHandler } from './WorkoutImageHandler';
-import { ActiveWorkoutContainer } from './ActiveWorkoutContainer';
+import { ActiveWorkoutInterface } from './ActiveWorkoutInterface';
 
 interface Exercise {
   name: string;
@@ -32,6 +32,10 @@ interface WorkoutDetailModalProps {
   error?: string;
   isWorkoutActive?: boolean;
   userPubkey?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  workoutMachineState?: any; 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  workoutMachineSend?: any;
   onClose: () => void;
   onStartWorkout: () => void;
 }
@@ -42,7 +46,8 @@ export const WorkoutDetailModal = ({
   templateData,
   error,
   isWorkoutActive,
-  userPubkey,
+  workoutMachineState,
+  workoutMachineSend,
   onClose,
   onStartWorkout,
 }: WorkoutDetailModalProps) => {
@@ -109,30 +114,56 @@ export const WorkoutDetailModal = ({
   const exercises = templateData.exercises || [];
   const equipment = templateData.equipment || [];
 
-  // If workout is active, show the Active Workout UI instead of template details
-  if (isWorkoutActive && templateData && userPubkey) {
-    // Transform templateData to match ActiveWorkoutContainer's expected format
-    const containerTemplateData = {
-      id: templateData.templateRef || `template_${Date.now()}`,
-      name: title,
-      description: description,
-      exercises: exercises.map(ex => ({
-        exerciseRef: `33401:${userPubkey}:${ex.name.toLowerCase().replace(/\s+/g, '-')}`,
-        sets: ex.sets || 3,
-        reps: ex.reps || 10,
-        weight: 0, // Default weight
-        rpe: 7, // Default RPE
-        setType: 'normal' as const
-      }))
-    };
+  // ✅ FIXED: If workout is active, show ActiveWorkoutInterface using the machine's data
+  if (isWorkoutActive && workoutMachineState && workoutMachineSend) {
+    console.log('🔧 WorkoutDetailModal: Rendering ActiveWorkoutInterface with machine data');
+    console.log('🔧 Machine state:', workoutMachineState.value);
+    console.log('🔧 Machine context:', workoutMachineState.context);
+
+    // Get the activeWorkoutActor from the WorkoutLifecycleMachine context
+    const activeWorkoutActor = workoutMachineState.context?.activeWorkoutActor;
+    
+    if (!activeWorkoutActor) {
+      console.error('🔧 No activeWorkoutActor found in machine context');
+      return (
+        <Dialog open={isOpen} onOpenChange={onClose}>
+          <DialogContent className="max-w-full max-h-full w-screen h-screen p-0 m-0 rounded-none border-none">
+            <div className="flex items-center justify-center h-full bg-black">
+              <div className="text-center p-6">
+                <AlertCircle className="h-12 w-12 text-orange-500 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2 text-white">Starting workout...</h3>
+                <p className="text-white/70">Please wait while we initialize your workout</p>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      );
+    }
 
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="max-w-full max-h-full w-screen h-[100dvh] supports-[height:100dvh]:h-[100dvh] p-0 m-0 rounded-none border-none" showCloseButton={false}>
-          <ActiveWorkoutContainer 
-            templateData={containerTemplateData}
-            userPubkey={userPubkey}
+          <ActiveWorkoutInterface 
+            // ✅ Use the existing activeWorkoutActor from WorkoutLifecycleMachine
+            activeWorkoutActor={activeWorkoutActor}
             onClose={onClose}
+            onWorkoutComplete={(workoutData) => {
+              console.log('🔧 Workout completed, sending to lifecycle machine:', workoutData);
+              // Send completion event to the WorkoutLifecycleMachine
+              workoutMachineSend({ 
+                type: 'WORKOUT_COMPLETED', 
+                workoutData 
+              });
+              onClose();
+            }}
+            onWorkoutCancel={() => {
+              console.log('🔧 Workout cancelled, sending to lifecycle machine');
+              // Send cancellation event to the WorkoutLifecycleMachine
+              workoutMachineSend({ 
+                type: 'WORKOUT_CANCELLED' 
+              });
+              onClose();
+            }}
           />
         </DialogContent>
       </Dialog>

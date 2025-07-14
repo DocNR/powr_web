@@ -88,7 +88,7 @@ export type ActiveWorkoutEvent =
   | { type: 'SKIP_EXERCISE' }
   | { type: 'SKIP_EXERCISE' }
   | { type: 'NAVIGATE_TO_EXERCISE'; exerciseIndex: number }
-  | { type: 'ADD_SET'; exerciseId: string }
+  | { type: 'ADD_SET'; exerciseRef: string }
 
   // Set completion events
   | { type: 'START_SET'; setNumber: number }

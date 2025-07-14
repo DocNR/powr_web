@@ -15,6 +15,7 @@
 import {
   assign,
   fromPromise,
+  sendParent,
   setup
 } from 'xstate';
 import { activeWorkoutGuards } from './guards/activeWorkoutGuards';
@@ -154,84 +155,6 @@ export const activeWorkoutMachine = setup({
     // Track individual sets (like Noga's processPendingScores)
     trackCompletedSet: setTrackingActor,
     
-    // Save completed workout (like Noga's saveCompletedRound)
-    saveCompletedWorkout: fromPromise<{ eventId: string }, { workoutData: unknown; userPubkey: string }>(async ({ input }) => {
-      try {
-        console.log('[ActiveWorkoutMachine] Publishing completed workout for user:', input.userPubkey);
-        
-        // Import required modules for real publishing
-        const { publishWorkoutActor } = await import('./actors/publishWorkoutActor');
-        const { createActor } = await import('xstate');
-        
-        // Convert workoutData to CompletedWorkout format expected by publishWorkoutActor
-        const workoutData = input.workoutData as {
-          workoutId?: string;
-          title?: string;
-          workoutType?: 'strength' | 'circuit' | 'emom' | 'amrap';
-          startTime?: number;
-          completedSets?: Array<{
-            exerciseRef: string;
-            setNumber: number;
-            reps: number;
-            weight: number;
-            rpe?: number;
-            setType: 'warmup' | 'normal' | 'drop' | 'failure';
-            completedAt: number;
-          }>;
-          notes?: string;
-          templateId?: string;
-        };
-        const completedWorkout = {
-          workoutId: workoutData.workoutId || `workout_${Date.now()}`,
-          title: workoutData.title || 'Completed Workout',
-          workoutType: (workoutData.workoutType || 'strength') as 'strength' | 'circuit' | 'emom' | 'amrap',
-          startTime: workoutData.startTime || Date.now() - 3600000, // 1 hour ago fallback
-          endTime: Date.now(),
-          completedSets: workoutData.completedSets || [],
-          notes: workoutData.notes,
-          templateId: workoutData.templateId
-        };
-        
-        // Use real publishWorkoutActor
-        const publishResult = await new Promise<{ success: boolean; eventId?: string; error?: string }>((resolve, reject) => {
-          const timeoutId = setTimeout(() => {
-            reject(new Error('Publishing timeout after 30 seconds'));
-          }, 30000);
-          
-          const actor = createActor(publishWorkoutActor, {
-            input: {
-              workoutData: completedWorkout,
-              userPubkey: input.userPubkey
-            }
-          });
-          
-          actor.subscribe((snapshot) => {
-            if (snapshot.status === 'done') {
-              clearTimeout(timeoutId);
-              resolve(snapshot.output);
-            } else if (snapshot.status === 'error') {
-              clearTimeout(timeoutId);
-              reject(snapshot.error);
-            }
-          });
-          
-          actor.start();
-        });
-        
-        if (publishResult.success && publishResult.eventId) {
-          console.log('[ActiveWorkoutMachine] ✅ Real workout published with event ID:', publishResult.eventId);
-          return { eventId: publishResult.eventId };
-        } else {
-          console.log('[ActiveWorkoutMachine] ⚠️ Workout queued for later publishing:', publishResult.error);
-          // Return success even if queued - NDK will handle retry
-          return { eventId: `queued_${Date.now()}` };
-        }
-      } catch (error) {
-        console.error('[ActiveWorkoutMachine] ❌ Publishing failed:', error);
-        throw new Error(`Failed to publish workout: ${error}`);
-      }
-    }),
-    
     // Rest timer (new for workout domain)
     restTimer: fromPromise<void, { duration: number }>(async ({ input }) => {
       const { duration } = input;
@@ -246,7 +169,6 @@ export const activeWorkoutMachine = setup({
     })
   }
 }).createMachine({
-  /** @xstate-layout N4IgpgJg5mDOIC5QEMDGAXAlgNzAdQHsAnAawIFd0A6AGwOQkwDsoAVMAWwAcbl0wAxBAJMwVZtgIkxaLLkKkK1Og2ZtOPPmAQSCqPphEBtAAwBdU2cSguBWJiwjrIAB6IATAE4AzFQAc7n4mPt5eAGwALCYA7ACsADQgAJ6IfgCMVBGe2Z5+fmHeWdHuEQC+pYmyOPjEZJS09Iws7Ny8-AJgRETEVJroAGbEHFRV8rVKDarNGm3auvqOTJaWzrb2i85uCF6+AUEh4VFxiSnb0RlhsWHu3iZhfp7FJmne5ZUY1Qp1yo1qLX2CABKAFFWICAJoAfQA8gAFYGAgCCrAAktCAHIrJAgNYOQxMTaITzBKjZMLBNLuaKeKn5E6INJpTxUMJpc5BbyxNJ+aIRMJvECjGqKepgFydVCYewsATo4EADVYkIVCIAwiiAMrArE2Ox4pzYraPekIPxZfzE2LUiKxYKPfkVQUfMYi6hiiVStQCDUAaRRsOV8rVmu15lWeo2hqJ0RNcV83kpfJe1qir0dQq+E3dREl0qgAlhIIAamiAKoawPBrU6nER-GEhDG5KIS5hKjRQqd27RPKBAUZ8ai8U5z0y2GI8vAyF4aGAn3Q0usGu4yOgLaMtKxTJpVNciJRTd+WPRExURmxWJBdyBdw7-vO4XfKjZ3Ne1XQgCysIAMqCpzO5wXJcw2xFd6yjBANy3CIdxMTkdwPS8TTCDsqFibxeWuTcwlbB13jkR8s2HV8WF6TpBiIDg1A1MB0AEd8v1-Vgpy1YCrFAusDTXRBii3GIgnySJ0k3GNmwQHDokyaJLmvTd3BMCJomie8CMzIcPTzKgiDgdBYU6QwICEEQxF0aQRgfNS3WI0coC0nS9KIAydCYSQFnxZYQN1dZwO4hAT3cFlgm8IIoh8GCjzE6SIioExYj5KJr28clYhUz5BysjS1Ds2BdP0ghDOBdEABFIRBDUlXhQE0SK5dOIJCD-MCnwQqC8KTWEtC4oKbwesTHDUpdJ8XxsqgACNaIAdzAMAmGBazYDgb1WERQElRVQF1WrTza28rjXB4kwAvJZqFNa7l2uuGKuu7C8lMeAbCPqLhkHIBbDLK0sP3-Wd50XWrdvq3zrhNNJDt8FDPAKM18iUgoHss3oXre2VERLABxZEp1YaFKw2kN-v1QH9sg2JbxZCI-G8SHIlih4TU8G1ydi1kYM5YL4fSxHXsgejPx-P9px+oCCdXYnNwTNDsO5Hs8itTwQZMRWWTZuJYp7EoynTCzOee7nDNVRF0VVYFv0FwC-u2sC9vXdCMi5K5pbyPw5YV9CzxVncHn3NkOddKhUAIVpaJ5kWfOJ+S3YU+5uTC7I2Xphn-Gd4Koh5EpL19p8uHIUaaClAALL1hFEcQXKkGRtb97Pc4LtRnNcgxjHMUPrcQHq-FJY6YmkzwL28EHeqodwrTiS5Lx69mtdUnWc7z2BC5lTpuiIXo2go4YByr2fa5Yeu9EbpZm8tuqG3bzvgm7sJe-QkHSYyVnckps0LxQzOJmruf8+BLpiAEEEwShLCUsAAhb8moAASLciZbDPpDC+sNr79zEjuEo-hOQ8jgpSHIaZ8JpT9vPAgE1qLkA4BwZARAkgCCKpqD8moKwak+h+Fa4IoENiUluKmZoXjPEtHSZBnIArUmjopG4VNchv1FD-Igf9QQQhhJVZEaJMTHwBg2HY-hAhBVCJDI4CRkFxBij2Rk7hWTpGuD2CRbopEyIAfIhEiiMRGDSOxLyhM2GXQCIdWGOEmT7hNCY6KVpAjSVuEyGk7hyiOiYPlOAzhN7fHDKoiCABaNIJpkl4SdNPP2KgmjqFaFoRJbiIKKRBgYxk5wlKwyOPdKeeChrzTUEU0WWwsgmiuMyG4ERCj7n3MFK4ljnyNNIlwciQxqK0WaWHI0JiqDBSpI-e4itYjyzEukAKxI+RUxMWIqkgzhqaW0jlByBkpmtwQLaSSexKR5GKI8XIsYMJXXioEbIDxrz7OGbZca6ApozTmhpWJHEkm+S5L4BSoMTE4RiDSNJazLoXiTDuW4l57iDN1m9M50CGSaOefcR4GFbiXAVopIe3IIYU1tL3TWuDBoTADkHfgEAsUNiZNedsWRciHWdt0uFpxsi7B5c8YeuzPDou3vPJpwLimgtEqcHcjJ-C8myFES4lLxU13nt-ZeLKIJqrPM8OKglHg8j0fK9CVyr4dgZomOWgyCFEJYBqEhZCKG6tBTSUk6ETCePJJTDsA83bhEplESlPhBn6CYKgMANAaCQHdWLa1Gi4IJlvHBOmyDYoBX6UlRWgQ7x1LpfUfozBkA0ATUafImQcj7hQj2aSgaApRw5CY+SuQaVZPqVmKRFaWyoVTbaC8VwrgJn8XkM8jIeT5E5cPNIkTShAA */
   id: 'activeWorkout',
   
   // Initial context from input
@@ -320,7 +242,7 @@ export const activeWorkoutMachine = setup({
               const template = event.output;
               console.log('[ActiveWorkoutMachine] 📋 Parsing template exercises for prescribed parameters');
               
-              return template.exercises.map((exercise, index) => {
+                return template.exercises.map((exercise: { exerciseRef: string; weight?: number; reps?: number; sets?: number }, index: number) => {
                 // Extract prescribed parameters from template exercise
                 const prescribedWeight = exercise.weight || 0;
                 const prescribedReps = exercise.reps || 10;
@@ -418,7 +340,7 @@ export const activeWorkoutMachine = setup({
                     console.log(`[ActiveWorkoutMachine] 🔢 NDK Deduplication Fix: Exercise ${exerciseRef} set number ${currentExerciseSetNumber}`);
                     
                     // NEW: Use parsed template prescribed values as defaults, allow user overrides via event.setData
-                    const templateExercise = context.templateExercises.find(te => te.exerciseRef === currentExercise.exerciseRef);
+                    const templateExercise = context.templateExercises.find((te) => te.exerciseRef === currentExercise.exerciseRef);
                     
                     const autoGeneratedSetData = {
                       exerciseRef: currentExercise.exerciseRef,
@@ -478,19 +400,28 @@ export const activeWorkoutMachine = setup({
               ]
             },
             
-            // ADD THIS NEW EVENT HANDLER:
+            // ADD_SET event handler - Fixed to use event.exerciseRef
             ADD_SET: {
               actions: assign({
                 workoutData: ({ context, event }) => {
-                  console.log(`[ActiveWorkoutMachine] ➕ ADD_SET: User requested extra set for ${event.exerciseId}`);
+                  const exerciseRef = event.exerciseRef;
+                  console.log(`[ActiveWorkoutMachine] ➕ ADD_SET: User requested extra set for ${exerciseRef}`);
                   
-                  const currentExtra = context.workoutData.extraSetsRequested?.[event.exerciseId] || 0;
+                  if (!exerciseRef) {
+                    console.warn('[ActiveWorkoutMachine] ADD_SET called without exerciseRef');
+                    return context.workoutData;
+                  }
+                  
+                  const currentExtra = context.workoutData.extraSetsRequested?.[exerciseRef] || 0;
+                  const newExtraCount = currentExtra + 1;
+                  
+                  console.log(`[ActiveWorkoutMachine] ✅ Adding extra set #${newExtraCount} for ${exerciseRef}`);
                   
                   return {
                     ...context.workoutData,
                     extraSetsRequested: {
                       ...context.workoutData.extraSetsRequested,
-                      [event.exerciseId]: currentExtra + 1
+                      [exerciseRef]: newExtraCount
                     }
                   };
                 },
@@ -701,95 +632,69 @@ export const activeWorkoutMachine = setup({
     },
     
     /**
-     * Completed state - workout finished, now save to NDK
-     * Like Noga's completed state
+     * Completed state - workout finished, return real data to parent
+     * ✅ FIXED: No longer publishes itself, just returns data to lifecycle machine
      */
     completed: {
-      // Automatically transition to publishing state
-      always: { target: 'publishing' }
-    },
-    
-    /**
-     * Publishing state - persist workout data to NDK
-     * Like Noga's saving state
-     */
-    publishing: {
-      entry: assign({
-        publishingStatus: ({ context }) => ({
-          ...context.publishingStatus,
-          isPublishing: true,
-          publishAttempts: context.publishingStatus.publishAttempts + 1
-        })
-      }),
-      
-      invoke: {
-        src: 'saveCompletedWorkout',
-        input: ({ context }) => ({
-          workoutData: {
-            ...context.workoutData,
-            // Ensure we use the machine's accumulated completedSets
-            completedSets: context.workoutData.completedSets,
-            // Add template ID for proper d-tag generation
-            templateId: context.workoutData.template?.id,
-            // Add proper workout metadata
-            workoutId: context.workoutData.workoutId || `workout_${context.timingInfo.startTime}`,
-            title: context.workoutData.template?.name || 'Completed Workout',
-            workoutType: 'strength' as const,
-            startTime: context.timingInfo.startTime,
-            endTime: Date.now()
-          },
-          userPubkey: context.userInfo.pubkey
-        }),
-        onDone: {
-          target: 'showingSummary',
-          actions: assign({
-            publishingStatus: ({ context, event }) => ({
-              ...context.publishingStatus,
-              isPublishing: false,
-              eventId: event.output.eventId
-            })
-          })
+      type: 'final',
+      entry: sendParent(({ context }) => ({
+        type: 'WORKOUT_COMPLETED',
+        workoutData: {
+          ...context.workoutData,
+          completedSets: context.workoutData?.completedSets || [],
+          templateId: context.workoutData?.template?.id || 'unknown-template',
+          endTime: Date.now(),
+          extraSetsRequested: context.workoutData?.extraSetsRequested || {}
         },
-        onError: {
-          target: 'publishError',
-          actions: assign({
-            publishingStatus: ({ context }) => ({
-              ...context.publishingStatus,
-              isPublishing: false
-            }),
-            error: ({ event }) => createErrorInfo(
-              'PUBLISH_ERROR',
-              event.error instanceof Error ? event.error.message : 'Failed to publish workout',
-              true,
-              event.error
-            )
-          })
-        }
-      }
-    },
-    
-    /**
-     * Publish error state - allow retry
-     * Like Noga's saveError
-     */
-    publishError: {
-      on: {
-        RETRY_PUBLISH: {
-          guard: 'canRetryPublish',
-          target: 'publishing',
-          actions: assign({ error: undefined })
-        }
-      }
-    },
-    
-    /**
-     * Showing summary state - display workout summary after save
-     * Like Noga's showingSummary
-     */
-    showingSummary: {
-      on: {
-        DISMISS_SUMMARY: {
-          target: 'final'
+        totalDuration: Date.now() - (context.timingInfo?.startTime || Date.now()),
+        completed: true
+      })),
+      output: ({ context }) => {
+        try {
+          const workoutData = {
+            ...context.workoutData,
+            // Ensure we include all the real completed sets with extra sets
+            completedSets: context.workoutData?.completedSets || [],
+            // Add metadata for proper publishing
+            templateId: context.workoutData?.template?.id || 'unknown-template',
+            endTime: Date.now(),
+            // Include extra sets information for UI display
+            extraSetsRequested: context.workoutData?.extraSetsRequested || {}
+          };
+          
+          const startTime = context.timingInfo?.startTime || Date.now();
+          const totalDuration = Date.now() - startTime;
+          
+          const finalOutput = {
+            workoutData,
+            totalDuration,
+            completed: true
+          };
+          
+          console.log('[ActiveWorkoutMachine] ✅ Workout completed successfully with', workoutData.completedSets.length, 'sets');
+          
+          return finalOutput;
+          
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          console.error('[ActiveWorkoutMachine] ❌ Error creating output:', error);
+          
+          // Return a minimal but valid output to prevent undefined
+          const fallbackOutput = {
+            workoutData: {
+              ...context.workoutData,
+              completedSets: context.workoutData?.completedSets || [],
+              templateId: 'error-fallback',
+              endTime: Date.now(),
+              extraSetsRequested: {}
+            },
+            totalDuration: 0,
+            completed: true,
+            error: errorMessage
+          };
+          
+          console.warn('[ActiveWorkoutMachine] Using fallback output due to error');
+          return fallbackOutput;
         }
       }
     },
@@ -804,19 +709,6 @@ export const activeWorkoutMachine = setup({
         workoutData: context.workoutData,
         totalDuration: Date.now() - context.timingInfo.startTime,
         cancelled: true
-      })
-    },
-    
-    /**
-     * Final state - truly done
-     * Like Noga's final state
-     */
-    final: {
-      type: 'final',
-      output: ({ context }) => ({
-        workoutData: context.workoutData,
-        publishedEventId: context.publishingStatus.eventId,
-        totalDuration: Date.now() - context.timingInfo.startTime
       })
     },
     

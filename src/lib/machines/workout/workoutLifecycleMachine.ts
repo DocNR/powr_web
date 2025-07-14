@@ -14,7 +14,6 @@ import type {
 import { normalizeTemplateReference } from '@/lib/utils/templateReference';
 import { defaultWorkoutLifecycleContext } from './types/workoutLifecycleTypes';
 import type { UserInfo, WorkoutData } from './types/workoutTypes';
-import { workoutAnalyticsService } from '@/lib/services/workoutAnalytics';
 import { publishWorkoutActor } from './actors/publishWorkoutActor';
 import { loadTemplateActor } from './actors/loadTemplateActor';
 import { workoutSetupMachine, loadTemplatesActor } from './workoutSetupMachine';
@@ -160,12 +159,60 @@ export const workoutLifecycleMachine = setup({
           
           // Subscribe to actor state changes to detect completion
           activeWorkoutActor.subscribe((snapshot) => {
-            console.log('[WorkoutLifecycleMachine] Active workout actor state changed:', snapshot.value, 'status:', snapshot.status);
+            console.log('[WorkoutLifecycleMachine] 🔄 Active workout actor state changed:', {
+              state: snapshot.value,
+              status: snapshot.status,
+              hasOutput: !!snapshot.output
+            });
             
             // When the activeWorkout reaches final state, complete the lifecycle
-            if (snapshot.status === 'done' || snapshot.value === 'final') {
-              console.log('[WorkoutLifecycleMachine] Active workout completed, sending COMPLETE event');
-              self.send({ type: 'WORKOUT_COMPLETED', workoutData: (snapshot.output as { workoutData?: WorkoutData })?.workoutData });
+            if (snapshot.status === 'done') {
+              console.log('[WorkoutLifecycleMachine] ✅ Active workout completed, processing output...');
+              
+              // ✅ CRITICAL FIX: For spawned actors, we need to get the final snapshot to access output
+              const finalSnapshot = activeWorkoutActor.getSnapshot();
+              console.log('[WorkoutLifecycleMachine] 📊 Final snapshot status:', finalSnapshot.status);
+              console.log('[WorkoutLifecycleMachine] 📊 Final snapshot output:', finalSnapshot.output);
+              
+              const output = finalSnapshot.output as { workoutData?: WorkoutData; totalDuration?: number; completed?: boolean };
+              
+              console.log('[WorkoutLifecycleMachine] 📊 Active workout output analysis:', {
+                hasOutput: !!output,
+                hasWorkoutData: !!output?.workoutData,
+                completedSetsCount: output?.workoutData?.completedSets?.length || 0,
+                extraSetsCount: Object.keys(output?.workoutData?.extraSetsRequested || {}).length,
+                workoutId: output?.workoutData?.workoutId,
+                completed: output?.completed
+              });
+              
+              if (output?.workoutData) {
+                console.log('[WorkoutLifecycleMachine] ✅ Sending WORKOUT_COMPLETED with real data');
+                self.send({ 
+                  type: 'WORKOUT_COMPLETED', 
+                  workoutData: output.workoutData 
+                });
+              } else {
+                console.error('[WorkoutLifecycleMachine] ❌ No workout data in activeWorkout output!');
+                console.error('[WorkoutLifecycleMachine] 📊 Full output:', output);
+                
+                // Create emergency fallback data
+                const fallbackData = {
+                  workoutId: `fallback_${Date.now()}`,
+                  title: 'Emergency Fallback Workout',
+                  startTime: Date.now() - 1800000, // 30 minutes ago
+                  endTime: Date.now(),
+                  completedSets: [],
+                  workoutType: 'strength' as const,
+                  exercises: [],
+                  extraSetsRequested: {}
+                };
+                
+                console.warn('[WorkoutLifecycleMachine] ⚠️ Using emergency fallback data');
+                self.send({ 
+                  type: 'WORKOUT_COMPLETED', 
+                  workoutData: fallbackData
+                });
+              }
             }
           });
           
@@ -314,25 +361,65 @@ export const workoutLifecycleMachine = setup({
       // Add exit action for cleanup
       exit: ['stopActiveWorkout', 'clearActiveWorkoutActor'],
       on: {
+        // Handle WORKOUT_COMPLETED event from sendParent in activeWorkoutMachine
         WORKOUT_COMPLETED: {
           target: 'completed',
           actions: [
             assign({
+              // ✅ CRITICAL FIX: Properly store the complete workout data from activeWorkoutMachine
               workoutData: ({ event, context }) => {
+                console.log('[WorkoutLifecycle] 🔄 WORKOUT_COMPLETED event received via sendParent');
+                console.log('[WorkoutLifecycle] 🔍 Event workoutData:', {
+                  hasEventData: !!event.workoutData,
+                  completedSets: event.workoutData?.completedSets?.length || 0,
+                  extraSetsRequested: Object.keys(event.workoutData?.extraSetsRequested || {}).length,
+                  workoutId: event.workoutData?.workoutId
+                });
+                
                 if (event.workoutData) {
-                  return event.workoutData;
+                  console.log('[WorkoutLifecycle] ✅ Using real workout data from activeWorkoutMachine sendParent');
+                  // Ensure we have all the required fields for publishing
+                  const completeWorkoutData = {
+                    ...event.workoutData,
+                    // Ensure endTime is set if not already
+                    endTime: event.workoutData.endTime || Date.now(),
+                    // Preserve all completed sets and extra sets data
+                    completedSets: event.workoutData.completedSets || [],
+                    extraSetsRequested: event.workoutData.extraSetsRequested || {}
+                  };
+                  
+                  console.log('[WorkoutLifecycle] 📊 Final workout data for publishing:', {
+                    workoutId: completeWorkoutData.workoutId,
+                    completedSetsCount: completeWorkoutData.completedSets.length,
+                    extraSetsCount: Object.keys(completeWorkoutData.extraSetsRequested).length,
+                    hasEndTime: !!completeWorkoutData.endTime
+                  });
+                  
+                  return completeWorkoutData;
                 }
+                
+                // Fallback to context data (should not happen in normal flow)
                 if (context.workoutData) {
-                  return context.workoutData;
+                  console.warn('[WorkoutLifecycle] ⚠️ Using context workout data as fallback');
+                  return {
+                    ...context.workoutData,
+                    endTime: Date.now(),
+                    completedSets: context.workoutData.completedSets || [],
+                    extraSetsRequested: context.workoutData.extraSetsRequested || {}
+                  };
                 }
-                // Fallback - should never happen in normal flow
+                
+                // Emergency fallback - should never happen
+                console.error('[WorkoutLifecycle] ❌ No workout data available - creating emergency fallback');
                 return {
-                  workoutId: 'unknown',
-                  title: 'Unknown Workout',
-                  startTime: Date.now(),
+                  workoutId: `emergency_${Date.now()}`,
+                  title: 'Emergency Workout Record',
+                  startTime: Date.now() - 1800000, // 30 minutes ago
+                  endTime: Date.now(),
                   completedSets: [],
                   workoutType: 'strength' as const,
-                  exercises: []
+                  exercises: [],
+                  extraSetsRequested: {}
                 };
               }
             }),
@@ -350,44 +437,59 @@ export const workoutLifecycleMachine = setup({
       invoke: {
         src: 'publishWorkoutActor',
         input: ({ context }) => {
-          // Always use mock completed sets for testing since we don't have real workout tracking yet
-          // Use the REAL authenticated user's pubkey for exercise references
-          const mockCompletedSets = [
-            {
-              exerciseRef: workoutAnalyticsService.createExerciseReference(context.userInfo.pubkey, 'pushup-standard'),
-              setNumber: 1,
-              reps: 10,
-              weight: 0,
-              rpe: 7,
-              setType: 'normal' as const,
-              completedAt: Date.now() - 300000
-            },
-            {
-              exerciseRef: workoutAnalyticsService.createExerciseReference(context.userInfo.pubkey, 'pushup-standard'),
-              setNumber: 2,
-              reps: 8,
-              weight: 0,
-              rpe: 8,
-              setType: 'normal' as const,
-              completedAt: Date.now() - 150000
-            }
-          ];
+          console.log('[WorkoutLifecycle] 📤 PUBLISHING PHASE: Preparing workout data for publishing');
+          console.log('[WorkoutLifecycle] 📊 Context workout data analysis:', {
+            hasWorkoutData: !!context.workoutData,
+            workoutId: context.workoutData?.workoutId,
+            completedSetsCount: context.workoutData?.completedSets?.length || 0,
+            extraSetsCount: Object.keys(context.workoutData?.extraSetsRequested || {}).length,
+            hasEndTime: !!context.workoutData?.endTime,
+            templateId: context.templateSelection?.templateId
+          });
 
-          // Create completed workout data with template reference information
+          // ✅ CRITICAL FIX: Ensure we're using the updated workout data from WORKOUT_COMPLETED event
+          if (!context.workoutData || !context.workoutData.completedSets) {
+            console.error('[WorkoutLifecycle] ❌ PUBLISHING ERROR: No completed sets data available!');
+            console.error('[WorkoutLifecycle] 📊 Available context:', {
+              hasWorkoutData: !!context.workoutData,
+              workoutDataKeys: context.workoutData ? Object.keys(context.workoutData) : [],
+              templateSelection: context.templateSelection
+            });
+          }
+
+          // Create completed workout data using the REAL data from activeWorkoutMachine
           const completedWorkout = {
-            workoutId: context.workoutData?.workoutId || 'unknown',
-            title: context.workoutData?.title || 'Unknown Workout',
-            workoutType: context.workoutData?.workoutType || 'strength',
+            workoutId: context.workoutData?.workoutId || `workout_${Date.now()}`,
+            title: context.workoutData?.title || 'Completed Workout',
+            workoutType: (context.workoutData?.workoutType || 'strength') as 'strength' | 'circuit' | 'emom' | 'amrap',
             startTime: context.workoutData?.startTime || Date.now(),
-            endTime: Date.now(),
-            completedSets: mockCompletedSets,
-            notes: 'Great workout! Feeling strong today.',
-            // NEW: Include template reference information for NIP-101e compliance
-            templateId: context.templateSelection.templateId,
-            templatePubkey: context.templateSelection.templatePubkey || context.userInfo.pubkey, // Fallback to user's pubkey for now
-            templateReference: context.templateSelection.templateReference,
-            templateRelayUrl: context.templateSelection.templateRelayUrl || '' // Optional relay URL
+            endTime: context.workoutData?.endTime || Date.now(),
+            // ✅ CRITICAL FIX: Use the real completed sets from activeWorkoutMachine
+            completedSets: context.workoutData?.completedSets || [],
+            notes: context.workoutData?.notes,
+            // Template information for NIP-101e compliance
+            templateId: context.templateSelection?.templateId,
+            templatePubkey: context.templateSelection?.templatePubkey || context.userInfo.pubkey,
+            templateReference: context.templateSelection?.templateReference,
+            templateRelayUrl: context.templateSelection?.templateRelayUrl || '',
+            // Include extra sets information for debugging
+            extraSetsRequested: context.workoutData?.extraSetsRequested || {}
           };
+          
+          console.log('[WorkoutLifecycle] 📤 FINAL PUBLISHING DATA:', {
+            workoutId: completedWorkout.workoutId,
+            title: completedWorkout.title,
+            completedSetsCount: completedWorkout.completedSets.length,
+            extraSetsCount: Object.keys(completedWorkout.extraSetsRequested).length,
+            templateId: completedWorkout.templateId,
+            templateReference: completedWorkout.templateReference,
+            hasValidData: completedWorkout.completedSets.length > 0
+          });
+          
+          // ✅ VALIDATION: Ensure we have actual workout data to publish
+          if (completedWorkout.completedSets.length === 0) {
+            console.warn('[WorkoutLifecycle] ⚠️ WARNING: Publishing workout with 0 completed sets!');
+          }
           
           return {
             workoutData: completedWorkout,

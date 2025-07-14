@@ -106,7 +106,7 @@ export default function WorkoutsTab() {
         workoutSend({ type: 'RESET_LIFECYCLE' });
       }
     };
-  }, []); // Empty dependency array = only runs on mount/unmount
+  }, [workoutSend, workoutState]); // Empty dependency array = only runs on mount/unmount
 
   // POWR WOD - keep as featured content for now
   const powrWOD = useMemo(() => ({
@@ -286,27 +286,43 @@ export default function WorkoutsTab() {
   const handleStartWorkout = () => {
     console.log('🚀 Starting workout from modal!');
     
-    // Send event to machine to actually start the workout
-    // This should trigger the activeWorkoutMachine to begin
-    workoutSend({ 
-      type: 'START_WORKOUT',
-      workoutData: {
-        workoutId: `workout_${Date.now()}`,
-        title: selectedWorkout?.title as string || 'Workout',
-        exercises: (selectedWorkout?.exercises as Array<{ name: string; sets: number; reps: number; weight: number }> || []).map(ex => ({
-          exerciseRef: `33401:user-pubkey:${ex.name.toLowerCase().replace(/\s+/g, '-')}`,
-          sets: ex.sets,
-          reps: ex.reps,
-          weight: ex.weight
-        })),
-        completedSets: [],
-        workoutType: 'strength',
-        startTime: Date.now()
-      }
-    });
+    // ✅ FIXED: Use the machine's resolved workout data instead of reconstructing
+    if (workoutState.context.workoutData) {
+      console.log('✅ Using resolved workout data from machine:', workoutState.context.workoutData);
+      
+      workoutSend({ 
+        type: 'START_WORKOUT',
+        workoutData: workoutState.context.workoutData // Use machine's resolved data
+      });
+    } else {
+      console.error('❌ No workout data available in machine context');
+      console.log('🔍 Machine context:', workoutState.context);
+      
+      // Fallback to old behavior if machine data is missing (shouldn't happen)
+      console.warn('⚠️ Falling back to reconstructed workout data');
+      workoutSend({ 
+        type: 'START_WORKOUT',
+        workoutData: {
+          workoutId: `workout_${Date.now()}`,
+          title: selectedWorkout?.title as string || 'Workout',
+          exercises: (selectedWorkout?.exercises as Array<{ name: string; sets: number; reps: number; weight: number }> || []).map(ex => ({
+            exerciseRef: `33401:user-pubkey:${ex.name.toLowerCase().replace(/\s+/g, '-')}`,
+            sets: ex.sets,
+            reps: ex.reps,
+            weight: ex.weight
+          })),
+          completedSets: [],
+          workoutType: 'strength',
+          startTime: Date.now()
+        }
+      });
+    }
     
-    // Close modal - the machine will handle the rest
-    setIsModalOpen(false);
+    // ✅ FIXED: DON'T close modal - let the machine state change handle the UI
+    // The useEffect that watches workoutState will handle opening/closing the modal
+    // setIsModalOpen(false); // ❌ Remove this line
+    
+    console.log('🚀 START_WORKOUT event sent to machine');
   };
 
   const handleAuthorClick = (pubkey: string) => {
@@ -458,7 +474,8 @@ export default function WorkoutsTab() {
         </div>
         
         <SearchableWorkoutDiscovery
-          workouts={discoveryTemplates}
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          workouts={discoveryTemplates as any}
           onWorkoutSelect={handleWorkoutSelect}
           onMenuAction={handleMenuAction}
           isLoading={isLoading}
@@ -520,6 +537,8 @@ export default function WorkoutsTab() {
         onStartWorkout={handleStartWorkout}
         isWorkoutActive={workoutState.matches('active')}
         userPubkey={userPubkey}
+        workoutMachineState={workoutState}
+        workoutMachineSend={workoutSend}
       />
     </div>
   );
