@@ -552,6 +552,42 @@ export const activeWorkoutMachine = setup({
           })
         },
         
+        // NEW: Direct exercise navigation for supersets and free exercise switching
+        NAVIGATE_TO_EXERCISE: {
+          guard: 'isValidExerciseIndex',
+          target: '.performingSet',
+          actions: assign({
+            exerciseProgression: ({ context, event }) => {
+              const targetExerciseIndex = event.exerciseIndex;
+              
+              // Calculate correct set number based on completed sets for the target exercise
+              const targetExercise = context.workoutData.template?.exercises?.[targetExerciseIndex];
+              if (!targetExercise) {
+                console.warn(`[ActiveWorkoutMachine] Invalid exercise index: ${targetExerciseIndex}`);
+                return context.exerciseProgression;
+              }
+              
+              // Count completed sets for this exercise
+              const completedSetsForExercise = context.workoutData.completedSets.filter((set: { exerciseRef: string }) => 
+                set.exerciseRef === targetExercise.exerciseRef
+              ).length;
+              
+              // Next set number = completed sets + 1, but don't exceed planned sets
+              const plannedSets = targetExercise.sets || 3;
+              const nextSetNumber = Math.min(completedSetsForExercise + 1, plannedSets);
+              
+              console.log(`[ActiveWorkoutMachine] 🎯 NAVIGATE_TO_EXERCISE: Moving to exercise ${targetExerciseIndex} (${targetExercise.exerciseRef}), completed sets: ${completedSetsForExercise}, next set: ${nextSetNumber}`);
+              
+              return {
+                ...context.exerciseProgression,
+                currentExerciseIndex: targetExerciseIndex,
+                currentSetNumber: nextSetNumber,
+                isLastExercise: targetExerciseIndex >= context.exerciseProgression.totalExercises - 1
+              };
+            }
+          })
+        },
+        
         // Workout control (like Noga's round control)
         PAUSE_WORKOUT: {
           target: 'paused',

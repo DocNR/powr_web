@@ -33,6 +33,7 @@ interface ExerciseSectionProps {
   onSetComplete: (exerciseId: string, setIndex: number, setData: SetData) => void;
   onSetEdit?: (exerciseId: string, setIndex: number, setData: SetData) => void;
   onAddSet?: (exerciseId: string) => void;
+  onExerciseSelect?: () => void;
   className?: string;
 }
 
@@ -43,6 +44,7 @@ export const ExerciseSection: React.FC<ExerciseSectionProps> = ({
   onSetComplete,
   onSetEdit,
   onAddSet,
+  onExerciseSelect,
   className
 }) => {
   const completedSets = exercise.sets.filter(set => set.completed).length;
@@ -97,7 +99,13 @@ export const ExerciseSection: React.FC<ExerciseSectionProps> = ({
       isActive ? "ring-2 ring-orange-500 ring-opacity-50" : "",
       className
     )}>
-      <CardHeader className="pb-3">
+      <CardHeader 
+        className={cn(
+          "pb-3",
+          onExerciseSelect && "cursor-pointer hover:bg-gray-50 transition-colors"
+        )}
+        onClick={onExerciseSelect}
+      >
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
             <h3 className="text-lg font-semibold text-gray-900 truncate">
@@ -126,6 +134,9 @@ export const ExerciseSection: React.FC<ExerciseSectionProps> = ({
               variant="ghost"
               size="icon"
               className="h-8 w-8 text-gray-400 hover:text-gray-600"
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent triggering exercise selection
+              }}
             >
               <MoreHorizontal className="h-4 w-4" />
             </Button>

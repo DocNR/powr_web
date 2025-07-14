@@ -218,6 +218,17 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
     });
   };
 
+  // NEW: Exercise selection handler for superset support
+  const handleExerciseSelect = (exerciseIndex: number) => {
+    console.log('🔧 ActiveWorkoutInterface: Exercise selected:', exerciseIndex);
+    
+    // Send NAVIGATE_TO_EXERCISE event to activeWorkoutActor
+    actorSend({ 
+      type: 'NAVIGATE_TO_EXERCISE',
+      exerciseIndex
+    });
+  };
+
   const handleTogglePause = () => {
     if (isPaused) {
       console.log('🔧 ActiveWorkoutInterface: Resuming workout');
@@ -375,6 +386,7 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
                   handleSetEdit(exerciseId, setIndex, setData)
                 }
                 onAddSet={(exerciseId: string) => handleAddSet(exerciseId)}
+                onExerciseSelect={() => handleExerciseSelect(exerciseIndex)}
               />
             );
           })}
