@@ -11,7 +11,6 @@ import type {
   WorkoutLifecycleEvent,
   SetupMachineOutput
 } from './types/workoutLifecycleTypes';
-import { normalizeTemplateReference } from '@/lib/utils/templateReference';
 import { defaultWorkoutLifecycleContext } from './types/workoutLifecycleTypes';
 import type { UserInfo, WorkoutData } from './types/workoutTypes';
 import { publishWorkoutActor } from './actors/publishWorkoutActor';
@@ -98,32 +97,26 @@ export const workoutLifecycleMachine = setup({
           return undefined;
         }
         
-        // 🔍 CRITICAL DEBUG: Check templateSelection.templateReference before passing to activeWorkoutMachine
-        const originalTemplateReference = context.templateSelection.templateReference;
-        const normalizedTemplateReference = normalizeTemplateReference(originalTemplateReference);
+        // Use template reference directly (corruption fixed at source)
+        const templateReference = context.templateSelection.templateReference;
         
-        console.log('[WorkoutLifecycleMachine] 🧹 NORMALIZED template reference:', {
-          original: originalTemplateReference,
-          cleaned: normalizedTemplateReference
-        });
+        console.log('[WorkoutLifecycleMachine] 🔍 CRITICAL DEBUG: templateReference before spawn:', templateReference);
+        console.log('[WorkoutLifecycleMachine] 🔍 CRITICAL DEBUG: templateReference type:', typeof templateReference);
+        console.log('[WorkoutLifecycleMachine] 🔍 CRITICAL DEBUG: templateReference length:', templateReference?.length);
         
-        console.log('[WorkoutLifecycleMachine] 🔍 CRITICAL DEBUG: templateReference before spawn:', normalizedTemplateReference);
-        console.log('[WorkoutLifecycleMachine] 🔍 CRITICAL DEBUG: templateReference type:', typeof normalizedTemplateReference);
-        console.log('[WorkoutLifecycleMachine] 🔍 CRITICAL DEBUG: templateReference length:', normalizedTemplateReference?.length);
-        
-        if (!normalizedTemplateReference) {
-          console.error('[WorkoutLifecycleMachine] ❌ Cannot spawn active workout: template reference is missing after normalization');
+        if (!templateReference) {
+          console.error('[WorkoutLifecycleMachine] ❌ Cannot spawn active workout: template reference is missing');
           self.send({ type: 'ERROR_OCCURRED', error: { message: 'Cannot start workout: invalid template reference', code: 'INVALID_TEMPLATE', timestamp: Date.now() } });
           return undefined;
         }
         
-        const parts = normalizedTemplateReference.split(':');
+        const parts = templateReference.split(':');
         console.log('[WorkoutLifecycleMachine] 🔍 CRITICAL DEBUG: templateReference parts:', parts);
         console.log('[WorkoutLifecycleMachine] 🔍 CRITICAL DEBUG: parts length:', parts.length);
         
         if (parts.length !== 3) {
           console.error('[WorkoutLifecycleMachine] ❌ CORRUPTION DETECTED IN LIFECYCLE MACHINE:', {
-            templateReference: normalizedTemplateReference,
+            templateReference: templateReference,
             parts,
             partsLength: parts.length,
             expectedFormat: 'kind:pubkey:d-tag'
@@ -134,11 +127,8 @@ export const workoutLifecycleMachine = setup({
         
         console.log('[WorkoutLifecycleMachine] ✅ Template reference format is valid in lifecycle machine');
         
-        // Create a clean templateSelection with normalized reference
-        const cleanTemplateSelection = {
-          ...context.templateSelection,
-          templateReference: normalizedTemplateReference
-        };
+        // Use template selection as-is
+        const cleanTemplateSelection = context.templateSelection;
         
         const input = {
           userInfo: context.userInfo,
@@ -285,7 +275,7 @@ export const workoutLifecycleMachine = setup({
         src: 'setupMachine',
         input: ({ context }) => ({
           userPubkey: context.userInfo.pubkey,
-          templateReference: normalizeTemplateReference(context.templateReference)
+          templateReference: context.templateReference
         }),
         onDone: {
           target: 'setupComplete',

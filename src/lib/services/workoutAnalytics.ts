@@ -159,9 +159,27 @@ export class WorkoutAnalyticsService {
    * Generate human-readable workout summary for event content
    */
   generateWorkoutSummary(workoutData: CompletedWorkout): string {
-    const duration = Math.floor((workoutData.endTime - workoutData.startTime) / 1000 / 60);
+    const durationSeconds = Math.floor((workoutData.endTime - workoutData.startTime) / 1000);
     const totalSets = workoutData.completedSets.length;
     const totalReps = workoutData.completedSets.reduce((sum, set) => sum + set.reps, 0);
+    
+    // Format duration properly - show seconds for short workouts, minutes for longer ones
+    let durationText: string;
+    if (durationSeconds < 60) {
+      durationText = `${durationSeconds} seconds`;
+    } else if (durationSeconds < 3600) {
+      const minutes = Math.floor(durationSeconds / 60);
+      const remainingSeconds = durationSeconds % 60;
+      if (remainingSeconds === 0) {
+        durationText = `${minutes} minutes`;
+      } else {
+        durationText = `${minutes}m ${remainingSeconds}s`;
+      }
+    } else {
+      const hours = Math.floor(durationSeconds / 3600);
+      const minutes = Math.floor((durationSeconds % 3600) / 60);
+      durationText = `${hours}h ${minutes}m`;
+    }
     
     // Group sets by exercise
     const exerciseGroups = new Map<string, CompletedSet[]>();
@@ -190,7 +208,7 @@ export class WorkoutAnalyticsService {
       }
     });
     
-    let summary = `Completed ${workoutData.title} in ${duration} minutes. `;
+    let summary = `Completed ${workoutData.title} in ${durationText}. `;
     summary += `${totalSets} sets, ${totalReps} total reps. `;
     summary += `Exercises: ${exerciseSummaries.join(', ')}.`;
     

@@ -30,8 +30,6 @@ import type {
   ErrorInfo 
 } from './types/workoutTypes';
 import type { LoadTemplateOutput, WorkoutTemplate } from './actors/loadTemplateActor';
-import { normalizeTemplateReference } from '@/lib/utils/templateReference';
-
 
 /**
  * Helper function to create error info
@@ -79,12 +77,9 @@ export const activeWorkoutMachine = setup({
         console.log('[ActiveWorkoutMachine] 🔍 DEBUG: templateReference type:', typeof rawTemplateReference);
         console.log('[ActiveWorkoutMachine] 🔍 DEBUG: templateReference length:', rawTemplateReference?.length);
         
-        // Normalize the template reference to fix any corruption
-        const templateReference = normalizeTemplateReference(rawTemplateReference);
-        console.log('[ActiveWorkoutMachine] 🧹 NORMALIZED template reference:', {
-          original: rawTemplateReference,
-          cleaned: templateReference
-        });
+        // Use the raw template reference directly since corruption is fixed at source
+        const templateReference = rawTemplateReference;
+        console.log('[ActiveWorkoutMachine] ✅ Using template reference directly (corruption fixed at source):', templateReference);
         
         // Basic validation after normalization
         if (!templateReference || templateReference.trim() === '') {
