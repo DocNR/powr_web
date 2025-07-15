@@ -86,8 +86,8 @@ const CompactWorkoutCard: React.FC<CompactWorkoutCardProps> = ({
     <div className="relative">
       <Card 
         className={cn(
-          "p-3 cursor-pointer hover:shadow-md transition-shadow duration-200",
-          "border border-border hover:border-orange-200",
+          "p-3 cursor-pointer hover:shadow-md transition-all duration-200",
+          "border border-border hover:ring-2 hover:ring-ring",
           className
         )}
         onClick={handleCardClick}

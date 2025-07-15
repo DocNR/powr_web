@@ -164,7 +164,7 @@ export const WorkoutCard = memo(function WorkoutCard({
       <Card 
         className={cn(
           "relative overflow-hidden cursor-pointer transition-all duration-300",
-          "hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]",
+          "hover:shadow-lg hover:scale-[1.02] hover:ring-2 hover:ring-ring active:scale-[0.98]",
           "w-full",
           className
         )}
@@ -256,12 +256,13 @@ export const WorkoutCard = memo(function WorkoutCard({
     return (
       <Card 
         className={cn(
-          "cursor-pointer transition-all duration-200 overflow-hidden",
-          "hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]",
+          "cursor-pointer transition-all duration-200",
+          "hover:shadow-lg hover:ring-2 hover:ring-ring",
           className
         )}
         onClick={handleCardClick}
       >
+        
         {/* Image with overlays */}
         {showImage && (
           <div className="relative h-48 w-full">
@@ -271,7 +272,7 @@ export const WorkoutCard = memo(function WorkoutCard({
               eventKind={workout.eventKind}
               alt={workout.title}
               fill={true}
-              className="w-full h-full"
+              className="w-full h-full rounded-t-lg"
             />
             
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-black/40" />
@@ -297,25 +298,6 @@ export const WorkoutCard = memo(function WorkoutCard({
                 </Avatar>
               </div>
             )}
-
-            {/* Heart Icon */}
-            <div className="absolute bottom-3 right-3 z-10">
-              <div className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-md">
-                <svg className="w-5 h-5 text-orange-500" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
-                </svg>
-              </div>
-            </div>
-
-            {/* POWR Logo */}
-            <div className="absolute bottom-3 left-3 z-10">
-              <div className="w-8 h-6 bg-white rounded-sm flex items-center justify-center shadow-md">
-                <div className="flex gap-0.5">
-                  <div className="w-1.5 h-3 bg-orange-500 rounded-sm" />
-                  <div className="w-1.5 h-3 bg-orange-600 rounded-sm" />
-                </div>
-              </div>
-            </div>
           </div>
         )}
 
@@ -325,40 +307,30 @@ export const WorkoutCard = memo(function WorkoutCard({
             {workout.title}
           </h3>
 
+          {/* Author info - show template creator */}
+          {workout.author && (
+            <p className="text-sm text-muted-foreground mb-2">
+              by {workout.author.name || workout.author.pubkey.slice(0, 8) + '...'}
+            </p>
+          )}
+
+          {/* Real metrics instead of hardcoded stats */}
           {showStats && (
             <div className="flex items-center gap-3 text-sm text-muted-foreground mb-2">
               <span>{exerciseCount} exercises</span>
               <span>•</span>
-              <span>{duration} min</span>
+                <span>{/* Calculate total sets */}
+                {workout.exercises.reduce((total, ex) => {
+                  const setCount = Array.isArray(ex.sets) ? ex.sets.length : (ex.sets || 0);
+                  return total + setCount;
+                }, 0)} sets
+              </span>
               <span>•</span>
-              <span>{Math.round(duration * 8)} cal</span>
+              <span>{duration} min</span>
             </div>
           )}
 
-          {isTemplate && (
-            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <span>Level:</span>
-                <div className="flex gap-1">
-                  {[1, 2, 3].map((i) => (
-                    <div 
-                      key={i}
-                      className={cn(
-                        "w-2 h-2 rounded-full",
-                        i <= getDifficultyLevel(workout.difficulty)
-                          ? "bg-orange-400" 
-                          : "bg-muted"
-                      )}
-                    />
-                  ))}
-                </div>
-                <span>{getDifficultyDisplay(workout.difficulty)}</span>
-              </div>
-              <span>Rating: 9.{Math.floor(Math.random() * 9) + 1}</span>
-            </div>
-          )}
-
-          {/* ✅ NEW: Social proof info */}
+          {/* Keep the social proof completion date */}
           {socialProof && (
             <div className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -367,13 +339,7 @@ export const WorkoutCard = memo(function WorkoutCard({
               Completed {socialProof.completedAt.toLocaleDateString()}
             </div>
           )}
-
-          {isRecord && (
-            <div className="text-sm text-muted-foreground mt-1">
-              {workout.completedAt.toLocaleDateString()}
-            </div>
-          )}
-        </CardContent>
+        </CardContent>  
       </Card>
     );
   }

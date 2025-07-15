@@ -119,7 +119,7 @@ export function ScrollableGallery({
               variant="ghost" 
               size="sm"
               onClick={onSeeAll}
-              className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+              className="text-primary hover:text-primary/90 hover:bg-primary/10"
             >
               See All
             </Button>
@@ -138,8 +138,10 @@ export function ScrollableGallery({
               size="sm"
               className={cn(
                 "absolute left-2 top-1/2 -translate-y-1/2 z-10",
-                "h-8 w-8 p-0 rounded-full bg-white/90 backdrop-blur-sm",
-                "border-gray-200 shadow-md hover:shadow-lg",
+                "h-8 w-8 p-0 rounded-full",
+                "bg-background/95 backdrop-blur-sm border-border text-muted-foreground",
+                "shadow-md hover:shadow-lg",
+                "hover:bg-primary hover:border-primary hover:text-primary-foreground",
                 "transition-all duration-200",
                 !canScrollLeft && "opacity-0 pointer-events-none"
               )}
@@ -155,8 +157,10 @@ export function ScrollableGallery({
               size="sm"
               className={cn(
                 "absolute right-2 top-1/2 -translate-y-1/2 z-10",
-                "h-8 w-8 p-0 rounded-full bg-white/90 backdrop-blur-sm",
-                "border-gray-200 shadow-md hover:shadow-lg",
+                "h-8 w-8 p-0 rounded-full",
+                "bg-background/95 backdrop-blur-sm border-border text-muted-foreground",
+                "shadow-md hover:shadow-lg",
+                "hover:bg-primary hover:border-primary hover:text-primary-foreground",
                 "transition-all duration-200",
                 !canScrollRight && "opacity-0 pointer-events-none"
               )}
@@ -175,6 +179,8 @@ export function ScrollableGallery({
             "flex overflow-x-auto scrollbar-hide",
             "scroll-smooth snap-x snap-mandatory",
             gapClasses[gap],
+            // Add padding to prevent clipping of shadows and rings
+            "py-2 px-1",
             // Hide scrollbar
             "[-webkit-overflow-scrolling:touch]",
             "[&::-webkit-scrollbar]:hidden",

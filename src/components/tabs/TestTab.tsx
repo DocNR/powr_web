@@ -16,9 +16,9 @@ import WorkoutLifecycleMachineIntegrationTest from '@/components/test/WorkoutLif
 import ActiveWorkoutNIP101eTest from '@/components/test/ActiveWorkoutNIP101eTest';
 import { DependencyResolutionServiceTest } from '@/components/test/DependencyResolutionServiceTest';
 import CompleteWorkoutFlowTest from '@/components/test/CompleteWorkoutFlowTest';
-import RealTimeInfiniteScrollTest from '@/components/test/RealTimeInfiniteScrollTest';
 import ParameterInterpretationTest from '@/components/test/ParameterInterpretationTest';
 import TemplateReferenceCorruptionTest from '@/components/test/TemplateReferenceCorruptionTest';
+import { WorkoutListManager } from '@/components/test/WorkoutListManager';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { TestTube, Target, Wifi, WifiOff } from 'lucide-react';
@@ -194,22 +194,6 @@ export function TestTab() {
           </Card>
         </div>
 
-        {/* 📡 NEW: Real-Time & Infinite Scroll Test */}
-        <div className="w-full">
-          <Card className="border-teal-200 bg-teal-50">
-            <CardHeader>
-              <CardTitle className="text-teal-800 flex items-center gap-2">
-                📡 NEW: Real-Time & Infinite Scroll Test (Phase 1 Complete)
-              </CardTitle>
-              <CardDescription className="text-teal-700">
-                Test the transformed WorkoutDataProvider with live WebSocket subscriptions and timestamp-based infinite scroll. Validates NDK-first real-time social feed patterns for golf app migration.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <RealTimeInfiniteScrollTest />
-            </CardContent>
-          </Card>
-        </div>
 
         {/* 🧪 NEW: Parameter Interpretation Test */}
         <div className="w-full">
@@ -245,6 +229,23 @@ export function TestTab() {
           </Card>
         </div>
 
+        {/* 📋 NIP-51 Lists & Collections Test */}
+        <div className="w-full">
+          <Card className="border-green-200 bg-green-50">
+            <CardHeader>
+              <CardTitle className="text-green-800 flex items-center gap-2">
+                📋 NIP-51 Lists & Collections Test
+              </CardTitle>
+              <CardDescription className="text-green-700">
+                Test NIP-51 list creation and management for workout collections. Validates the "List of Lists" user subscription architecture with complete dependency resolution.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <WorkoutListManager />
+            </CardContent>
+          </Card>
+        </div>
+
         {/* 🐛 DEBUG: Template Reference Corruption Test */}
         <div className="w-full">
           <Card className="border-red-300 bg-red-100">
@@ -253,7 +254,7 @@ export function TestTab() {
                 🐛 DEBUG: Template Reference Corruption Test
               </CardTitle>
               <CardDescription className="text-red-800">
-                Debug the template reference corruption bug where "33402:pubkey:d-tag" becomes "33402:pubkey:33402:pubkey:d-tag" during XState machine execution.
+                Debug the template reference corruption bug where &quot;33402:pubkey:d-tag&quot; becomes &quot;33402:pubkey:33402:pubkey:d-tag&quot; during XState machine execution.
               </CardDescription>
             </CardHeader>
             <CardContent>

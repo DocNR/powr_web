@@ -496,7 +496,14 @@ export default function WorkoutsTab() {
         </div>
         
         <SearchableWorkoutDiscovery
-          workouts={discoveryTemplates as any}
+          workouts={discoveryTemplates.map(workout => ({
+            ...workout,
+            difficulty: workout.difficulty || 'intermediate' as const,
+            author: {
+              ...workout.author,
+              name: workout.author.name || workout.author.pubkey.slice(0, 8) + '...'
+            }
+          }))}
           onWorkoutSelect={handleWorkoutSelect}
           onMenuAction={handleMenuAction}
           isLoading={isLoading && discoveryTemplates.length === 0}  // ← Only show loading when no templates loaded yet
