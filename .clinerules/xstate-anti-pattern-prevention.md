@@ -14,7 +14,7 @@ When XState feels difficult or requires complex workarounds, the solution is alm
 
 ### Step 1: Documentation First (MANDATORY)
 Before implementing ANY XState solution:
-1. **Check available XState documentation** at `/Users/danielwyler/referencerepos/state-management/xstate`
+1. **Check available XState documentation** in your local reference repositories
 2. **Review official XState v5 documentation** online
 3. **Review our working examples** in `components/test/` directory
 4. **Check existing patterns** in our codebase that work correctly

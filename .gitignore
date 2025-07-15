@@ -23,6 +23,7 @@
 # misc
 .DS_Store
 *.pem
+*.key
 
 # debug
 npm-debug.log*
@@ -42,3 +43,9 @@ next-env.d.ts
 
 # business plans (not relevant for open source)
 docs/white-label-implementation-plan.md
+
+# VSCode settings (contains personal paths and configurations)
+.vscode/
+
+# Personal development environment paths
+.clinerules/research-before-implementation.md

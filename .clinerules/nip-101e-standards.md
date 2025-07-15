@@ -4,7 +4,7 @@
 This rule establishes comprehensive standards for NIP-101e event generation, parsing, and validation in the POWR Workout PWA, ensuring strict compliance with Nostr conventions and preventing malformed events. Includes the new enum format system for extensible parameter validation.
 
 ## 📋 SOURCE OF TRUTH
-**ALWAYS refer to `/Users/danielwyler/powr_web/docs/nip-101e-specification.md` as the authoritative specification.**
+**ALWAYS refer to `docs/nip-101e-specification.md` as the authoritative specification.**
 
 This rule provides implementation guidance and best practices, but the official specification document is the definitive source for:
 - Event kind definitions and requirements

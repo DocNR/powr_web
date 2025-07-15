@@ -279,7 +279,7 @@ export const WorkoutCard = memo(function WorkoutCard({
             {/* ✅ NEW: Social Proof Badge - "Tried by Mike" */}
             {socialProof && (
               <div className="absolute top-3 left-3 z-10">
-                <div className="bg-blue-500/90 backdrop-blur-sm text-white px-3 py-1.5 rounded-full text-xs font-medium shadow-lg">
+                <div className="bg-orange-500/90 backdrop-blur-sm text-white px-3 py-1.5 rounded-full text-xs font-medium shadow-lg">
                   <span className="text-white/90">Tried by</span>{' '}
                   <span className="font-semibold">{socialProof.triedBy}</span>
                 </div>
