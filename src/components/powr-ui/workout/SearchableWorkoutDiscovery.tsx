@@ -64,14 +64,14 @@ const SearchableWorkoutDiscovery: React.FC<SearchableWorkoutDiscoveryProps> = ({
         return true;
       }
 
-      // Search in difficulty
-      if (workout.difficulty.toLowerCase().includes(query)) {
+      // Search in difficulty (with safety check)
+      if (workout.difficulty && workout.difficulty.toLowerCase().includes(query)) {
         return true;
       }
 
-      // Search in exercise names
-      if (workout.exercises.some(exercise => 
-        exercise.name.toLowerCase().includes(query)
+      // Search in exercise names (with safety checks)
+      if (workout.exercises && Array.isArray(workout.exercises) && workout.exercises.some(exercise => 
+        exercise?.name?.toLowerCase().includes(query)
       )) {
         return true;
       }
@@ -90,7 +90,7 @@ const SearchableWorkoutDiscovery: React.FC<SearchableWorkoutDiscoveryProps> = ({
       }
 
       // Search in author name
-      if (workout.author.name.toLowerCase().includes(query)) {
+      if (workout.author?.name?.toLowerCase().includes(query)) {
         return true;
       }
 

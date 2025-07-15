@@ -1,14 +1,16 @@
 'use client';
 
 /**
- * WorkoutsTab - Gallery-Based Workout Discovery
+ * WorkoutsTab - Template-Focused Workout Discovery
  * 
  * Uses cached Nostr data from WorkoutDataProvider for workout discovery interface.
- * Displays recent 1301 workout records and 33402 templates from the network.
+ * Social feed now shows templates that friends have tried (template-focused with social proof).
+ * Discovery shows available templates from the network.
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { CalendarBar, WorkoutCard, ScrollableGallery, SearchableWorkoutDiscovery, WorkoutDetailModal } from '@/components/powr-ui/workout';
+import WorkoutCardSkeleton from '@/components/powr-ui/workout/WorkoutCardSkeleton';
 import { useWorkoutData } from '@/providers/WorkoutDataProvider';
 import { useMachine } from '@xstate/react';
 import { workoutLifecycleMachine } from '@/lib/machines/workout/workoutLifecycleMachine';
@@ -25,9 +27,9 @@ export default function WorkoutsTab() {
   // Get authenticated user pubkey
   const userPubkey = usePubkey();
 
-  // Get cached data from provider
+  // Get cached data from provider (now template-focused)
   const {
-    socialWorkouts,
+    socialWorkouts, // Now contains templates with social proof
     discoveryTemplates,
     workoutIndicators,
     rawEventData,
@@ -106,7 +108,7 @@ export default function WorkoutsTab() {
         workoutSend({ type: 'RESET_LIFECYCLE' });
       }
     };
-  }, [workoutSend, workoutState]); // Empty dependency array = only runs on mount/unmount
+  }, [workoutSend, workoutState]);
 
   // POWR WOD - keep as featured content for now
   const powrWOD = useMemo(() => ({
@@ -182,82 +184,62 @@ export default function WorkoutsTab() {
         console.log('Pubkey:', eventData.pubkey);
         console.log('Created At:', new Date((eventData.created_at as number) * 1000).toLocaleString());
         console.log('Tags:', eventData.tags);
-        
-        // Check for referenced template
-        const templateData = rawEventData.get(`${workoutId}_template`);
-        if (templateData) {
-          console.log('Referenced Template:', {
-            title: templateData.title,
-            hexId: templateData.hexId,
-            naddr: templateData.naddr
-          });
-        }
-        
-        // Check for exercise data
-        const exerciseData = rawEventData.get(`${workoutId}_exercises`);
-        if (exerciseData) {
-          console.log('Exercises:', exerciseData.exercises);
-        }
-        
         console.groupEnd();
       } else {
         console.warn('No event data found for workout:', workoutId);
       }
     }
 
-    // NEW ARCHITECTURE: Start machine with preselected template
-    // Find the template ID to pass to the machine
-    let templateId = workoutId;
-    
+    // ✅ SIMPLIFIED: Use template reference directly from data structures
+    let templateReference: string | undefined;
+
     // Check if it's the POWR WOD
     if (workoutId === powrWOD.id) {
-      templateId = powrWOD.id;
+      templateReference = `33402:powr-coach:${powrWOD.id}`;
+      console.log('🔍 Using POWR WOD template reference:', templateReference);
     } else {
-      // Check discovery templates
-      const discoveryWorkout = discoveryTemplates.find(w => w.id === workoutId || w.eventId === workoutId);
-      if (discoveryWorkout) {
-        templateId = discoveryWorkout.id;
+      // Check social workouts first (now template-focused)
+      const socialWorkout = socialWorkouts.find(w => w.id === workoutId);
+      if (socialWorkout) {
+        templateReference = socialWorkout.templateReference;
+        console.log('🔍 ✅ Found template reference from social workout:', templateReference);
+        console.log('🔍 Social proof: Tried by', socialWorkout.socialProof.triedBy);
       } else {
-        // Check social workouts - if they have a referenced template, use that
-        const socialWorkout = socialWorkouts.find(w => w.id === workoutId || w.eventId === workoutId);
-        if (socialWorkout) {
-          const templateData = rawEventData.get(`${workoutId}_template`);
-          if (templateData && templateData.hexId && typeof templateData.hexId === 'string') {
-            // Use the referenced template ID
-            templateId = templateData.hexId;
+        // Check discovery templates
+        const discoveryWorkout = discoveryTemplates.find(w => w.id === workoutId || w.eventId === workoutId);
+        if (discoveryWorkout) {
+          templateReference = discoveryWorkout.templateRef;
+          console.log('🔍 Found template reference from discovery:', templateReference);
+        } else {
+          // Fallback: extract from rawEventData (for backwards compatibility)
+          const eventData = rawEventData.get(workoutId);
+          const templateReference_extracted = eventData?.templateReference as string;
+          
+          if (templateReference_extracted) {
+            templateReference = templateReference_extracted;
+            console.log('🔍 ⚠️ Using fallback template reference from rawEventData:', templateReference);
           }
         }
       }
     }
 
-    // Extract template author pubkey for proper template reference
-    let templateAuthorPubkey = 'user-pubkey'; // fallback
-    
-    // Check if it's the POWR WOD
-    if (workoutId === powrWOD.id) {
-      templateAuthorPubkey = 'powr-coach'; // POWR WOD author
-    } else {
-      // Check discovery templates for real author
-      const discoveryWorkout = discoveryTemplates.find(w => w.id === workoutId || w.eventId === workoutId);
-      if (discoveryWorkout) {
-        templateAuthorPubkey = discoveryWorkout.author.pubkey;
-        console.log('🔍 Found template author from discovery:', templateAuthorPubkey.slice(0, 8) + '...');
-      } else {
-        // Check raw event data for template author
-        const eventData = rawEventData.get(workoutId);
-        if (eventData && eventData.pubkey) {
-          templateAuthorPubkey = eventData.pubkey as string;
-          console.log('🔍 Found template author from event data:', templateAuthorPubkey.slice(0, 8) + '...');
-        }
-      }
+    // Validate template reference format
+    if (!templateReference) {
+      console.error('❌ No template reference found for workout:', workoutId);
+      setModalError('Cannot start workout: No template reference found');
+      return;
     }
 
-    // Create template reference in unified format
-    const templateReference = `33402:${templateAuthorPubkey}:${templateId}`;
-    
+    const templateParts = templateReference.split(':');
+    if (templateParts.length !== 3) {
+      console.error('❌ Invalid template reference format:', templateReference);
+      setModalError('Cannot start workout: Invalid template reference format');
+      return;
+    }
+
     console.log('🚀 Starting workout lifecycle machine with template reference:', templateReference);
     
-    // Start the workout lifecycle machine with unified template reference
+    // Start the workout lifecycle machine with the correct template reference
     workoutSend({ 
       type: 'START_SETUP',
       templateReference: templateReference
@@ -320,8 +302,6 @@ export default function WorkoutsTab() {
     
     // ✅ FIXED: DON'T close modal - let the machine state change handle the UI
     // The useEffect that watches workoutState will handle opening/closing the modal
-    // setIsModalOpen(false); // ❌ Remove this line
-    
     console.log('🚀 START_WORKOUT event sent to machine');
   };
 
@@ -346,12 +326,22 @@ export default function WorkoutsTab() {
         // TODO: Add to user's library
         break;
       case 'copy':
-        // Copy naddr to clipboard
-        const eventData = rawEventData.get(workoutId);
-        if (eventData?.naddr) {
-          navigator.clipboard.writeText(eventData.naddr as string);
-          console.log('Copied naddr to clipboard:', eventData.naddr);
+        // Copy template reference or event data to clipboard
+        const socialWorkout = socialWorkouts.find(w => w.id === workoutId);
+        const discoveryWorkout = discoveryTemplates.find(w => w.id === workoutId);
+        
+        let copyText = '';
+        if (socialWorkout) {
+          copyText = socialWorkout.templateReference;
+        } else if (discoveryWorkout?.templateRef) {
+          copyText = discoveryWorkout.templateRef;
+        } else {
+          const eventData = rawEventData.get(workoutId);
+          copyText = (eventData?.naddr || eventData?.nevent || workoutId) as string;
         }
+        
+        navigator.clipboard.writeText(copyText);
+        console.log('Copied to clipboard:', copyText);
         break;
       case 'share':
         console.log('Share workout:', workoutId);
@@ -384,8 +374,8 @@ export default function WorkoutsTab() {
         />
       </section>
 
-      {/* Loading State */}
-      {isLoading && (
+      {/* Loading State - Only show during initial load, not during "load more" */}
+      {isLoading && !isLoadingMore && socialWorkouts.length === 0 && discoveryTemplates.length === 0 && (
         <div className="flex items-center justify-center py-8">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600 mx-auto mb-2"></div>
@@ -405,10 +395,10 @@ export default function WorkoutsTab() {
         </div>
       )}
 
-      {/* Social Feed Section */}
+      {/* ✅ UPDATED: Social Feed Section - Now Template-Focused */}
       <section>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">What your friends are up to</h2>
+          <h2 className="text-lg font-semibold">Workouts your friends are trying</h2>
           <button className="text-sm text-orange-600 hover:text-orange-700">
             View all
           </button>
@@ -416,9 +406,9 @@ export default function WorkoutsTab() {
         
         {!isLoading && socialWorkouts.length === 0 ? (
           <div className="p-6 text-center bg-muted/50 rounded-lg">
-            <p className="text-muted-foreground">No recent workout records found.</p>
+            <p className="text-muted-foreground">No workout templates from your network yet.</p>
             <p className="text-sm text-muted-foreground mt-1">
-              Try publishing some workouts or check back later.
+              When your friends complete workouts, their templates will appear here.
             </p>
           </div>
         ) : (
@@ -428,7 +418,26 @@ export default function WorkoutsTab() {
                 <div key={workout.id} className="w-80 flex-shrink-0">
                   <WorkoutCard
                     variant="social"
-                    workout={workout}
+                    workout={{
+                      // Map social workout to expected format
+                      id: workout.id,
+                      title: workout.title, // Template name
+                      description: workout.description,
+                      exercises: workout.exercises, // Template exercises
+                      estimatedDuration: workout.estimatedDuration,
+                      difficulty: workout.difficulty as 'beginner' | 'intermediate' | 'advanced' | undefined,
+                      author: {
+                        pubkey: workout.author.pubkey, // Template author
+                        name: workout.author.name || workout.author.pubkey.slice(0, 8) + '...',
+                        picture: workout.author.picture || '/assets/workout-template-fallback.jpg'
+                      },
+                      // Add social proof info
+                      socialProof: {
+                        triedBy: workout.socialProof.triedBy,
+                        completedAt: workout.socialProof.completedAt
+                      },
+                      eventId: workout.eventId
+                    }}
                     onSelect={handleWorkoutSelect}
                     onAuthorClick={handleAuthorClick}
                     showImage={true}
@@ -438,6 +447,19 @@ export default function WorkoutsTab() {
                 </div>
               ))}
             </ScrollableGallery>
+
+            {/* ✨ NEW: Show skeleton cards while loading more - OUTSIDE ScrollableGallery */}
+            {isLoadingMore && hasMoreWorkouts && (
+              <div className="mt-4">
+                <div className="flex gap-4 overflow-x-auto pb-4">
+                  {[1, 2, 3].map((index) => (
+                    <div key={`skeleton-${index}`} className="w-80 flex-shrink-0">
+                      <WorkoutCardSkeleton variant="social" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             
             {/* Load More Social Workouts */}
             {hasMoreWorkouts && (
@@ -454,7 +476,7 @@ export default function WorkoutsTab() {
                     </>
                   ) : (
                     <>
-                      📥 Load more workouts
+                      📥 Load more templates
                     </>
                   )}
                 </button>
@@ -474,11 +496,10 @@ export default function WorkoutsTab() {
         </div>
         
         <SearchableWorkoutDiscovery
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           workouts={discoveryTemplates as any}
           onWorkoutSelect={handleWorkoutSelect}
           onMenuAction={handleMenuAction}
-          isLoading={isLoading}
+          isLoading={isLoading && discoveryTemplates.length === 0}  // ← Only show loading when no templates loaded yet
         />
         
         {/* Load More Discovery Templates */}
@@ -504,9 +525,9 @@ export default function WorkoutsTab() {
         )}
       </section>
 
-      {/* Real Nostr Integration Status */}
+      {/* ✅ UPDATED: Real Nostr Integration Status */}
       <div className="p-4 bg-blue-50 rounded border border-blue-200">
-        <h3 className="font-medium mb-2 text-blue-900">🌐 Real Nostr Integration</h3>
+        <h3 className="font-medium mb-2 text-blue-900">🌐 Template-Focused Social Feed</h3>
         <div className="text-sm text-blue-700 space-y-1">
           <p>✅ Phase 1: Calendar Bar - COMPLETE</p>
           <p>✅ Phase 2: POWR WOD Hero Card - COMPLETE</p>
@@ -516,13 +537,14 @@ export default function WorkoutsTab() {
           <p>✅ Phase 6: Real Nostr Integration - COMPLETE</p>
           <p>✅ Phase 7: Cached Data Provider - COMPLETE</p>
           <p>✅ Phase 8: Real-Time Subscriptions & Infinite Scroll - COMPLETE</p>
+          <p>✅ Phase 9: Template-Focused Social Feed - COMPLETE</p>
           <div className="mt-2 pt-2 border-t border-blue-200">
             <p className="font-medium">Live Data Sources:</p>
-            <p>• Social Feed: Recent Kind 1301 workout records ({socialWorkouts.length} loaded)</p>
-            <p>• Discovery: Kind 33402 workout templates ({discoveryTemplates.length} loaded)</p>
+            <p>• Social Feed: Templates tried by your network ({socialWorkouts.length} loaded)</p>
+            <p>• Discovery: Available workout templates ({discoveryTemplates.length} loaded)</p>
             <p>• Calendar: Workout completion indicators ({workoutIndicators.length} loaded)</p>
             <p>• Real-Time: {isLoading ? '🔄 Loading...' : '📡 Live WebSocket subscriptions active'}</p>
-            <p>• Infinite Scroll: {hasMoreWorkouts || hasMoreTemplates ? '📥 More content available' : '✅ All content loaded'}</p>
+            <p>• Template Focus: {hasMoreWorkouts || hasMoreTemplates ? '📥 More templates available' : '✅ All templates loaded'}</p>
           </div>
         </div>
       </div>

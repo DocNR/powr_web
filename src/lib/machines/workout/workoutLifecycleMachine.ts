@@ -338,6 +338,16 @@ export const workoutLifecycleMachine = setup({
             'logTransition'
           ]
         },
+        START_SETUP: {
+          target: 'setup',
+          actions: [
+            assign({
+              templateReference: ({ event }) => event.templateReference
+            }),
+            'logTransition', 
+            'updateLastActivity'
+          ]
+        },
         CANCEL_SETUP: {
           target: 'idle',
           actions: ['logTransition']
@@ -414,6 +424,16 @@ export const workoutLifecycleMachine = setup({
               }
             }),
             'logTransition'
+          ]
+        },
+        START_SETUP: {
+          target: 'setup',
+          actions: [
+            assign({
+              templateReference: ({ event }) => event.templateReference
+            }),
+            'logTransition', 
+            'updateLastActivity'
           ]
         },
         WORKOUT_CANCELLED: {
@@ -494,12 +514,39 @@ export const workoutLifecycleMachine = setup({
           target: 'publishError',
           actions: ['setError', 'logTransition']
         }
+      },
+      on: {
+        START_SETUP: {
+          target: 'setup',
+          actions: [
+            assign({
+              templateReference: ({ event }) => event.templateReference
+            }),
+            'logTransition', 
+            'updateLastActivity'
+          ]
+        }
       }
     },
     
     published: {
-      type: 'final',
-      entry: ['logTransition']
+      entry: ['logTransition'],
+      on: {
+        START_SETUP: {
+          target: 'setup',
+          actions: [
+            assign({
+              templateReference: ({ event }) => event.templateReference
+            }),
+            'logTransition', 
+            'updateLastActivity'
+          ]
+        },
+        RESET_LIFECYCLE: {
+          target: 'idle',
+          actions: ['logTransition']
+        }
+      }
     },
     
     publishError: {

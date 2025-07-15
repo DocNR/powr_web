@@ -22,5 +22,6 @@ export { ActiveWorkoutInterface } from './ActiveWorkoutInterface';
 export { SetRow } from './SetRow';
 export { ExerciseSection } from './ExerciseSection';
 export { WorkoutMiniBar } from './WorkoutMiniBar';
+export { default as WorkoutCardSkeleton } from './WorkoutCardSkeleton';
 
 // Types are available for import directly from individual components

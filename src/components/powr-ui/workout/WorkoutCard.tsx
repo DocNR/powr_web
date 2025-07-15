@@ -5,6 +5,7 @@
  * 
  * Multiple variants for different contexts: Hero, Social, Discovery, Compact.
  * Supports NIP-101e workout templates and records with beautiful design.
+ * Now includes social proof support for template-focused social feed.
  */
 
 import { memo } from 'react';
@@ -26,12 +27,19 @@ interface WorkoutTemplate {
     weight?: number;
   }>;
   estimatedDuration: number; // minutes
-  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  difficulty?: 'beginner' | 'intermediate' | 'advanced'; // Made optional
   tags?: string[];
   author?: {
     pubkey: string;
     name?: string;
     picture?: string;
+  };
+  // ✅ NEW: Social proof for template-focused social feed
+  socialProof?: {
+    triedBy: string;
+    triedByPubkey?: string;
+    completedAt: Date;
+    workoutRecordId?: string;
   };
   // Nostr event data
   eventId?: string;
@@ -108,13 +116,33 @@ export const WorkoutCard = memo(function WorkoutCard({
   
   const duration = isRecord ? workout.duration : workout.estimatedDuration;
 
-  // Get difficulty color
+  // Get difficulty color - handle undefined
   const getDifficultyColor = (difficulty?: string) => {
     switch (difficulty) {
       case 'beginner': return 'bg-green-100 text-green-800';
       case 'intermediate': return 'bg-yellow-100 text-yellow-800';
       case 'advanced': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  // Get difficulty level number for dots - handle undefined
+  const getDifficultyLevel = (difficulty?: string) => {
+    switch (difficulty) {
+      case 'beginner': return 1;
+      case 'intermediate': return 2;
+      case 'advanced': return 3;
+      default: return 2; // Default to intermediate
+    }
+  };
+
+  // Get difficulty display name - handle undefined
+  const getDifficultyDisplay = (difficulty?: string) => {
+    switch (difficulty) {
+      case 'beginner': return 'Low';
+      case 'intermediate': return 'Medium';
+      case 'advanced': return 'High';
+      default: return 'Medium';
     }
   };
 
@@ -137,7 +165,7 @@ export const WorkoutCard = memo(function WorkoutCard({
         className={cn(
           "relative overflow-hidden cursor-pointer transition-all duration-300",
           "hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]",
-          "w-full", // Ensure full width without max-w-none
+          "w-full",
           className
         )}
         onClick={handleCardClick}
@@ -158,7 +186,7 @@ export const WorkoutCard = memo(function WorkoutCard({
           </div>
         </div>
 
-        {/* Image - Larger ratio like mockup */}
+        {/* Image */}
         {showImage && (
           <div className="relative h-48 md:h-56 w-full">
             <WorkoutImageHandler
@@ -172,19 +200,16 @@ export const WorkoutCard = memo(function WorkoutCard({
               priority={true}
               lazy={false}
             />
-            {/* Dark overlay for text readability */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
           </div>
         )}
 
-        {/* Content - Compact like mockup */}
+        {/* Content */}
         <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
-          {/* Title */}
           <h2 className="text-xl font-bold mb-2 line-clamp-1">
             {workout.title}
           </h2>
 
-          {/* Compact Stats - Single line like mockup */}
           {showStats && (
             <div className="flex items-center gap-3 text-sm mb-2">
               <span>{exerciseCount} exercises</span>
@@ -195,7 +220,6 @@ export const WorkoutCard = memo(function WorkoutCard({
             </div>
           )}
 
-          {/* Level and Rating - Inline like mockup */}
           {isTemplate && (
             <div className="flex items-center gap-4 text-sm">
               <div className="flex items-center gap-1">
@@ -206,14 +230,14 @@ export const WorkoutCard = memo(function WorkoutCard({
                       key={i}
                       className={cn(
                         "w-2 h-2 rounded-full",
-                        i <= (workout.difficulty === 'beginner' ? 1 : workout.difficulty === 'intermediate' ? 2 : 3)
+                        i <= getDifficultyLevel(workout.difficulty)
                           ? "bg-orange-400" 
                           : "bg-white/30"
                       )}
                     />
                   ))}
                 </div>
-                <span className="capitalize">{workout.difficulty === 'beginner' ? 'Low' : workout.difficulty === 'intermediate' ? 'Medium' : 'High'}</span>
+                <span>{getDifficultyDisplay(workout.difficulty)}</span>
               </div>
               <span>•</span>
               <span>Rating: 9.3</span>
@@ -224,9 +248,10 @@ export const WorkoutCard = memo(function WorkoutCard({
     );
   }
 
-  // Social variant - workout records with author info matching mockup
+  // ✅ UPDATED: Social variant - now shows templates with social proof
   if (variant === 'social') {
     const author = isRecord ? workout.author : workout.author;
+    const socialProof = isTemplate ? workout.socialProof : null;
     
     return (
       <Card 
@@ -237,7 +262,7 @@ export const WorkoutCard = memo(function WorkoutCard({
         )}
         onClick={handleCardClick}
       >
-        {/* Image with overlays - matching mockup */}
+        {/* Image with overlays */}
         {showImage && (
           <div className="relative h-48 w-full">
             <WorkoutImageHandler
@@ -249,32 +274,31 @@ export const WorkoutCard = memo(function WorkoutCard({
               className="w-full h-full"
             />
             
-            {/* Dark overlay for text readability */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-black/40" />
             
-            {/* Author Avatar - Top Left */}
-            {showAuthor && author && (
+            {/* ✅ NEW: Social Proof Badge - "Tried by Mike" */}
+            {socialProof && (
               <div className="absolute top-3 left-3 z-10">
-                <Avatar className="h-10 w-10 cursor-pointer border-2 border-white/80" onClick={handleAuthorClick}>
-                  <AvatarImage src={author.picture} alt={author.name || 'User'} />
-                  <AvatarFallback className="bg-white text-gray-800 font-semibold">
-                    {author.name?.[0] || 'U'}
+                <div className="bg-blue-500/90 backdrop-blur-sm text-white px-3 py-1.5 rounded-full text-xs font-medium shadow-lg">
+                  <span className="text-white/90">Tried by</span>{' '}
+                  <span className="font-semibold">{socialProof.triedBy}</span>
+                </div>
+              </div>
+            )}
+            
+            {/* Template Author Avatar - Top Right (template creator) */}
+            {showAuthor && author && (
+              <div className="absolute top-3 right-3 z-10">
+                <Avatar className="h-8 w-8 cursor-pointer border-2 border-white/80" onClick={handleAuthorClick}>
+                  <AvatarImage src={author.picture} alt={author.name || 'Creator'} />
+                  <AvatarFallback className="bg-white text-gray-800 font-semibold text-xs">
+                    {author.name?.[0] || 'C'}
                   </AvatarFallback>
                 </Avatar>
               </div>
             )}
-            
-            {/* "is doing now" text - Top Right area */}
-            {showAuthor && author && (
-              <div className="absolute top-3 right-3 z-10">
-                <div className="text-white text-sm font-medium bg-black/30 backdrop-blur-sm px-3 py-1 rounded-full">
-                  <span className="font-semibold">{author.name || `${author.pubkey.slice(0, 8)}...`}</span>
-                  <span className="text-white/90"> is doing now</span>
-                </div>
-              </div>
-            )}
 
-            {/* Heart Icon - Bottom Right */}
+            {/* Heart Icon */}
             <div className="absolute bottom-3 right-3 z-10">
               <div className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-md">
                 <svg className="w-5 h-5 text-orange-500" fill="currentColor" viewBox="0 0 20 20">
@@ -283,7 +307,7 @@ export const WorkoutCard = memo(function WorkoutCard({
               </div>
             </div>
 
-            {/* POWR Logo - Bottom Right corner of image */}
+            {/* POWR Logo */}
             <div className="absolute bottom-3 left-3 z-10">
               <div className="w-8 h-6 bg-white rounded-sm flex items-center justify-center shadow-md">
                 <div className="flex gap-0.5">
@@ -295,14 +319,12 @@ export const WorkoutCard = memo(function WorkoutCard({
           </div>
         )}
 
-        {/* Content below image - matching mockup */}
+        {/* Content below image */}
         <CardContent className="p-4">
-          {/* Title */}
           <h3 className="font-bold text-xl mb-2 line-clamp-1">
             {workout.title}
           </h3>
 
-          {/* Stats - matching mockup layout */}
           {showStats && (
             <div className="flex items-center gap-3 text-sm text-muted-foreground mb-2">
               <span>{exerciseCount} exercises</span>
@@ -313,7 +335,6 @@ export const WorkoutCard = memo(function WorkoutCard({
             </div>
           )}
 
-          {/* Level and Rating - matching mockup */}
           {isTemplate && (
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
               <div className="flex items-center gap-1">
@@ -324,22 +345,29 @@ export const WorkoutCard = memo(function WorkoutCard({
                       key={i}
                       className={cn(
                         "w-2 h-2 rounded-full",
-                        i <= (workout.difficulty === 'beginner' ? 1 : workout.difficulty === 'intermediate' ? 2 : 3)
+                        i <= getDifficultyLevel(workout.difficulty)
                           ? "bg-orange-400" 
                           : "bg-muted"
                       )}
                     />
                   ))}
                 </div>
-                <span className="capitalize">
-                  {workout.difficulty === 'beginner' ? 'Low' : workout.difficulty === 'intermediate' ? 'Medium' : 'High'}
-                </span>
+                <span>{getDifficultyDisplay(workout.difficulty)}</span>
               </div>
               <span>Rating: 9.{Math.floor(Math.random() * 9) + 1}</span>
             </div>
           )}
 
-          {/* Date for records */}
+          {/* ✅ NEW: Social proof info */}
+          {socialProof && (
+            <div className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Completed {socialProof.completedAt.toLocaleDateString()}
+            </div>
+          )}
+
           {isRecord && (
             <div className="text-sm text-muted-foreground mt-1">
               {workout.completedAt.toLocaleDateString()}
@@ -350,7 +378,7 @@ export const WorkoutCard = memo(function WorkoutCard({
     );
   }
 
-  // Discovery variant - template browsing
+  // Discovery variant - template browsing (unchanged but with difficulty handling)
   if (variant === 'discovery') {
     return (
       <Card 
@@ -361,7 +389,6 @@ export const WorkoutCard = memo(function WorkoutCard({
         )}
         onClick={handleCardClick}
       >
-        {/* Image */}
         {showImage && (
           <div className="relative h-40 w-full">
             <WorkoutImageHandler
@@ -377,12 +404,10 @@ export const WorkoutCard = memo(function WorkoutCard({
         )}
 
         <CardContent className="p-4">
-          {/* Title */}
           <h3 className="font-semibold text-lg mb-2 line-clamp-1">
             {workout.title}
           </h3>
 
-          {/* Stats */}
           {showStats && (
             <div className="flex justify-between text-sm text-gray-600 mb-3">
               <span>{exerciseCount} exercises</span>
@@ -392,20 +417,18 @@ export const WorkoutCard = memo(function WorkoutCard({
                   "px-2 py-1 rounded text-xs font-medium",
                   getDifficultyColor(workout.difficulty)
                 )}>
-                  {workout.difficulty}
+                  {workout.difficulty || 'intermediate'}
                 </span>
               )}
             </div>
           )}
 
-          {/* Description */}
           {isTemplate && workout.description && (
             <p className="text-sm text-gray-600 line-clamp-2 mb-4">
               {workout.description}
             </p>
           )}
 
-          {/* Action Button */}
           <Button 
             className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white"
             size="sm"
@@ -417,8 +440,7 @@ export const WorkoutCard = memo(function WorkoutCard({
     );
   }
 
-
-  // List variant - horizontal cards for discovery section
+  // List variant (unchanged but with difficulty handling)
   if (variant === 'list') {
     return (
       <Card 
@@ -431,7 +453,6 @@ export const WorkoutCard = memo(function WorkoutCard({
       >
         <CardContent className="p-4">
           <div className="flex items-center gap-4">
-            {/* Thumbnail Image */}
             {showImage && (
               <div className="relative h-16 w-16 flex-shrink-0">
                 <WorkoutImageHandler
@@ -443,14 +464,12 @@ export const WorkoutCard = memo(function WorkoutCard({
                   height={64}
                   className="w-full h-full rounded-lg object-cover"
                 />
-                {/* Small logo overlay */}
                 <div className="absolute bottom-1 right-1 w-4 h-4 bg-white rounded-sm flex items-center justify-center">
                   <div className="w-2 h-2 bg-orange-500 rounded-full" />
                 </div>
               </div>
             )}
 
-            {/* Content */}
             <div className="flex-1 min-w-0">
               <h4 className="font-semibold text-base line-clamp-1 mb-1">
                 {workout.title}
@@ -466,7 +485,6 @@ export const WorkoutCard = memo(function WorkoutCard({
                 </div>
               )}
 
-              {/* Level and Rating */}
               {isTemplate && (
                 <div className="flex items-center gap-3 text-sm text-gray-600">
                   <div className="flex items-center gap-1">
@@ -477,14 +495,14 @@ export const WorkoutCard = memo(function WorkoutCard({
                           key={i}
                           className={cn(
                             "w-1.5 h-1.5 rounded-full",
-                            i <= (workout.difficulty === 'beginner' ? 1 : workout.difficulty === 'intermediate' ? 2 : 3)
+                            i <= getDifficultyLevel(workout.difficulty)
                               ? "bg-orange-400" 
                               : "bg-gray-300"
                           )}
                         />
                       ))}
                     </div>
-                    <span className="capitalize">{workout.difficulty}</span>
+                    <span className="capitalize">{workout.difficulty || 'intermediate'}</span>
                   </div>
                   <span>•</span>
                   <span>Rating: 9.{Math.floor(Math.random() * 9) + 1}</span>
@@ -492,7 +510,6 @@ export const WorkoutCard = memo(function WorkoutCard({
               )}
             </div>
 
-            {/* Arrow */}
             <div className="flex-shrink-0">
               <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -504,21 +521,20 @@ export const WorkoutCard = memo(function WorkoutCard({
     );
   }
 
-  // Table variant - compact table-style layout matching mockups
+  // Table variant (unchanged but with difficulty handling)
   if (variant === 'table') {
     return (
       <Card 
         className={cn(
           "cursor-pointer transition-all duration-200",
           "hover:bg-gray-50 hover:border-orange-200",
-          "h-16", // Fixed compact height
+          "h-16",
           className
         )}
         onClick={handleCardClick}
       >
         <CardContent className="p-3 h-full">
           <div className="flex items-center gap-3 h-full">
-            {/* Small Thumbnail */}
             {showImage && (
               <div className="relative h-10 w-10 flex-shrink-0">
                 <WorkoutImageHandler
@@ -533,7 +549,6 @@ export const WorkoutCard = memo(function WorkoutCard({
               </div>
             )}
 
-            {/* Content */}
             <div className="flex-1 min-w-0">
               <h4 className="font-medium text-sm line-clamp-1 mb-0.5">
                 {workout.title}
@@ -547,14 +562,13 @@ export const WorkoutCard = memo(function WorkoutCard({
                   {isTemplate && (
                     <>
                       <span>•</span>
-                      <span className="capitalize">{workout.difficulty}</span>
+                      <span className="capitalize">{workout.difficulty || 'intermediate'}</span>
                     </>
                   )}
                 </div>
               )}
             </div>
 
-            {/* Compact Action */}
             <Button 
               variant="ghost" 
               size="sm"
@@ -568,7 +582,7 @@ export const WorkoutCard = memo(function WorkoutCard({
     );
   }
 
-  // Compact variant - list view
+  // Compact variant (unchanged but with difficulty handling)
   if (variant === 'compact') {
     return (
       <Card 
@@ -581,7 +595,6 @@ export const WorkoutCard = memo(function WorkoutCard({
       >
         <CardContent className="p-4">
           <div className="flex items-center gap-4">
-            {/* Small Image */}
             {showImage && (
               <div className="relative h-16 w-16 flex-shrink-0">
                 <WorkoutImageHandler
@@ -596,7 +609,6 @@ export const WorkoutCard = memo(function WorkoutCard({
               </div>
             )}
 
-            {/* Content */}
             <div className="flex-1 min-w-0">
               <h4 className="font-medium text-base line-clamp-1 mb-1">
                 {workout.title}
@@ -614,7 +626,7 @@ export const WorkoutCard = memo(function WorkoutCard({
                         "px-2 py-0.5 rounded text-xs font-medium",
                         getDifficultyColor(workout.difficulty)
                       )}>
-                        {workout.difficulty}
+                        {workout.difficulty || 'intermediate'}
                       </span>
                     </>
                   )}
@@ -622,7 +634,6 @@ export const WorkoutCard = memo(function WorkoutCard({
               )}
             </div>
 
-            {/* Action */}
             <Button 
               variant="outline" 
               size="sm"

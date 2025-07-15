@@ -6,27 +6,35 @@ import { parseWorkoutEvent } from '@/lib/workout-events';
 import { useIsAuthenticated } from '@/lib/auth/hooks';
 import type { NDKEvent, NDKFilter, NDKSubscription } from '@nostr-dev-kit/ndk';
 
-// Types from WorkoutsTab - keeping exact same interface
+// Updated SocialWorkout interface - now template-focused with social proof
 interface SocialWorkout {
   id: string;
-  title: string;
-  completedAt: Date;
-  duration: number;
+  title: string; // Template name, not workout record title
+  description?: string; // Template description
   exercises: Array<{
     name: string;
-    sets: Array<{
-      reps: number;
-      weight: number;
-      rpe: number;
-    }>;
-  }>;
+    sets: number;
+    reps: number;
+    weight: number;
+  }>; // Template exercises, not completed sets
+  estimatedDuration: number; // Template duration
+  difficulty?: 'beginner' | 'intermediate' | 'advanced';
   author: {
-    pubkey: string;
-    name: string;
-    picture: string;
+    pubkey: string; // Template author pubkey
+    name?: string;
+    picture?: string;
   };
-  notes: string;
-  eventId?: string;
+  // Social proof - who tried this template
+  socialProof: {
+    triedBy: string; // Person who completed the workout
+    triedByPubkey: string;
+    completedAt: Date;
+    workoutRecordId: string; // Reference to the 1301 event
+  };
+  // Template info
+  templateId: string;
+  templateReference: string;
+  eventId?: string; // The 1301 event ID for tracking
 }
 
 interface DiscoveryWorkout {
@@ -39,15 +47,15 @@ interface DiscoveryWorkout {
     weight: number;
   }>;
   estimatedDuration: number;
-  difficulty?: 'beginner' | 'intermediate' | 'advanced'; // Optional - only if present in event
-  rating?: number; // Optional - only if present in event
-  calories?: number; // Optional - only if calculable from real data
-  muscleGroups?: string[]; // Optional - only if extractable from event
-  level?: string; // Optional - only if derivable from real data
+  difficulty?: 'beginner' | 'intermediate' | 'advanced';
+  rating?: number;
+  calories?: number;
+  muscleGroups?: string[];
+  level?: string;
   author: {
     pubkey: string;
-    name?: string; // Optional - only if profile data available
-    picture?: string; // Optional - only if profile data available
+    name?: string;
+    picture?: string;
   };
   eventId?: string;
   eventTags?: string[][];
@@ -95,6 +103,7 @@ export function WorkoutDataProvider({ children }: WorkoutDataProviderProps) {
   // Simple state management following NDK best practices
   const [socialEvents, setSocialEvents] = useState<NDKEvent[]>([]);
   const [discoveryEvents, setDiscoveryEvents] = useState<NDKEvent[]>([]);
+  const [templateCache, setTemplateCache] = useState<Map<string, NDKEvent>>(new Map());
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -111,6 +120,48 @@ export function WorkoutDataProvider({ children }: WorkoutDataProviderProps) {
   // Event maps for deduplication (NDK best practice)
   const socialEventsMapRef = useRef<Map<string, NDKEvent>>(new Map());
   const discoveryEventsMapRef = useRef<Map<string, NDKEvent>>(new Map());
+
+  // Helper function to fetch template data for social workouts
+  const fetchTemplateForSocialWorkout = useCallback(async (templateReference: string): Promise<NDKEvent | null> => {
+    const ndk = getNDKInstance();
+    if (!ndk) return null;
+
+    // Check cache first
+    if (templateCache.has(templateReference)) {
+      return templateCache.get(templateReference)!;
+    }
+
+    try {
+      const [kind, pubkey, dTag] = templateReference.split(':');
+      if (kind !== '33402' || !pubkey || !dTag) {
+        console.warn('[WorkoutDataProvider] Invalid template reference:', templateReference);
+        return null;
+      }
+
+      console.log('[WorkoutDataProvider] Fetching template:', { pubkey: pubkey.slice(0, 8) + '...', dTag });
+
+      const templateEvents = await ndk.fetchEvents({
+        kinds: [33402 as number],
+        authors: [pubkey],
+        '#d': [dTag],
+        limit: 1
+      });
+
+      const templateEvent = Array.from(templateEvents)[0];
+      if (templateEvent) {
+        // Cache the template
+        setTemplateCache(prev => new Map(prev.set(templateReference, templateEvent)));
+        console.log('[WorkoutDataProvider] ✅ Template fetched and cached:', templateReference);
+        return templateEvent;
+      }
+
+      console.warn('[WorkoutDataProvider] ❌ Template not found:', templateReference);
+      return null;
+    } catch (error) {
+      console.error('[WorkoutDataProvider] Error fetching template:', error);
+      return null;
+    }
+  }, [templateCache]);
 
   // Simple useSubscribe pattern following NDK best practices
   const setupSocialSubscription = useCallback((limit: number) => {
@@ -226,11 +277,37 @@ export function WorkoutDataProvider({ children }: WorkoutDataProviderProps) {
     };
   }, [isAuthenticated, socialLimit, discoveryLimit, setupSocialSubscription, setupDiscoverySubscription]);
 
-  // Transform social events to UI format (minimal processing)
+  // ✅ NEW: Transform social events to template-focused format with social proof
   const socialWorkouts = useMemo(() => {
-    return socialEvents.map((event: NDKEvent) => {
+    const processedWorkouts: SocialWorkout[] = [];
+    
+    for (const event of socialEvents) {
       try {
-        const parsed = parseWorkoutEvent({
+        // Extract template reference from 1301 event
+        const templateTag = event.tags.find(tag => tag[0] === 'template');
+        const templateReference = templateTag?.[1];
+        
+        if (!templateReference) {
+          console.warn('[WorkoutDataProvider] No template reference in workout record:', event.id);
+          continue;
+        }
+
+        // Check if we have the template cached
+        const templateEvent = templateCache.get(templateReference);
+        if (!templateEvent) {
+          // Template not cached yet, fetch it
+          fetchTemplateForSocialWorkout(templateReference);
+          continue; // Skip this workout for now, will be processed when template is fetched
+        }
+
+        console.log('[WorkoutDataProvider] 🔄 Processing social workout with template:', {
+          workoutId: event.id,
+          templateReference,
+          templateCached: !!templateEvent
+        });
+
+        // Parse the workout record for social proof info
+        const workoutRecord = parseWorkoutEvent({
           kind: event.kind!,
           content: event.content || '',
           tags: event.tags,
@@ -239,42 +316,63 @@ export function WorkoutDataProvider({ children }: WorkoutDataProviderProps) {
           id: event.id
         });
 
-        // Extract first exercise for preview
-        const firstExercise = parsed.exercises[0];
-        const exercisePreview = firstExercise ? {
-          name: firstExercise.reference.split(':')[2]?.replace(/-/g, ' ') || 'Exercise',
-          sets: [{
-            reps: parseInt(firstExercise.reps) || 0,
-            weight: parseInt(firstExercise.weight) || 0,
-            rpe: parseInt(firstExercise.rpe) || 7
-          }]
-        } : {
-          name: `${parsed.exercises.length} exercises`,
-          sets: [{ reps: 0, weight: 0, rpe: 7 }]
-        };
+        // Parse the template event
+        const templateTagMap = new Map(templateEvent.tags.map(tag => [tag[0], tag]));
+        const templateId = templateTagMap.get('d')?.[1] || 'unknown-template';
+        const templateName = templateTagMap.get('title')?.[1] || templateTagMap.get('name')?.[1] || 'Untitled Template';
+        const templateDescription = templateEvent.content || 'No description available';
+        const templateDifficulty = templateTagMap.get('difficulty')?.[1] as 'beginner' | 'intermediate' | 'advanced' | undefined;
+        const templateDuration = templateTagMap.get('duration')?.[1] ? parseInt(templateTagMap.get('duration')![1]) : undefined;
 
-        return {
-          id: parsed.id,
-          title: parsed.title,
-          completedAt: new Date(parsed.endTime * 1000),
-          duration: Math.floor(parsed.duration / 60), // Convert to minutes
-          exercises: [exercisePreview],
+        // Extract template exercises (what the user will actually do)
+        const templateExerciseTags = templateEvent.tags.filter(tag => tag[0] === 'exercise');
+        const templateExercises = templateExerciseTags.map(tag => ({
+          name: tag[1]?.split(':')[2]?.replace(/-/g, ' ') || 'Unknown Exercise',
+          sets: parseInt(tag[2]) || 3,
+          reps: parseInt(tag[3]) || 10,
+          weight: tag[4] ? parseInt(tag[4]) : 0
+        }));
+
+        // Create social workout showing template info with social proof
+        const socialWorkout: SocialWorkout = {
+          id: event.id, // Use workout record ID for selection
+          title: templateName, // Show template name
+          description: templateDescription, // Show template description
+          exercises: templateExercises, // Show template exercises (what user will do)
+          estimatedDuration: templateDuration ? Math.round(templateDuration / 60) : 30,
+          difficulty: templateDifficulty,
           author: {
-            pubkey: parsed.pubkey,
-            name: `${parsed.pubkey.slice(0, 8)}...`, // Keep minimal display name for UI compatibility
-            picture: '/assets/workout-record-fallback.jpg' // Keep fallback for UI compatibility
+            pubkey: templateEvent.pubkey, // Template author
+            name: templateEvent.pubkey.slice(0, 8) + '...', // Template author display
           },
-          notes: parsed.content || 'Completed workout',
-          eventId: parsed.eventId
+          socialProof: {
+            triedBy: event.pubkey.slice(0, 8) + '...', // Person who completed it
+            triedByPubkey: event.pubkey,
+            completedAt: new Date(workoutRecord.endTime * 1000),
+            workoutRecordId: event.id
+          },
+          templateId,
+          templateReference,
+          eventId: event.id
         };
-      } catch (error) {
-        console.warn('[WorkoutDataProvider] Failed to parse social workout:', error);
-        return null;
-      }
-    }).filter(Boolean) as SocialWorkout[];
-  }, [socialEvents]);
 
-  // Transform discovery events to UI format (minimal processing)
+        processedWorkouts.push(socialWorkout);
+
+        console.log('[WorkoutDataProvider] ✅ Social workout processed:', {
+          templateName,
+          triedBy: socialWorkout.socialProof.triedBy,
+          exercises: templateExercises.length
+        });
+
+      } catch (error) {
+        console.warn('[WorkoutDataProvider] Failed to process social workout:', error);
+      }
+    }
+
+    return processedWorkouts;
+  }, [socialEvents, templateCache, fetchTemplateForSocialWorkout]);
+
+  // Transform discovery events to UI format (unchanged)
   const discoveryTemplates = useMemo(() => {
     return discoveryEvents.map((event: NDKEvent) => {
       try {
@@ -299,16 +397,10 @@ export function WorkoutDataProvider({ children }: WorkoutDataProviderProps) {
           id: dTag,
           title: name,
           exercises,
-          estimatedDuration: estimatedDuration ? Math.round(estimatedDuration / 60) : 30, // Convert to minutes or default to 30
-          difficulty, // Only include if present in event tags
-          // rating: removed - no fake data
-          // calories: removed - no fake data  
-          // muscleGroups: removed - no fake data
-          // level: removed - no fake data
+          estimatedDuration: estimatedDuration ? Math.round(estimatedDuration / 60) : 30,
+          difficulty,
           author: {
             pubkey: event.pubkey,
-            // name: removed - only pubkey available
-            // picture: removed - no fake fallback images
           },
           eventId: event.id,
           eventTags: event.tags,
@@ -322,21 +414,24 @@ export function WorkoutDataProvider({ children }: WorkoutDataProviderProps) {
     }).filter(Boolean) as DiscoveryWorkout[];
   }, [discoveryEvents]);
 
-  // Generate workout indicators from social workouts
+  // Generate workout indicators from social workouts (now based on template completion)
   const workoutIndicators = useMemo(() => {
     return socialWorkouts.slice(0, 10).map(workout => ({
-      date: workout.completedAt,
+      date: workout.socialProof.completedAt,
       count: 1,
       type: 'completed' as const
     }));
   }, [socialWorkouts]);
 
-  // Create raw event data map for UI compatibility
+  // ✅ UPDATED: Create raw event data map with template references
   const rawEventData = useMemo(() => {
     const eventMap = new Map<string, Record<string, unknown>>();
     
-    // Add social workout events
+    // Add social workout events with template references
     socialEvents.forEach((event: NDKEvent) => {
+      const templateTag = event.tags.find(tag => tag[0] === 'template');
+      const templateReference = templateTag?.[1];
+      
       eventMap.set(event.id, {
         type: '1301_workout_record',
         hexId: event.id,
@@ -344,11 +439,12 @@ export function WorkoutDataProvider({ children }: WorkoutDataProviderProps) {
         pubkey: event.pubkey,
         created_at: event.created_at,
         tags: event.tags,
-        rawEvent: event
+        rawEvent: event,
+        templateReference: templateReference // Store template reference for WorkoutsTab
       });
     });
 
-    // Add discovery template events
+    // Add discovery template events (unchanged)
     discoveryEvents.forEach((event: NDKEvent) => {
       const dTag = event.tags.find(tag => tag[0] === 'd')?.[1];
       const templateData = {
@@ -369,6 +465,24 @@ export function WorkoutDataProvider({ children }: WorkoutDataProviderProps) {
 
     return eventMap;
   }, [socialEvents, discoveryEvents]);
+
+  // Trigger template fetching when social events change
+  useEffect(() => {
+    const fetchMissingTemplates = async () => {
+      for (const event of socialEvents) {
+        const templateTag = event.tags.find(tag => tag[0] === 'template');
+        const templateReference = templateTag?.[1];
+        
+        if (templateReference && !templateCache.has(templateReference)) {
+          await fetchTemplateForSocialWorkout(templateReference);
+        }
+      }
+    };
+
+    if (socialEvents.length > 0) {
+      fetchMissingTemplates();
+    }
+  }, [socialEvents, templateCache, fetchTemplateForSocialWorkout]);
 
   // Simple infinite scroll - increase limits
   const loadMoreSocialWorkouts = useCallback(async () => {
@@ -399,9 +513,6 @@ export function WorkoutDataProvider({ children }: WorkoutDataProviderProps) {
       const newLimit = discoveryLimit + 3;
       setDiscoveryLimit(newLimit);
       // Subscription will automatically update with new limit
-    } catch (error) {
-      console.error('[WorkoutDataProvider] Failed to load more discovery templates:', error);
-      setError('Failed to load more templates');
     } finally {
       setIsLoadingMore(false);
     }
