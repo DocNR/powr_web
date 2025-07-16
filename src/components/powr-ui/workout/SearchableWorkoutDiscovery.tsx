@@ -12,7 +12,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { Input } from '@/components/powr-ui/primitives/Input';
-import CompactWorkoutCard from './CompactWorkoutCard';
+import { WorkoutCard } from './WorkoutCard';
 
 interface SearchableWorkoutDiscoveryProps {
   workouts: Array<{
@@ -142,8 +142,9 @@ const SearchableWorkoutDiscovery: React.FC<SearchableWorkoutDiscoveryProps> = ({
           {filteredWorkouts.length > 0 ? (
             <div className="space-y-3">
               {filteredWorkouts.map((workout, index) => (
-                <CompactWorkoutCard
+                <WorkoutCard
                   key={workout.eventId || workout.id || `workout-${index}`}
+                  variant="compact"
                   workout={workout}
                   onSelect={onWorkoutSelect}
                   onMenuAction={onMenuAction}

@@ -8,7 +8,7 @@
  * Now includes social proof support for template-focused social feed.
  */
 
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import { Card, CardContent } from '@/components/powr-ui/primitives/Card';
 import { Button } from '@/components/powr-ui/primitives/Button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/powr-ui/primitives/Avatar';
@@ -81,6 +81,7 @@ interface WorkoutCardProps {
   workout: WorkoutTemplate | WorkoutRecord;
   onSelect?: (workoutId: string) => void;
   onAuthorClick?: (pubkey: string) => void;
+  onMenuAction?: (action: string, workoutId: string) => void;
   className?: string;
   showImage?: boolean;
   showAuthor?: boolean;
@@ -101,11 +102,13 @@ export const WorkoutCard = memo(function WorkoutCard({
   workout,
   onSelect,
   onAuthorClick,
+  onMenuAction,
   className,
   showImage = true,
   showAuthor = true,
   showStats = true
 }: WorkoutCardProps) {
+  const [showMenu, setShowMenu] = useState(false);
   const isRecord = isWorkoutRecord(workout);
   const isTemplate = isWorkoutTemplate(workout);
 
@@ -164,11 +167,20 @@ export const WorkoutCard = memo(function WorkoutCard({
       <Card 
         className={cn(
           "relative overflow-hidden cursor-pointer transition-all duration-300",
-          "hover:shadow-lg hover:scale-[1.02] hover:ring-2 hover:ring-ring active:scale-[0.98]",
+          "hover:shadow-lg hover:scale-[1.02] hover:ring-2 hover:ring-ring",
+          "active:scale-[0.98] active:ring-2 active:ring-ring",
+          "focus:ring-2 focus:ring-ring focus:outline-none",
           "w-full",
           className
         )}
         onClick={handleCardClick}
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleCardClick();
+          }
+        }}
       >
         {/* POWR WOD Badge */}
         <div className="absolute top-3 left-3 z-20">
@@ -258,9 +270,18 @@ export const WorkoutCard = memo(function WorkoutCard({
         className={cn(
           "cursor-pointer transition-all duration-200",
           "hover:shadow-lg hover:ring-2 hover:ring-ring",
+          "active:scale-[0.98] active:ring-2 active:ring-ring",
+          "focus:ring-2 focus:ring-ring focus:outline-none",
           className
         )}
         onClick={handleCardClick}
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleCardClick();
+          }
+        }}
       >
         
         {/* Image with overlays */}
@@ -350,10 +371,19 @@ export const WorkoutCard = memo(function WorkoutCard({
       <Card 
         className={cn(
           "cursor-pointer transition-all duration-200",
-          "hover:shadow-lg hover:border-orange-200",
+          "hover:shadow-lg hover:ring-2 hover:ring-ring",
+          "active:scale-[0.98] active:ring-2 active:ring-ring",
+          "focus:ring-2 focus:ring-ring focus:outline-none",
           className
         )}
         onClick={handleCardClick}
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleCardClick();
+          }
+        }}
       >
         {showImage && (
           <div className="relative h-40 w-full">
@@ -412,10 +442,19 @@ export const WorkoutCard = memo(function WorkoutCard({
       <Card 
         className={cn(
           "cursor-pointer transition-all duration-200",
-          "hover:bg-gray-50 hover:border-orange-200",
+          "hover:bg-gray-50 hover:border-orange-200 hover:ring-2 hover:ring-ring",
+          "active:ring-2 active:ring-ring",
+          "focus:ring-2 focus:ring-ring focus:outline-none",
           className
         )}
         onClick={handleCardClick}
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleCardClick();
+          }
+        }}
       >
         <CardContent className="p-4">
           <div className="flex items-center gap-4">
@@ -493,11 +532,20 @@ export const WorkoutCard = memo(function WorkoutCard({
       <Card 
         className={cn(
           "cursor-pointer transition-all duration-200",
-          "hover:bg-gray-50 hover:border-orange-200",
+          "hover:bg-gray-50 hover:border-orange-200 hover:ring-2 hover:ring-ring",
+          "active:ring-2 active:ring-ring",
+          "focus:ring-2 focus:ring-ring focus:outline-none",
           "h-16",
           className
         )}
         onClick={handleCardClick}
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleCardClick();
+          }
+        }}
       >
         <CardContent className="p-3 h-full">
           <div className="flex items-center gap-3 h-full">
@@ -548,68 +596,143 @@ export const WorkoutCard = memo(function WorkoutCard({
     );
   }
 
-  // Compact variant (unchanged but with difficulty handling)
+  // Compact variant with menu functionality (like CompactWorkoutCard)
   if (variant === 'compact') {
+    const handleMenuClick = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      setShowMenu(!showMenu);
+    };
+
+    const handleMenuAction = (action: string) => {
+      setShowMenu(false);
+      onMenuAction?.(action, workout.id);
+    };
+
+    const formatDuration = (minutes: number) => {
+      if (minutes < 60) {
+        return `${minutes} min`;
+      }
+      const hours = Math.floor(minutes / 60);
+      const remainingMinutes = minutes % 60;
+      return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
+    };
+
     return (
-      <Card 
-        className={cn(
-          "cursor-pointer transition-all duration-200",
-          "hover:bg-gray-50 hover:border-orange-200",
-          className
-        )}
-        onClick={handleCardClick}
-      >
-        <CardContent className="p-4">
-          <div className="flex items-center gap-4">
+      <div className="relative">
+        <Card 
+          className={cn(
+            "p-3 cursor-pointer hover:shadow-md transition-all duration-200",
+            "border border-border hover:ring-2 hover:ring-ring",
+            "active:scale-[0.98] active:ring-2 active:ring-ring",
+            "focus:ring-2 focus:ring-ring focus:outline-none",
+            className
+          )}
+          onClick={handleCardClick}
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              handleCardClick();
+            }
+          }}
+        >
+          <div className="flex items-center gap-3">
+            {/* Workout Image/Icon */}
             {showImage && (
-              <div className="relative h-16 w-16 flex-shrink-0">
-                <WorkoutImageHandler
-                  tags={workout.eventTags}
-                  content={workout.eventContent}
-                  eventKind={workout.eventKind}
-                  alt={workout.title}
-                  width={64}
-                  height={64}
-                  className="w-full h-full rounded-lg"
-                />
+              <div className="flex-shrink-0">
+                <div className="relative w-12 h-12 rounded-lg overflow-hidden">
+                  <WorkoutImageHandler
+                    tags={workout.eventTags}
+                    eventKind={workout.eventKind}
+                    fill={true}
+                    className="w-full h-full"
+                    alt={`${workout.title} workout`}
+                  />
+                </div>
               </div>
             )}
 
+            {/* Workout Info */}
             <div className="flex-1 min-w-0">
-              <h4 className="font-medium text-base line-clamp-1 mb-1">
-                {workout.title}
-              </h4>
-              
-              {showStats && (
-                <div className="flex items-center gap-3 text-sm text-gray-600">
-                  <span>{exerciseCount} exercises</span>
-                  <span>•</span>
-                  <span>{duration}m</span>
-                  {isTemplate && (
-                    <>
-                      <span>•</span>
-                      <span className={cn(
-                        "px-2 py-0.5 rounded text-xs font-medium",
-                        getDifficultyColor(workout.difficulty)
-                      )}>
-                        {workout.difficulty || 'intermediate'}
-                      </span>
-                    </>
-                  )}
+              <div className="flex items-start justify-between">
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-medium text-sm text-foreground truncate">
+                    {workout.title}
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {exerciseCount} exercises • {formatDuration(duration)}
+                  </p>
+                </div>
+
+                {/* Menu Button */}
+                {onMenuAction && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 ml-2 flex-shrink-0"
+                    onClick={handleMenuClick}
+                  >
+                    <span className="text-muted-foreground">⋯</span>
+                  </Button>
+                )}
+              </div>
+
+              {/* Difficulty Badge and Rating */}
+              {showStats && isTemplate && (
+                <div className="flex items-center gap-2 mt-2">
+                  <span className={cn(
+                    "px-2 py-0.5 rounded-full text-xs font-medium",
+                    getDifficultyColor(workout.difficulty)
+                  )}>
+                    {workout.difficulty || 'intermediate'}
+                  </span>
                 </div>
               )}
             </div>
-
-            <Button 
-              variant="outline" 
-              size="sm"
-              className="border-orange-200 text-orange-600 hover:bg-orange-50"
-            >
-              {isRecord ? 'View' : 'Start'}
-            </Button>
           </div>
-        </CardContent>
-      </Card>
+        </Card>
+
+        {/* Dropdown Menu */}
+        {showMenu && onMenuAction && (
+          <>
+            {/* Backdrop */}
+            <div 
+              className="fixed inset-0 z-40"
+              onClick={() => setShowMenu(false)}
+            />
+            
+            {/* Menu - Fixed positioning to appear above the card */}
+            <div className="absolute right-0 bottom-full mb-1 z-50 w-48 bg-background border border-border rounded-md shadow-lg">
+              <div className="py-1">
+                <button
+                  className="w-full px-3 py-2 text-left text-sm hover:bg-muted transition-colors"
+                  onClick={() => handleMenuAction('details')}
+                >
+                  📋 Open Details
+                </button>
+                <button
+                  className="w-full px-3 py-2 text-left text-sm hover:bg-muted transition-colors"
+                  onClick={() => handleMenuAction('library')}
+                >
+                  📚 Add to Library
+                </button>
+                <button
+                  className="w-full px-3 py-2 text-left text-sm hover:bg-muted transition-colors"
+                  onClick={() => handleMenuAction('copy')}
+                >
+                  🔗 Copy naddr
+                </button>
+                <button
+                  className="w-full px-3 py-2 text-left text-sm hover:bg-muted transition-colors"
+                  onClick={() => handleMenuAction('share')}
+                >
+                  📤 Share
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
     );
   }
 

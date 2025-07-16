@@ -235,7 +235,7 @@ export const WorkoutDetailModal = ({
             <div className="pb-6">
               <Button
                 onClick={onStartWorkout}
-                className="w-full h-12 bg-gradient-to-r from-orange-400 via-orange-500 to-red-500 hover:from-orange-500 hover:via-orange-600 hover:to-red-600 text-black font-semibold text-base rounded-xl flex items-center justify-center gap-2"
+                className="w-full h-12 bg-gradient-to-r from-orange-400 via-orange-500 to-red-500 hover:from-orange-500 hover:via-orange-600 hover:to-red-600 text-black font-semibold text-base rounded-s flex items-center justify-center gap-2"
               >
                 <Play className="h-5 w-5 fill-current" />
                 Start workout
