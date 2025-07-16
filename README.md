@@ -176,7 +176,6 @@ Production relays for real-world testing:
 
 ### **Authentication Methods**
 - **NIP-07 Browser Extensions** (Recommended) - Alby, nos2x, etc.
-- **Private Key Fallback** - Encrypted storage with Web Crypto API
 - **User Data Ownership** - Users control all data with their Nostr keys
 
 ### **Cross-App Compatibility**
@@ -246,7 +245,6 @@ All workout data is stored as standard Nostr events, making it compatible with a
 - **Native Mobile Apps**: React Native versions for iOS and Android
 - **Multi-Sport Support**: Running, cycling, yoga, and other activities
 - **AI Integration**: Personalized recommendations and coaching
-- **Enterprise Features**: Team management and gym integrations
 
 ## 📄 **License & Legal**
 
