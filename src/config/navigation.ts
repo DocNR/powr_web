@@ -1,7 +1,7 @@
 import { Home, Library, Zap, Users, BookOpen, TestTube } from 'lucide-react';
 import { NavigationTab } from '@/types/navigation';
 
-export const navigationTabs: NavigationTab[] = [
+const allTabs: NavigationTab[] = [
   {
     id: 'home',
     label: 'Home',
@@ -34,5 +34,10 @@ export const navigationTabs: NavigationTab[] = [
     icon: TestTube,
   },
 ];
+
+// Filter out test tab in production
+export const navigationTabs: NavigationTab[] = process.env.NODE_ENV === 'production' 
+  ? allTabs.filter(tab => tab.id !== 'test')
+  : allTabs;
 
 export const defaultTab = 'home';

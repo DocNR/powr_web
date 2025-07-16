@@ -72,6 +72,13 @@ formatting_rules:
 ## 🟢 Normal Priority
 
 ### Technical Improvements
+- [ ] **Fix ESLint errors in test files** (S)
+  - Multiple ESLint errors in src/components/test/ files
+  - Issues: unescaped entities, @typescript-eslint/no-explicit-any, unused variables
+  - Currently disabled ESLint during builds for deployment
+  - Should fix errors and re-enable linting for better code quality
+  - **Context**: ESLint disabled in next.config.ts for Vercel deployment
+
 - [ ] **Service Layer Extraction for activeWorkoutMachine** (M)
   - Extract template loading service (~150 lines of complex fallback logic)
   - Extract workout data transformation service (CompletedWorkout format conversion)

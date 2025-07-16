@@ -1,13 +1,17 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, lazy, Suspense } from 'react';
 import { useNavigation } from '@/providers/NavigationProvider';
 import HomeTab from '@/components/tabs/HomeTab';
 import { LibraryTab } from '@/components/tabs/LibraryTab';
 import WorkoutsTab from '@/components/tabs/WorkoutsTab';
 import { SocialTab } from '@/components/tabs/SocialTab';
 import { LogTab } from '@/components/tabs/LogTab';
-import { TestTab } from '@/components/tabs/TestTab';
+
+// Conditionally import TestTab only in development
+const TestTab = process.env.NODE_ENV !== 'production' 
+  ? lazy(() => import('@/components/tabs/TestTab'))
+  : null;
 
 export function TabRouter() {
   const { activeTab } = useNavigation();
@@ -38,7 +42,12 @@ export function TabRouter() {
       case 'log':
         return <LogTab />;
       case 'test':
-        return <TestTab />;
+        // Only render TestTab in development
+        return process.env.NODE_ENV !== 'production' && TestTab ? (
+          <Suspense fallback={<div>Loading...</div>}>
+            <TestTab />
+          </Suspense>
+        ) : <HomeTab />;
       default:
         return <HomeTab />;
     }

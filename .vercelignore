@@ -1,5 +1,6 @@
 # Development and testing files
 src/components/test/
+src/app/ui-test/
 docs/
 .clinerules/
 *.md
