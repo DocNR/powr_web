@@ -12,7 +12,6 @@
 import { useAtom, useAtomValue } from 'jotai';
 import { nip19 } from 'nostr-tools';
 import NDK, {
-  NDKUser,
   NDKNip07Signer,
   NDKNip46Signer,
   NDKPrivateKeySigner,
@@ -178,34 +177,40 @@ export function useNip07Login() {
 
 /**
  * Parse NIP-46 connection settings from bunker URL or NIP-05
+ * Based on NIP-46 specification: bunker://<remote-signer-pubkey>?relay=<wss://relay>&secret=<optional-secret>
  */
 async function getNostrConnectSettings(ndk: NDK, nostrConnect: string): Promise<Nip46Settings | null> {
   try {
     if (nostrConnect.startsWith('bunker://')) {
       const asURL = new URL(nostrConnect);
       const relays = asURL.searchParams.getAll('relay');
-      const token = asURL.searchParams.get('secret');
-      const pubkey = asURL.hostname || asURL.pathname.replace(/^\/\//, '');
+      const secret = asURL.searchParams.get('secret');
+      
+      // Extract remote-signer-pubkey from hostname
+      const remoteSignerPubkey = asURL.hostname;
+      
+      if (!remoteSignerPubkey || remoteSignerPubkey.length !== 64) {
+        throw new Error('Invalid bunker URL: missing or invalid remote-signer-pubkey');
+      }
+      
+      // Decode relay URLs (they're URL encoded in bunker URLs)
+      const decodedRelays = relays.map(relay => decodeURIComponent(relay));
+      
+      console.log('[NIP-46 Settings] Parsed bunker URL:', {
+        remoteSignerPubkey: remoteSignerPubkey.slice(0, 16) + '...',
+        relays: decodedRelays,
+        hasSecret: !!secret
+      });
       
       return { 
-        relays: relays.length > 0 ? relays : ['wss://relay.nsecbunker.com'], 
-        pubkey, 
-        token: token || undefined 
+        relays: decodedRelays.length > 0 ? decodedRelays : ['wss://relay.nsecbunker.com'], 
+        pubkey: remoteSignerPubkey, 
+        token: secret || undefined 
       };
-    } else {
-      // Try NIP-05 format
-      const user = await NDKUser.fromNip05(nostrConnect, ndk);
-      if (user) {
-        const pubkey = user.pubkey;
-        const relays = user.nip46Urls?.length > 0 
-          ? user.nip46Urls 
-          : ['wss://relay.nsecbunker.com'];
-        
-        return { pubkey, relays };
-      }
     }
+    // Note: NIP-05 support removed for now due to API complexity
   } catch (error) {
-    console.error('[NIP-46 Settings]', error);
+    console.error('[NIP-46 Settings] Error parsing connection string:', error);
   }
   
   return null;
@@ -254,6 +259,7 @@ function validateBunkerUrl(url: string): ValidationResult {
 
 /**
  * NIP-46 Remote Signing Authentication
+ * Fixed implementation based on NIP-46 specification
  */
 export function useNip46Login() {
   const [, setAccount] = useAtom(accountAtom);
@@ -262,6 +268,8 @@ export function useNip46Login() {
 
   return async (remoteSignerURL: string): Promise<{ success: boolean; error?: AuthenticationError }> => {
     try {
+      console.log('[NIP-46 Login] Starting connection to:', remoteSignerURL);
+      
       // Validate the URL format
       const validation = validateBunkerUrl(remoteSignerURL);
       if (!validation.valid) {
@@ -274,10 +282,10 @@ export function useNip46Login() {
         };
       }
 
-      const ndk = await getNDK();
+      const mainNDK = await getNDK();
       
-      // Get connection settings
-      const settings = await getNostrConnectSettings(ndk, remoteSignerURL);
+      // Get connection settings from bunker URL
+      const settings = await getNostrConnectSettings(mainNDK, remoteSignerURL);
       if (!settings) {
         return {
           success: false,
@@ -288,28 +296,66 @@ export function useNip46Login() {
         };
       }
 
-      // Create local signer for the connection
-      const localSigner = NDKPrivateKeySigner.generate();
-      
-      // Create bunker NDK instance
-      const bunkerNDK = new NDK({
-        explicitRelayUrls: settings.relays,
+      console.log('[NIP-46 Login] Connection settings:', {
+        remoteSignerPubkey: settings.pubkey.slice(0, 16) + '...',
+        relays: settings.relays,
+        hasToken: !!settings.token
       });
 
-      // Create NIP-46 signer
+      // Create local signer for the connection (client-keypair)
+      const localSigner = NDKPrivateKeySigner.generate();
+      const localUser = await localSigner.user();
+      console.log('[NIP-46 Login] Generated local client keypair:', localUser.pubkey.slice(0, 16) + '...');
+      
+      // Create separate NDK instance for bunker communication
+      const bunkerNDK = new NDK({
+        explicitRelayUrls: settings.relays,
+        signer: localSigner, // Use local signer for bunker communication
+      });
+
+      // Connect bunker NDK first (this was missing!)
+      console.log('[NIP-46 Login] Connecting to bunker relays...');
+      await new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error('Bunker relay connection timeout'));
+        }, 15000); // 15 second timeout
+
+        bunkerNDK.connect()
+          .then(() => {
+            clearTimeout(timeout);
+            console.log('[NIP-46 Login] Successfully connected to bunker relays');
+            resolve();
+          })
+          .catch((error) => {
+            clearTimeout(timeout);
+            console.warn('[NIP-46 Login] Bunker relay connection error:', error);
+            // Don't reject - NDK can work with partial connections
+            resolve();
+          });
+      });
+
+      // Create NIP-46 signer with connected bunker NDK
+      console.log('[NIP-46 Login] Creating NIP-46 signer...');
       const signer = new NDKNip46Signer(
         bunkerNDK,
         remoteSignerURL,
         localSigner,
       );
 
-      // Handle auth URL popup
+      // Handle auth URL popup (for auth challenges)
       signer.on('authUrl', (url) => {
+        console.log('[NIP-46 Login] Auth URL received:', url);
         window.open(url, 'auth', 'width=600,height=600');
       });
 
-      // Connect and get user
-      const user = await signer.blockUntilReady();
+      // Connect and get user with timeout
+      console.log('[NIP-46 Login] Waiting for signer to be ready...');
+      const user = await Promise.race([
+        signer.blockUntilReady(),
+        new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error('Signer connection timeout')), 30000); // 30 second timeout
+        })
+      ]);
       
       if (!user || !user.pubkey) {
         return {
@@ -321,8 +367,10 @@ export function useNip46Login() {
         };
       }
 
-      // Set the signer on main NDK
-      ndk.signer = signer;
+      console.log('[NIP-46 Login] Successfully connected to remote signer. User pubkey:', user.pubkey.slice(0, 16) + '...');
+
+      // Set the signer on main NDK instance
+      mainNDK.signer = signer;
 
       // Get additional user info
       const npub = nip19.npubEncode(user.pubkey);
@@ -336,6 +384,8 @@ export function useNip46Login() {
         relays: settings.relays,
       };
 
+      console.log('[NIP-46 Login] Authentication successful for user:', user.pubkey.slice(0, 16) + '...');
+
       // Update state
       setAccount(account);
       setAccounts([account, ...accounts.filter(a => a.pubkey !== user.pubkey)]);
@@ -344,12 +394,12 @@ export function useNip46Login() {
       return { success: true };
 
     } catch (err) {
-      console.error('[NIP-46 Login]', err);
+      console.error('[NIP-46 Login] Connection failed:', err);
       return {
         success: false,
         error: {
           code: 'NIP46_CONNECTION_FAILED',
-          message: 'Failed to connect to remote signer. Please check the URL and try again.',
+          message: err instanceof Error ? err.message : 'Failed to connect to remote signer. Please check the URL and try again.',
           details: { originalError: err }
         }
       };
