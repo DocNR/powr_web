@@ -1,12 +1,5 @@
 'use client';
 
-/**
- * Test Tab - Workout Flow Testing
- * 
- * Contains essential test components for validating the complete workout workflow
- * and critical NDK functionality.
- */
-
 import React from 'react';
 import NDKDeduplicationTest from '@/components/test/NDKDeduplicationTest';
 import WorkflowValidationTest from '@/components/test/WorkflowValidationTest';
@@ -23,7 +16,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { TestTube, Target, Wifi, WifiOff } from 'lucide-react';
 
-export function TestTab() {
+/**
+ * Test Tab - Workout Flow Testing
+ * 
+ * Contains essential test components for validating the complete workout workflow
+ * and critical NDK functionality.
+ */
+
+export default function TestTab() {
+  // Only render test components in development
+  if (process.env.NODE_ENV === 'production') {
+    return null;
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -89,26 +94,6 @@ export function TestTab() {
           </Card>
         </div>
 
-        {/* 🎨 NEW: Workout Gallery Components Test - TEMPORARILY DISABLED */}
-        <div className="w-full">
-          <Card className="border-yellow-200 bg-yellow-50">
-            <CardHeader>
-              <CardTitle className="text-yellow-800 flex items-center gap-2">
-                🎨 DISABLED: Workout Gallery Components Test
-              </CardTitle>
-              <CardDescription className="text-yellow-700">
-                Temporarily disabled due to external image loading issues. Will be fixed in next update.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="p-4 text-center text-yellow-700">
-                <p>WorkoutGalleryTest component temporarily disabled to prevent crashes.</p>
-                <p className="text-sm mt-2">Issue: External Unsplash images causing Next.js Image loader errors.</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
         {/* 🔧 FIX: NIP-101e Template Reference Test */}
         <div className="w-full">
           <Card className="border-orange-200 bg-orange-50">
@@ -143,15 +128,15 @@ export function TestTab() {
           </Card>
         </div>
 
-        {/* 🎯 NEW: Workout Lifecycle Machine Integration Test - Dependency Resolution */}
+        {/* Other test components... */}
         <div className="w-full">
           <Card className="border-emerald-200 bg-emerald-50">
             <CardHeader>
               <CardTitle className="text-emerald-800 flex items-center gap-2">
-                🎯 NEW: Workout Lifecycle Machine Integration Test (Dependency Resolution)
+                🎯 NEW: Workout Lifecycle Machine Integration Test
               </CardTitle>
               <CardDescription className="text-emerald-700">
-                Test the complete integration: WorkoutsTab → workoutLifecycleMachine → workoutSetupMachine → exercise dependency resolution. Verifies that setup invoke properly resolves exercise dependencies within the workout.
+                Test the complete integration: WorkoutsTab → workoutLifecycleMachine → workoutSetupMachine → exercise dependency resolution.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -160,7 +145,6 @@ export function TestTab() {
           </Card>
         </div>
 
-        {/* 🧪 NEW: Dependency Resolution Service Test */}
         <div className="w-full">
           <Card className="border-cyan-200 bg-cyan-50">
             <CardHeader>
@@ -168,7 +152,7 @@ export function TestTab() {
                 🧪 NEW: Dependency Resolution Service Test
               </CardTitle>
               <CardDescription className="text-cyan-700">
-                Test the extracted dependency resolution service with correctly formatted NIP-101e events. Validates exercise reference parsing and template resolution performance.
+                Test the extracted dependency resolution service with correctly formatted NIP-101e events.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -177,15 +161,14 @@ export function TestTab() {
           </Card>
         </div>
 
-        {/* 🏗️ NEW: Complete Workout Flow Test - Parent-Child Architecture */}
         <div className="w-full">
           <Card className="border-indigo-200 bg-indigo-50">
             <CardHeader>
               <CardTitle className="text-indigo-800 flex items-center gap-2">
-                🏗️ NEW: Complete Workout Flow Test (Parent-Child Architecture)
+                🏗️ NEW: Complete Workout Flow Test
               </CardTitle>
               <CardDescription className="text-indigo-700">
-                Comprehensive test of XState parent-child machine hierarchy with real NDK integration. Tests workoutLifecycleMachine → workoutSetupMachine → activeWorkoutMachine communication patterns.
+                Comprehensive test of XState parent-child machine hierarchy with real NDK integration.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -194,16 +177,14 @@ export function TestTab() {
           </Card>
         </div>
 
-
-        {/* 🧪 NEW: Parameter Interpretation Test */}
         <div className="w-full">
           <Card className="border-violet-200 bg-violet-50">
             <CardHeader>
               <CardTitle className="text-violet-800 flex items-center gap-2">
-                🧪 NEW: Parameter Interpretation Test (Phase 2B)
+                🧪 NEW: Parameter Interpretation Test
               </CardTitle>
               <CardDescription className="text-violet-700">
-                Test the parameter interpretation service with real leg workout data. Validates NIP-101e format/format_units parsing and parameter validation for enhanced workout tracking.
+                Test the parameter interpretation service with real leg workout data.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -212,7 +193,6 @@ export function TestTab() {
           </Card>
         </div>
 
-        {/* 🧪 NEW: Active Workout NIP-101e Compliance Test */}
         <div className="w-full">
           <Card className="border-rose-200 bg-rose-50">
             <CardHeader>
@@ -220,7 +200,7 @@ export function TestTab() {
                 🧪 NEW: Active Workout NIP-101e Compliance Test
               </CardTitle>
               <CardDescription className="text-rose-700">
-                Test the fixed activeWorkoutMachine to ensure it uses actual template data instead of hardcoded progressive set generation. Validates NIP-101e compliance and template-driven workout execution.
+                Test the fixed activeWorkoutMachine to ensure it uses actual template data.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -229,7 +209,6 @@ export function TestTab() {
           </Card>
         </div>
 
-        {/* 📋 NIP-51 Lists & Collections Test */}
         <div className="w-full">
           <Card className="border-green-200 bg-green-50">
             <CardHeader>
@@ -237,7 +216,7 @@ export function TestTab() {
                 📋 NIP-51 Lists & Collections Test
               </CardTitle>
               <CardDescription className="text-green-700">
-                Test NIP-51 list creation and management for workout collections. Validates the "List of Lists" user subscription architecture with complete dependency resolution.
+                Test NIP-51 list creation and management for workout collections.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -246,7 +225,6 @@ export function TestTab() {
           </Card>
         </div>
 
-        {/* 🐛 DEBUG: Template Reference Corruption Test */}
         <div className="w-full">
           <Card className="border-red-300 bg-red-100">
             <CardHeader>
@@ -254,7 +232,7 @@ export function TestTab() {
                 🐛 DEBUG: Template Reference Corruption Test
               </CardTitle>
               <CardDescription className="text-red-800">
-                Debug the template reference corruption bug where &quot;33402:pubkey:d-tag&quot; becomes &quot;33402:pubkey:33402:pubkey:d-tag&quot; during XState machine execution.
+                Debug the template reference corruption bug.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -277,7 +255,6 @@ export function TestTab() {
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2">
-            {/* Online Testing */}
             <div className="space-y-3">
               <h4 className="font-medium flex items-center gap-2">
                 <Wifi className="h-4 w-4 text-green-600" />
@@ -292,7 +269,6 @@ export function TestTab() {
               </ul>
             </div>
 
-            {/* Offline Testing */}
             <div className="space-y-3">
               <h4 className="font-medium flex items-center gap-2">
                 <WifiOff className="h-4 w-4 text-orange-600" />
@@ -305,42 +281,6 @@ export function TestTab() {
                 <li>• Go online and verify auto-sync</li>
                 <li>• Test browser restart while offline</li>
               </ul>
-            </div>
-          </div>
-
-          <div className="mt-6 p-4 bg-muted rounded-lg">
-            <h5 className="font-medium mb-2">Current Investigation</h5>
-            <p className="text-sm text-muted-foreground">
-              <strong>Unexpected Behavior:</strong> Published events are appearing in the 
-              <code className="mx-1 px-1 bg-background rounded">unpublishedEvents</code> table 
-              even after successful publication to relays. This needs investigation to determine 
-              if it&apos;s normal NDK behavior or indicates a queue cleanup issue.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Performance Metrics */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Performance Targets</CardTitle>
-          <CardDescription>
-            Success criteria for NDK cache validation
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="text-center p-4 border rounded-lg">
-              <div className="text-2xl font-bold text-green-600">&lt;500ms</div>
-              <div className="text-sm text-muted-foreground">Load 50 events</div>
-            </div>
-            <div className="text-center p-4 border rounded-lg">
-              <div className="text-2xl font-bold text-blue-600">100%</div>
-              <div className="text-sm text-muted-foreground">Cross-session persistence</div>
-            </div>
-            <div className="text-center p-4 border rounded-lg">
-              <div className="text-2xl font-bold text-purple-600">Auto</div>
-              <div className="text-sm text-muted-foreground">Offline queue sync</div>
             </div>
           </div>
         </CardContent>
