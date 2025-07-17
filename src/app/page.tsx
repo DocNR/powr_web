@@ -22,6 +22,8 @@ import {
   useIsAuthenticated, 
   useLoginWithNip07,
   useLoginWithNip46,
+  useLoginWithAmber,
+  useCheckAmberAuth,
   useLogout
 } from '@/lib/auth/hooks';
 import { initializeNDK } from '@/lib/ndk';
@@ -35,6 +37,8 @@ export default function Home() {
   const isAuthenticated = useIsAuthenticated();
   const loginWithNip07 = useLoginWithNip07();
   const loginWithNip46 = useLoginWithNip46();
+  const loginWithAmber = useLoginWithAmber();
+  const checkAmberAuth = useCheckAmberAuth();
   const logout = useLogout();
   
   const [bunkerUrl, setBunkerUrl] = useState('');
@@ -62,10 +66,14 @@ export default function Home() {
                             typeof window.nostr !== 'undefined';
         setHasNip07(hasExtension);
         
-        // Debug: Check what's in localStorage
-        const amberPubkey = localStorage.getItem('amber_pubkey');
-        const authMethod = localStorage.getItem('auth_method');
-        console.log('[App] localStorage check:', { amberPubkey, authMethod });
+        // Check for existing Amber authentication on startup
+        console.log('[App] Checking for existing Amber authentication...');
+        const amberAuthSuccess = await checkAmberAuth();
+        if (amberAuthSuccess) {
+          console.log('[App] Amber authentication restored from localStorage');
+        } else {
+          console.log('[App] No existing Amber authentication found');
+        }
         
         console.log('[App] NDK initialization complete');
       } catch (error) {
@@ -74,11 +82,40 @@ export default function Home() {
     };
 
     initializeApp();
-  }, [mounted]);
+  }, [mounted, checkAmberAuth]);
 
-  // Listen for Amber authentication results from popup window
+  // Listen for Amber authentication results from popup window + localStorage bridge
   useEffect(() => {
     if (!mounted) return;
+
+    const processAmberAuthResult = async (result: { success: boolean; pubkey?: string; error?: string }) => {
+      if (result.success && result.pubkey) {
+        console.log('[Amber Auth] Processing successful authentication');
+        setIsConnecting(true);
+        
+        try {
+          console.log('[Amber Auth] Authenticating with pubkey:', result.pubkey);
+          
+          // Use the actual authentication hook
+          const authResult = await loginWithAmber(result.pubkey);
+          
+          if (authResult.success) {
+            console.log('[Amber Auth] Authentication successful');
+            // No need to reload - auth state will update automatically
+          } else {
+            console.error('[Amber Auth] Authentication failed:', authResult.error);
+            throw new Error(authResult.error?.message || 'Authentication failed');
+          }
+          
+        } catch (error) {
+          console.error('[Amber Auth] Authentication failed:', error);
+          setIsConnecting(false);
+        }
+      } else {
+        console.error('[Amber Auth] Authentication failed:', result.error);
+        setIsConnecting(false);
+      }
+    };
 
     const handleAmberAuthMessage = async (event: MessageEvent) => {
       // Verify origin for security
@@ -90,50 +127,48 @@ export default function Home() {
       // Check if this is an Amber auth result
       if (event.data?.type === 'AMBER_AUTH_RESULT') {
         console.log('[Amber Auth] Received auth result from popup:', event.data.result);
-        
-        const { result } = event.data;
-        
-        if (result.success && result.pubkey) {
-          console.log('[Amber Auth] Processing successful authentication');
-          setIsConnecting(true);
-          
-          try {
-            // Use the existing loginWithAmber hook but we need to create it
-            // For now, let's simulate the authentication process
-            console.log('[Amber Auth] Authenticating with pubkey:', result.pubkey);
-            
-            // Store in localStorage for persistence
-            localStorage.setItem('amber_pubkey', result.pubkey);
-            localStorage.setItem('auth_method', 'amber');
-            
-            // TODO: Integrate with actual authentication system
-            // This would normally call loginWithAmber(result.pubkey)
-            console.log('[Amber Auth] Authentication successful - would redirect to dashboard');
-            
-            // For now, just reload the page to trigger auth state update
-            window.location.reload();
-            
-          } catch (error) {
-            console.error('[Amber Auth] Authentication failed:', error);
-            setIsConnecting(false);
-          }
-        } else {
-          console.error('[Amber Auth] Authentication failed:', result.error);
-          setIsConnecting(false);
-        }
+        await processAmberAuthResult(event.data.result);
       }
     };
 
-    // Add message listener
+    // 🚀 UNIVERSAL LOCALSTORAGE BRIDGE POLLING
+    const checkLocalStorageBridge = () => {
+      try {
+        const storedResult = localStorage.getItem('amber_auth_result');
+        if (storedResult) {
+          console.log('[Amber Auth] Found auth result in localStorage bridge');
+          
+          const authResult = JSON.parse(storedResult);
+          
+          // Clear the bridge data immediately to prevent reprocessing
+          localStorage.removeItem('amber_auth_result');
+          
+          console.log('[Amber Auth] Processing localStorage bridge result:', authResult);
+          processAmberAuthResult(authResult);
+        }
+      } catch (error) {
+        console.error('[Amber Auth] Error checking localStorage bridge:', error);
+      }
+    };
+
+    // Add message listener for immediate communication
     window.addEventListener('message', handleAmberAuthMessage);
     console.log('[Amber Auth] Message listener added for popup communication');
+
+    // Start localStorage bridge polling (checks every 500ms)
+    const bridgePollingInterval = setInterval(checkLocalStorageBridge, 500);
+    console.log('[Amber Auth] Started localStorage bridge polling');
+
+    // Also check immediately in case auth result is already there
+    checkLocalStorageBridge();
 
     // Cleanup
     return () => {
       window.removeEventListener('message', handleAmberAuthMessage);
-      console.log('[Amber Auth] Message listener removed');
+      clearInterval(bridgePollingInterval);
+      console.log('[Amber Auth] Message listener and localStorage polling stopped');
     };
-  }, [mounted]);
+  }, [mounted, loginWithAmber]);
 
   // NIP-07 Extension Change Detection (ONLY for extension users)
   useEffect(() => {

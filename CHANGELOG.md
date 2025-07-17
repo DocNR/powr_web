@@ -31,6 +31,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Amber External Signing Authentication COMPLETE (July 17, 2025) ✅**
+  
+  **User Impact**: Android users can now authenticate seamlessly with Amber external signing app using NIP-55 protocol. Complete localStorage bridge system works reliably across PWA and browser contexts with professional callback UI and automatic session restoration.
+  
+  **Developer Notes**: Fixed React Hook dependency errors (checkAmberAuth, loginWithAmber) causing infinite re-renders. Replaced placeholder authentication code with actual useLoginWithAmber hook integration. Added startup authentication check with useCheckAmberAuth for session restoration. Enhanced callback page with context-aware UI and 5-second auto-close countdown.
+  
+  **Architecture Changes**: Established universal localStorage bridge polling system working for both PWA and browser contexts. Complete authentication state management integration with existing auth system. Production-ready cross-context communication patterns for mobile authentication flows.
+
+- **PWA Callback URL Fix COMPLETE (July 17, 2025) ✅**
+  
+  **User Impact**: PWA authentication callbacks now work correctly with proper URL handling for mobile authentication flows.
+  
+  **Developer Notes**: Fixed callback URL generation and handling for PWA context authentication.
+  
+  **Architecture Changes**: Enhanced PWA authentication patterns for mobile deployment compatibility.
+
+- **UI Sticky Header and Touch Event Conflicts COMPLETE (July 17, 2025) ✅**
+  
+  **User Impact**: Users can now scroll smoothly through workout galleries without header interference or touch event conflicts during horizontal scrolling on workout tab.
+  
+  **Developer Notes**: Resolved sticky header positioning conflicts with horizontal social gallery scrolling. Fixed touch event propagation issues affecting user interaction with workout cards.
+  
+  **Architecture Changes**: Improved mobile touch handling patterns for complex UI interactions with horizontal scrolling components.
+
+- **Vercel Deployment Preparation COMPLETE (July 17, 2025) ✅**
+  
+  **User Impact**: App is now ready for production deployment on Vercel with proper build configuration and optimized assets.
+  
+  **Developer Notes**: Fixed linting errors for Vercel deployment compatibility. Created .vercelignore file for optimized build process. Cleaned up manifest.json and updated README with deployment information.
+  
+  **Architecture Changes**: Enhanced production build pipeline with proper asset optimization and deployment configuration.
+
+- **UI Workout Cards Consolidation COMPLETE (July 17, 2025) ✅**
+  
+  **User Impact**: Users now have consistent workout card components across all interfaces with improved visual design and consolidated functionality.
+  
+  **Developer Notes**: Consolidated multiple compact workout card components into unified design system. Enhanced workout tab UI with improved card layouts and visual consistency. Added debug screen fixes and NIP-51 test integration.
+  
+  **Architecture Changes**: Streamlined component architecture with unified workout card patterns and improved maintainability.
+
+- **Project Cleanup and Security Updates COMPLETE (July 17, 2025) ✅**
+  
+  **User Impact**: Enhanced security and cleaner codebase with removed personal references and improved .gitignore patterns.
+  
+  **Developer Notes**: Cleaned up personal references throughout codebase. Updated .gitignore with comprehensive patterns for better repository hygiene. Enhanced security by removing sensitive data patterns.
+  
+  **Architecture Changes**: Improved codebase security and maintainability with standardized patterns and clean repository structure.
+
 - **NIP-46 Bunker Authentication COMPLETE (July 16, 2025) ✅**
   
   **User Impact**: Users can now authenticate with NIP-46 bunker URLs for secure remote signing. Tested and validated with NAK bunker service including complete workout flow with event publishing.
