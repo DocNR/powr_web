@@ -34,12 +34,15 @@ export default function AmberCallbackDynamic() {
 
   useEffect(() => {
     if (!mounted) return; // Wait for component to mount
+    
     const processAmberResponse = async () => {
       try {
         const debugInfo = { 
           params, 
           searchParams: Object.fromEntries(searchParams.entries()),
-          currentUrl: mounted ? window.location.href : 'SSR'
+          currentUrl: mounted ? window.location.href : 'SSR',
+          isPopup: mounted ? (window.opener !== null || window.parent !== window) : false,
+          hasOpener: mounted ? (window.opener !== null) : false
         };
         console.log('[Amber Callback] Received params:', debugInfo);
         
@@ -101,6 +104,42 @@ export default function AmberCallbackDynamic() {
               setMessage(`Successfully received response from Amber! (${result.length} chars)`);
               console.log('[Amber Callback] Non-standard format received:', result);
             }
+            
+            // Check if we're in a popup/new tab and need to communicate back to parent
+            if (mounted && (window.opener || window.parent !== window)) {
+              console.log('[Amber Callback] Detected popup/new tab context - communicating result to parent');
+              
+              const authResult = {
+                success: true,
+                pubkey: result,
+                method: 'amber'
+              };
+              
+              // Send result to parent window
+              if (window.opener) {
+                console.log('[Amber Callback] Sending result to opener window');
+                window.opener.postMessage({
+                  type: 'AMBER_AUTH_RESULT',
+                  result: authResult
+                }, window.location.origin);
+              } else if (window.parent !== window) {
+                console.log('[Amber Callback] Sending result to parent window');
+                window.parent.postMessage({
+                  type: 'AMBER_AUTH_RESULT',
+                  result: authResult
+                }, window.location.origin);
+              }
+              
+              // Show success message and close popup after delay
+              setMessage('Authentication successful! Closing popup...');
+              setTimeout(() => {
+                console.log('[Amber Callback] Closing popup window');
+                window.close();
+              }, 2000);
+              
+              return; // Don't continue with normal flow
+            }
+            
           } else {
             setStatus('error');
             setMessage('Empty response from Amber. Please try again.');
@@ -110,6 +149,32 @@ export default function AmberCallbackDynamic() {
           setStatus('error');
           setMessage('No response received from Amber. Please try again.');
           console.warn('[Amber Callback] No result found in URL or query params');
+          
+          // If we're in a popup with no result, communicate error back to parent
+          if (mounted && (window.opener || window.parent !== window)) {
+            console.log('[Amber Callback] Communicating error to parent window');
+            
+            const authResult = {
+              success: false,
+              error: 'No response received from Amber'
+            };
+            
+            if (window.opener) {
+              window.opener.postMessage({
+                type: 'AMBER_AUTH_RESULT',
+                result: authResult
+              }, window.location.origin);
+            } else if (window.parent !== window) {
+              window.parent.postMessage({
+                type: 'AMBER_AUTH_RESULT',
+                result: authResult
+              }, window.location.origin);
+            }
+            
+            setTimeout(() => {
+              window.close();
+            }, 3000);
+          }
         }
         
       } catch (error) {

@@ -76,6 +76,65 @@ export default function Home() {
     initializeApp();
   }, [mounted]);
 
+  // Listen for Amber authentication results from popup window
+  useEffect(() => {
+    if (!mounted) return;
+
+    const handleAmberAuthMessage = async (event: MessageEvent) => {
+      // Verify origin for security
+      if (event.origin !== window.location.origin) {
+        console.warn('[Amber Auth] Ignoring message from unknown origin:', event.origin);
+        return;
+      }
+
+      // Check if this is an Amber auth result
+      if (event.data?.type === 'AMBER_AUTH_RESULT') {
+        console.log('[Amber Auth] Received auth result from popup:', event.data.result);
+        
+        const { result } = event.data;
+        
+        if (result.success && result.pubkey) {
+          console.log('[Amber Auth] Processing successful authentication');
+          setIsConnecting(true);
+          
+          try {
+            // Use the existing loginWithAmber hook but we need to create it
+            // For now, let's simulate the authentication process
+            console.log('[Amber Auth] Authenticating with pubkey:', result.pubkey);
+            
+            // Store in localStorage for persistence
+            localStorage.setItem('amber_pubkey', result.pubkey);
+            localStorage.setItem('auth_method', 'amber');
+            
+            // TODO: Integrate with actual authentication system
+            // This would normally call loginWithAmber(result.pubkey)
+            console.log('[Amber Auth] Authentication successful - would redirect to dashboard');
+            
+            // For now, just reload the page to trigger auth state update
+            window.location.reload();
+            
+          } catch (error) {
+            console.error('[Amber Auth] Authentication failed:', error);
+            setIsConnecting(false);
+          }
+        } else {
+          console.error('[Amber Auth] Authentication failed:', result.error);
+          setIsConnecting(false);
+        }
+      }
+    };
+
+    // Add message listener
+    window.addEventListener('message', handleAmberAuthMessage);
+    console.log('[Amber Auth] Message listener added for popup communication');
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('message', handleAmberAuthMessage);
+      console.log('[Amber Auth] Message listener removed');
+    };
+  }, [mounted]);
+
   // NIP-07 Extension Change Detection (ONLY for extension users)
   useEffect(() => {
     // Only monitor extension changes if user logged in with NIP-07
