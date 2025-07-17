@@ -186,14 +186,9 @@ export function ScrollableGallery({
             "[&::-webkit-scrollbar]:hidden",
             "[-ms-overflow-style:none]",
             "[scrollbar-width:none]",
-            // Ensure proper mobile scrolling
-            "overscroll-behavior-x-contain",
-            "touch-pan-x"
+            // ✅ CRITICAL: Touch isolation for horizontal galleries - IMPROVED
+            "horizontal-gallery-permissive"
           )}
-          style={{
-            // Ensure smooth scrolling on iOS
-            WebkitOverflowScrolling: 'touch'
-          }}
         >
           {/* Items - Direct children without wrapper */}
           {Array.isArray(children) ? (

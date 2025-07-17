@@ -25,6 +25,13 @@ export function AppLayout() {
     setActiveSubTab(activeTab, subTabId);
   };
 
+  // Calculate header heights for proper spacing
+  const headerHeight = 64; // AppHeader height in pixels
+  const subNavHeight = 48; // SubNavigation height in pixels
+  const totalFixedHeight = isMobile ? (
+    headerHeight + (subNavItems ? subNavHeight : 0)
+  ) : 0;
+
   return (
     <div className="min-h-screen bg-background flex">
       {/* Desktop Sidebar */}
@@ -40,14 +47,14 @@ export function AppLayout() {
       <div className={`flex-1 flex flex-col overflow-x-hidden max-w-full ${!isMobile ? 'ml-64' : ''}`}>
         {/* Header - only show on mobile since desktop has sidebar */}
         {isMobile && (
-          <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60 border-b border-border">
+          <div className="fixed top-0 left-0 right-0 z-40 bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60 border-b border-border">
             <AppHeader />
           </div>
         )}
 
         {/* Conditional Sub-Navigation - Fixed header for tabs that need it */}
         {isMobile && subNavItems && (
-          <div className="sticky top-16 z-30 bg-background">
+          <div className="fixed top-16 left-0 right-0 z-30 bg-background border-b border-border">
             <SubNavigation
               items={subNavItems}
               activeItem={activeSubTab || subNavItems[0]?.id || ''}
@@ -56,11 +63,20 @@ export function AppLayout() {
           </div>
         )}
 
-        {/* Main Content */}
-        <main className={`flex-1 flex flex-col ${isMobile && subNavItems ? 'pt-0' : ''}`}>
-          <WorkoutDataProvider>
-            <TabRouter />
-          </WorkoutDataProvider>
+        {/* Main Content - Scrollable Container */}
+        <main 
+          className={`flex-1 flex flex-col ${isMobile ? 'overflow-y-auto overscroll-y-contain' : ''}`}
+          style={isMobile ? { 
+            paddingTop: `${totalFixedHeight}px`,
+            height: '100vh',
+            maxHeight: '100vh'
+          } : {}}
+        >
+          <div className="flex-1">
+            <WorkoutDataProvider>
+              <TabRouter />
+            </WorkoutDataProvider>
+          </div>
         </main>
 
         {/* Mobile Bottom Navigation */}
