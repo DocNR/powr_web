@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { useSelector } from '@xstate/react';
-import { Button } from '@/components/powr-ui/primitives/Button';
+import { Button, WorkoutTimer } from '@/components/powr-ui';
 import { ExerciseSection } from './ExerciseSection';
 import { WorkoutMiniBar } from './WorkoutMiniBar';
-import { ArrowLeft, Pause, Play, Square, MoreVertical } from 'lucide-react';
+import { ArrowLeft, Square } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 
@@ -97,16 +97,20 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
     state.context?.workoutData?.extraSetsRequested || {}
   );
 
-  // ✅ REDUCED LOGGING: Only log on mount and significant changes
+  // ✅ MINIMAL LOGGING: Only log on initial mount
   useEffect(() => {
-    console.log('🔧 ActiveWorkoutInterface: Workout data loaded:', workoutData?.title);
-    console.log('🔧 ActiveWorkoutInterface: Actor state:', actorState?.value);
-  }, [workoutData?.workoutId, workoutData?.title, actorState?.value]); // Include all dependencies
+    if (workoutData?.title) {
+      console.log('🔧 ActiveWorkoutInterface: Workout loaded:', workoutData.title);
+    }
+  }, [workoutData?.workoutId]); // Only log when workout changes, not on every render
 
   // ✅ Send function - direct from actorRef (from XState React docs)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const actorSend = (event: any) => {
-    console.log('🔧 ActiveWorkoutInterface: Sending event:', event);
+    // Only log important events to reduce console spam
+    if (event.type === 'COMPLETE_SET' || event.type === 'COMPLETE_WORKOUT' || event.type === 'CANCEL_WORKOUT') {
+      console.log('🔧 ActiveWorkoutInterface: Sending event:', event.type);
+    }
     activeWorkoutActor.send(event);
   };
 
@@ -154,12 +158,7 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
     // Total sets = template sets + any extra sets the user has requested
     const totalSets = templateSets + extraSets;
 
-    console.log(`🔧 ActiveWorkoutInterface: Exercise ${exercise.exerciseRef}:`, {
-      templateSets,
-      extraSets,
-      totalSets,
-      completedSets: completedSetsForExercise.length
-    });
+    // Removed repetitive exercise logging to reduce console spam
 
     return {
       id: exercise.exerciseRef || `exercise-${index}`,
@@ -187,8 +186,6 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
 
   // Event handlers that send events to the actor
   const handleSetComplete = (exerciseId: string, setIndex: number, setData: SetData) => {
-    console.log('🔧 ActiveWorkoutInterface: Set completed:', { exerciseId, setIndex, setData });
-    
     // Send COMPLETE_SET event to activeWorkoutActor
     actorSend({ 
       type: 'COMPLETE_SET',
@@ -201,16 +198,8 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
     });
   };
 
-  const handleSetEdit = (exerciseId: string, setIndex: number, setData: SetData) => {
-    console.log('🔧 ActiveWorkoutInterface: Set edit requested:', { exerciseId, setIndex, setData });
-    // For now, we don't support editing completed sets
-    // This could be implemented with an EDIT_SET event in the future
-  };
-
   // ✅ FIXED: Add set functionality
   const handleAddSet = (exerciseId: string) => {
-    console.log('🔧 ActiveWorkoutInterface: Add set requested for:', exerciseId);
-    
     // Send ADD_SET event to activeWorkoutActor
     actorSend({ 
       type: 'ADD_SET',
@@ -220,8 +209,6 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
 
   // NEW: Exercise selection handler for superset support
   const handleExerciseSelect = (exerciseIndex: number) => {
-    console.log('🔧 ActiveWorkoutInterface: Exercise selected:', exerciseIndex);
-    
     // Send NAVIGATE_TO_EXERCISE event to activeWorkoutActor
     actorSend({ 
       type: 'NAVIGATE_TO_EXERCISE',
@@ -231,16 +218,13 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
 
   const handleTogglePause = () => {
     if (isPaused) {
-      console.log('🔧 ActiveWorkoutInterface: Resuming workout');
       actorSend({ type: 'RESUME_WORKOUT' });
     } else {
-      console.log('🔧 ActiveWorkoutInterface: Pausing workout');
       actorSend({ type: 'PAUSE_WORKOUT' });
     }
   };
 
   const handleCancelConfirm = () => {
-    console.log('🔧 ActiveWorkoutInterface: Cancel confirmed');
     setShowCancelDialog(false);
     actorSend({ type: 'CANCEL_WORKOUT' });
     onWorkoutCancel?.();
@@ -248,7 +232,6 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
   };
 
   const handleFinishConfirm = () => {
-    console.log('🔧 ActiveWorkoutInterface: Finish confirmed');
     setShowFinishDialog(false);
     actorSend({ type: 'COMPLETE_WORKOUT' });
     
@@ -282,17 +265,6 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
     0
   );
 
-  // Format elapsed time for display
-  const formatTime = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-    
-    if (hours > 0) {
-      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    }
-    return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
 
   // If minimized, show only the mini bar
   if (isMinimized) {
@@ -316,56 +288,37 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
         "safe-area-inset-top safe-area-inset-bottom",
         className
       )}>
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-white">
+        {/* Clean 3-Element Header */}
+        <div className="flex items-center justify-between p-4 bg-white border-b border-[var(--workout-border)]">
           {/* Back Button */}
           <Button
             variant="ghost"
             size="icon"
             onClick={onClose}
-            className="text-gray-600 hover:text-gray-800"
+            className="text-[var(--workout-text-muted)] hover:text-[var(--workout-text)]"
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
 
-          {/* Workout Title and Progress */}
-          <div className="flex-1 text-center mx-4">
-            <h1 className="text-lg font-semibold text-gray-900 truncate">
-              {title}
-            </h1>
-            <p className="text-sm text-gray-600">
-              {completedSets}/{totalSets} sets completed • {formatTime(elapsedTime)}
-            </p>
+          {/* Central Timer */}
+          <div className="flex flex-col items-center">
+            <WorkoutTimer 
+              elapsedTime={elapsedTime}
+              className="text-2xl font-bold"
+            />
+            <div className="text-sm text-[var(--workout-text-muted)] mt-1">
+              {completedSets}/{totalSets} sets
+            </div>
           </div>
 
-          {/* Header Controls */}
-          <div className="flex items-center gap-2">
-            {/* Pause/Resume Button */}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleTogglePause}
-              className={cn(
-                "text-gray-600 hover:text-gray-800",
-                isPaused && "text-orange-500 hover:text-orange-600"
-              )}
-            >
-              {isPaused ? (
-                <Play className="h-5 w-5" />
-              ) : (
-                <Pause className="h-5 w-5" />
-              )}
-            </Button>
-
-            {/* More Options */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-gray-600 hover:text-gray-800"
-            >
-              <MoreVertical className="h-5 w-5" />
-            </Button>
-          </div>
+          {/* Finish Button */}
+          <Button
+            variant="workout-success"
+            onClick={() => setShowFinishDialog(true)}
+            className="px-6"
+          >
+            Finish
+          </Button>
         </div>
 
         {/* Exercise List - Scrollable */}
@@ -382,9 +335,6 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
                 onSetComplete={(exerciseId: string, setIndex: number, setData: SetData) => 
                   handleSetComplete(exerciseId, setIndex, setData)
                 }
-                onSetEdit={(exerciseId: string, setIndex: number, setData: SetData) => 
-                  handleSetEdit(exerciseId, setIndex, setData)
-                }
                 onAddSet={(exerciseId: string) => handleAddSet(exerciseId)}
                 onExerciseSelect={() => handleExerciseSelect(exerciseIndex)}
               />
@@ -393,7 +343,7 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
         </div>
 
         {/* Bottom Action Bar */}
-        <div className="p-4 border-t border-gray-200 bg-white">
+        <div className="p-4 border-t border-[var(--workout-border)] bg-white">
           <div className="flex items-center justify-between gap-4">
             {/* Cancel Button */}
             <Button
@@ -416,8 +366,9 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
 
             {/* Finish Button */}
             <Button
+              variant="workout-success"
               onClick={() => setShowFinishDialog(true)}
-              className="flex-1 bg-green-500 hover:bg-green-600 text-white"
+              className="flex-1"
             >
               Finish Workout
             </Button>
@@ -468,8 +419,8 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
               Keep Going
             </Button>
             <Button
+              variant="workout-success"
               onClick={handleFinishConfirm}
-              className="bg-green-500 hover:bg-green-600 text-white"
             >
               Finish Workout
             </Button>

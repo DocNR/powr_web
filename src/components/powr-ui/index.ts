@@ -25,5 +25,11 @@ export { Label } from './primitives/Label';
 // Layout Components
 export { AppHeader } from './layout/AppHeader';
 
+// Workout Components
+export { WorkoutTimer } from './workout/WorkoutTimer';
+export { ExerciseTitle } from './workout/ExerciseTitle';
+
 // Types
 export type { ButtonProps } from './primitives/Button';
+export type { WorkoutTimerProps } from './workout/WorkoutTimer';
+export type { ExerciseTitleProps } from './workout/ExerciseTitle';

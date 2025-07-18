@@ -17,6 +17,10 @@ const buttonVariants = cva(
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "underline-offset-4 hover:underline text-primary",
         gradient: "bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:from-orange-600 hover:to-orange-700",
+        "workout-primary": "bg-[var(--workout-primary)] text-white hover:bg-[var(--workout-primary)]/90",
+        "workout-success": "bg-[var(--workout-success)] text-white hover:bg-[var(--workout-success)]/90",
+        "workout-timer": "bg-[var(--workout-timer)] text-white hover:bg-[var(--workout-timer)]/90",
+        "workout-interactive": "text-[var(--workout-primary)] hover:text-[var(--workout-primary)]/80 hover:bg-[var(--workout-primary)]/10",
       },
       size: {
         default: "h-10 py-2 px-4",

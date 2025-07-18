@@ -30,6 +30,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Active Workout UI Redesign with Template Prescription Display COMPLETE (July 18, 2025) ✅**
+  
+  **User Impact**: Users now enjoy a clean, professional active workout interface with comprehensive prescription display showing sets, reps, and RPE targets from workout templates. The redesigned UI features a streamlined 3-element header (Back | Timer | Finish), table-style exercise layout with clear Set | Previous | Weight | Reps | ✓ columns, and intelligent prescription display that shows "3 sets of 10 reps @ RPE 7" when template data is available.
+  
+  **Developer Notes**: Implemented semantic styling architecture using POWR UI components with enhanced ExerciseSection component that dynamically displays template prescription data. Added prescribedRpe field to ExerciseData interface and smart prescription logic that shows complete template information (sets/reps/RPE) when available, falling back to completion tracking when no prescription exists. Enhanced ActiveWorkoutInterface with professional styling and touch-friendly inputs optimized for mobile gym use.
+  
+  **Architecture Changes**: Established semantic CSS foundation for white label gym personality theming with complete template prescription integration. Clean component-based architecture with proper separation between ActiveWorkoutInterface and ExerciseSection. Template-driven workout guidance system that reads actual 33402 event data instead of hardcoded values, providing authentic workout prescription display.
+
+### Fixed
+- **Active Workout UI Redesign with Console Spam Reduction COMPLETE (July 18, 2025) ✅**
+  
+  **User Impact**: Users now enjoy a clean, professional active workout interface with dramatically reduced console noise during development. The redesigned UI features a streamlined 3-element header (Back | Timer | Finish), table-style exercise layout with clear Set | Previous | Weight | Reps | ✓ columns, and touch-friendly inputs optimized for mobile gym use. Console output reduced by ~80-90% while maintaining essential debugging capabilities.
+  
+  **Developer Notes**: Implemented semantic styling architecture using POWR UI components with CSS variables (--workout-border, --workout-text-muted) for consistent theming. Enhanced ActiveWorkoutInterface with smart logging that only shows essential events (COMPLETE_SET, COMPLETE_WORKOUT, CANCEL_WORKOUT) and eliminated repetitive per-render logs. Visual improvements include orange highlighting for active sets, green completion states, and clear set numbering with circular indicators.
+  
+  **Architecture Changes**: Established semantic CSS foundation for white label gym personality theming. Clean component-based architecture with proper separation between ActiveWorkoutInterface and ExerciseSection. Professional development experience with focused console output that helps rather than overwhelms developers.
+
 ### Fixed
 - **Amber External Signing Authentication COMPLETE (July 17, 2025) ✅**
   

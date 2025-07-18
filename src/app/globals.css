@@ -34,6 +34,15 @@
     --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
     --sidebar-border: oklch(0.92 0.004 286.32);
     --sidebar-ring: oklch(0.606 0.25 292.717);
+    
+    /* Workout Interface Semantic Colors */
+    --workout-primary: oklch(0.6 0.118 184.704);      /* Interactive elements - blue */
+    --workout-success: oklch(0.646 0.222 142.495);    /* Completion states - green */
+    --workout-timer: oklch(0.65 0.25 35);             /* Timer display - orange (matches --primary) */
+    --workout-surface: oklch(0.985 0 0);              /* Background surfaces - light gray */
+    --workout-border: oklch(0.92 0.004 286.32);       /* Dividers - matches --border */
+    --workout-text: oklch(0.141 0.005 285.823);       /* Primary text - matches --foreground */
+    --workout-text-muted: oklch(0.552 0.016 285.938); /* Secondary text - matches --muted-foreground */
   }
 
   .dark {
@@ -68,6 +77,15 @@
     --sidebar-accent-foreground: oklch(0.985 0 0);
     --sidebar-border: oklch(1 0 0 / 10%);
     --sidebar-ring: oklch(0.541 0.281 293.009);
+    
+    /* Workout Interface Semantic Colors - Dark Mode */
+    --workout-primary: oklch(0.696 0.17 162.48);       /* Interactive elements - blue (lighter) */
+    --workout-success: oklch(0.769 0.188 70.08);       /* Completion states - green (lighter) */
+    --workout-timer: oklch(0.6 0.28 35);               /* Timer display - orange (matches --primary) */
+    --workout-surface: oklch(0.274 0.006 286.033);     /* Background surfaces - dark gray */
+    --workout-border: oklch(1 0 0 / 10%);              /* Dividers - matches --border */
+    --workout-text: oklch(0.985 0 0);                  /* Primary text - matches --foreground */
+    --workout-text-muted: oklch(0.705 0.015 286.067);  /* Secondary text - matches --muted-foreground */
   }
 }
 
@@ -117,11 +135,149 @@
 
 /* PWA Mobile Optimizations */
 @layer utilities {
-  /* Safe area support for iOS notched devices */
-  .pt-safe {
-    padding-top: env(safe-area-inset-top);
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* POWR UI Semantic Workout Styles */
+@layer components {
+  /* Workout Header Styles */
+  .workout-header {
+    @apply flex items-center justify-between p-4 border-b border-gray-200 bg-white;
   }
   
+  .workout-header-back {
+    @apply text-[var(--workout-secondary)] hover:text-[var(--workout-primary)];
+  }
+  
+  .workout-header-timer {
+    @apply flex-1 text-center mx-4;
+  }
+  
+  .workout-timer-display {
+    @apply text-2xl font-bold text-[var(--workout-timer)] font-mono;
+  }
+  
+  .workout-progress-text {
+    @apply text-sm text-[var(--workout-secondary)] mt-1;
+  }
+  
+  .workout-header-finish {
+    @apply bg-[var(--workout-primary)] hover:bg-[var(--workout-primary-hover)] text-white px-6 py-2 rounded-md font-medium;
+  }
+  
+  /* Exercise Section Styles */
+  .exercise-section {
+    @apply bg-white rounded-lg border border-gray-200 p-4;
+  }
+  
+  .exercise-section.active {
+    @apply border-[var(--workout-primary)] bg-[var(--workout-primary)]/5;
+  }
+  
+  .exercise-title {
+    @apply text-lg font-semibold text-[var(--workout-primary)] mb-3;
+  }
+  
+  .exercise-title.active {
+    @apply text-[var(--workout-timer)];
+  }
+  
+  /* Set Row Styles */
+  .set-row {
+    @apply flex items-center gap-3 py-2 px-3 rounded-md;
+  }
+  
+  .set-row.completed {
+    @apply bg-green-50 border border-green-200;
+  }
+  
+  .set-row.active {
+    @apply bg-[var(--workout-primary)]/10 border border-[var(--workout-primary)];
+  }
+  
+  .set-number {
+    @apply w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-sm font-medium text-gray-600;
+  }
+  
+  .set-number.completed {
+    @apply bg-green-500 text-white;
+  }
+  
+  .set-number.active {
+    @apply bg-[var(--workout-timer)] text-white;
+  }
+  
+  .set-input {
+    @apply w-16 text-center border border-gray-300 rounded px-2 py-1 text-sm;
+  }
+  
+  .set-input:focus {
+    @apply border-[var(--workout-primary)] ring-1 ring-[var(--workout-primary)] outline-none;
+  }
+  
+  .set-complete-button {
+    @apply bg-[var(--workout-primary)] hover:bg-[var(--workout-primary-hover)] text-white px-4 py-1 rounded text-sm font-medium;
+  }
+  
+  .set-complete-button:disabled {
+    @apply bg-gray-300 cursor-not-allowed;
+  }
+}
+
+/* CSS Variables for Gym Personality Theming */
+:root {
+  /* Default Theme */
+  --workout-primary: #3b82f6;
+  --workout-primary-hover: #2563eb;
+  --workout-secondary: #6b7280;
+  --workout-timer: #059669;
+  --workout-background: #ffffff;
+  --workout-surface: #f9fafb;
+}
+
+/* Hardcore Gym Personality */
+[data-gym-personality="hardcore"] {
+  --workout-primary: #dc2626;
+  --workout-primary-hover: #b91c1c;
+  --workout-secondary: #374151;
+  --workout-timer: #ea580c;
+  --workout-background: #111827;
+  --workout-surface: #1f2937;
+}
+
+/* Zen Gym Personality */
+[data-gym-personality="zen"] {
+  --workout-primary: #059669;
+  --workout-primary-hover: #047857;
+  --workout-secondary: #6b7280;
+  --workout-timer: #0891b2;
+  --workout-background: #f0fdf4;
+  --workout-surface: #ecfdf5;
+}
+
+/* Corporate Gym Personality */
+[data-gym-personality="corporate"] {
+  --workout-primary: #4f46e5;
+  --workout-primary-hover: #4338ca;
+  --workout-secondary: #64748b;
+  --workout-timer: #0f172a;
+  --workout-background: #ffffff;
+  --workout-surface: #f8fafc;
+}
+
+/* Boutique Gym Personality */
+[data-gym-personality="boutique"] {
+  --workout-primary: #be185d;
+  --workout-primary-hover: #9d174d;
+  --workout-secondary: #71717a;
+  --workout-timer: #7c2d12;
+  --workout-background: #fdf2f8;
+  --workout-surface: #fce7f3;
+}
+
+@layer utilities {
   .pb-safe {
     padding-bottom: env(safe-area-inset-bottom);
   }
