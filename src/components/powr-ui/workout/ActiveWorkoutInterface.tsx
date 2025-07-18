@@ -102,7 +102,7 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
     if (workoutData?.title) {
       console.log('🔧 ActiveWorkoutInterface: Workout loaded:', workoutData.title);
     }
-  }, [workoutData?.workoutId]); // Only log when workout changes, not on every render
+  }, [workoutData?.workoutId, workoutData?.title]); // Include workoutData.title in dependencies
 
   // ✅ Send function - direct from actorRef (from XState React docs)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -284,18 +284,18 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
     <>
       {/* Full Screen Workout Interface */}
       <div className={cn(
-        "fixed inset-0 bg-white z-50 flex flex-col",
+        "fixed inset-0 bg-background z-50 flex flex-col",
         "safe-area-inset-top safe-area-inset-bottom",
         className
       )}>
         {/* Clean 3-Element Header */}
-        <div className="flex items-center justify-between p-4 bg-white border-b border-[var(--workout-border)]">
+        <div className="flex items-center justify-between p-4 bg-background border-b border-border">
           {/* Back Button */}
           <Button
             variant="ghost"
             size="icon"
             onClick={onClose}
-            className="text-[var(--workout-text-muted)] hover:text-[var(--workout-text)]"
+            className="text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
@@ -306,7 +306,7 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
               elapsedTime={elapsedTime}
               className="text-2xl font-bold"
             />
-            <div className="text-sm text-[var(--workout-text-muted)] mt-1">
+            <div className="text-sm text-muted-foreground mt-1">
               {completedSets}/{totalSets} sets
             </div>
           </div>
@@ -343,7 +343,7 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
         </div>
 
         {/* Bottom Action Bar */}
-        <div className="p-4 border-t border-[var(--workout-border)] bg-white">
+        <div className="p-4 border-t border-border bg-background">
           <div className="flex items-center justify-between gap-4">
             {/* Cancel Button */}
             <Button

@@ -31,6 +31,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **WorkoutDetailModal Semantic Styling COMPLETE (July 18, 2025) ✅**
+  
+  **User Impact**: Workout detail modal now uses consistent semantic styling that adapts to gym personality themes, providing a cohesive visual experience across the application.
+  
+  **Developer Notes**: Converted all hardcoded orange color references to semantic `text-primary`, `border-primary`, and `bg-primary` classes. Modal now properly integrates with POWR UI theming system for white label customization.
+  
+  **Architecture Changes**: Established semantic CSS patterns for modal components that support gym personality variants (zen, hardcore, corporate, boutique) through CSS custom properties.
+
+### Added
+- **WorkoutDetailModal Semantic Styling COMPLETE (July 18, 2025) ✅**
+  
+  **User Impact**: Workout detail modal now supports consistent gym personality theming across all states (loading, error, active workout, and detail view). All hardcoded backgrounds replaced with semantic CSS variables for white labeling.
+  
+  **Developer Notes**: Converted all `bg-black` hardcoded backgrounds to `bg-[var(--workout-surface)]` semantic CSS variables. Added proper DialogHeader and DialogTitle components for Radix UI accessibility compliance. Maintains existing XState integration and ActiveWorkoutInterface functionality.
+  
+  **Architecture Changes**: Established semantic CSS variable pattern for workout components. Foundation ready for gym personality theming system implementation across all workout modal states.
+
+### Added
+- **Active Workout UI Redesign with Semantic Styling COMPLETE (July 18, 2025) ✅**
+  
+  **User Impact**: Users now experience a clean, professional active workout interface with proper dark mode support and consistent theming across all workout components.
+  
+  **Developer Notes**: Converted all hardcoded Tailwind classes to semantic CSS variables in ActiveWorkoutInterface and ExerciseSection components. Fixed dark mode compatibility and ESLint dependency warnings.
+  
+  **Architecture Changes**: Established complete semantic styling foundation for white label gym personality theming. All workout components now use CSS variables for consistent customization.
+
+- **Active Workout UI Semantic Styling Conversion COMPLETE (July 18, 2025) ✅**
+  
+  **User Impact**: Active workout interface now uses semantic CSS variables enabling complete gym personality theming. All hardcoded colors replaced with semantic variables (--workout-primary, --workout-success, --workout-timer, etc.) allowing gyms to customize the entire workout experience to match their brand personality.
+  
+  **Developer Notes**: Converted ExerciseSection component from hardcoded Tailwind classes to semantic CSS variables. Replaced all color references (blue-500, green-500, gray-300, etc.) with workout-specific semantic variables. Enhanced POWR UI component architecture with consistent theming patterns across all workout components.
+  
+  **Architecture Changes**: Established semantic CSS foundation for white label gym personality theming. All workout components now support dynamic theming through CSS variables. Foundation ready for zen, hardcore, corporate, and boutique gym personality variants.
+
+### Added
 - **Active Workout UI Redesign with Template Prescription Display COMPLETE (July 18, 2025) ✅**
   
   **User Impact**: Users now enjoy a clean, professional active workout interface with comprehensive prescription display showing sets, reps, and RPE targets from workout templates. The redesigned UI features a streamlined 3-element header (Back | Timer | Finish), table-style exercise layout with clear Set | Previous | Weight | Reps | ✓ columns, and intelligent prescription display that shows "3 sets of 10 reps @ RPE 7" when template data is available.

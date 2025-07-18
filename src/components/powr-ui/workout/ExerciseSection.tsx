@@ -69,22 +69,22 @@ const SetRowComponent: React.FC<SetRowProps> = ({
   return (
     <div className={cn(
       "grid grid-cols-5 gap-3 px-3 py-3 rounded-lg transition-colors",
-      isSetCompleted && "bg-green-50",
-      isCurrentSet && "bg-orange-50 ring-2 ring-orange-200"
+      isSetCompleted && "bg-green-50 dark:bg-green-950/20",
+      isCurrentSet && "bg-blue-50 dark:bg-blue-950/20 ring-2 ring-blue-200 dark:ring-blue-800"
     )}>
       {/* Set Number */}
       <div className="flex items-center">
         <div className={cn(
           "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium",
-          isSetCompleted ? "bg-green-500 text-white" : 
-          isCurrentSet ? "bg-orange-500 text-white" : "bg-gray-200 text-gray-600"
+          isSetCompleted ? "bg-green-600 text-white" : 
+          isCurrentSet ? "bg-blue-600 text-white" : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
         )}>
           {setIndex + 1}
         </div>
       </div>
 
       {/* Previous Set */}
-      <div className="flex items-center text-sm text-gray-500">
+      <div className="flex items-center text-sm text-muted-foreground">
         {formatPreviousSet(previousSetData)}
       </div>
 
@@ -97,7 +97,7 @@ const SetRowComponent: React.FC<SetRowProps> = ({
             type="number"
             value={weight}
             onChange={(e) => setWeight(e.target.value)}
-            className="h-10 text-center border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+            className="h-10 text-center border-border focus:border-primary focus:ring-primary"
             placeholder="0"
           />
         )}
@@ -112,7 +112,7 @@ const SetRowComponent: React.FC<SetRowProps> = ({
             type="number"
             value={reps}
             onChange={(e) => setReps(e.target.value)}
-            className="h-10 text-center border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+            className="h-10 text-center border-border focus:border-primary focus:ring-primary"
             placeholder="0"
           />
         )}
@@ -121,14 +121,14 @@ const SetRowComponent: React.FC<SetRowProps> = ({
       {/* Complete Button */}
       <div className="flex items-center justify-center">
         {isSetCompleted ? (
-          <div className="w-10 h-10 rounded-lg bg-green-500 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-lg bg-green-600 flex items-center justify-center">
             <Check className="h-5 w-5 text-white" />
           </div>
         ) : (
           <Button
             variant="outline"
             size="icon"
-            className="w-10 h-10 border-gray-300 hover:bg-green-50 hover:border-green-300"
+            className="w-10 h-10 border-border hover:bg-green-50 hover:border-green-600 dark:hover:bg-green-950/20"
             onClick={() => onComplete({
               weight: parseFloat(weight) || 0,
               reps: parseInt(reps) || 0,
@@ -178,14 +178,14 @@ export const ExerciseSection: React.FC<ExerciseSectionProps> = ({
         
         <button
           onClick={onExerciseSelect}
-          className="text-blue-500 hover:text-blue-600 transition-colors p-2 -m-2"
+          className="text-primary hover:text-primary/80 transition-colors p-2 -m-2"
         >
           <MoreHorizontal className="h-5 w-5" />
         </button>
       </div>
 
       {/* Prescribed Sets Info */}
-      <div className="text-sm text-gray-600 mb-4">
+      <div className="text-sm text-muted-foreground mb-4">
         {exercise.prescribedSets && exercise.prescribedReps ? (
           `${exercise.prescribedSets} sets of ${exercise.prescribedReps} reps${exercise.prescribedRpe ? ` @ RPE ${exercise.prescribedRpe}` : ''}`
         ) : exercise.prescribedReps ? (
@@ -198,7 +198,7 @@ export const ExerciseSection: React.FC<ExerciseSectionProps> = ({
       </div>
 
       {/* Table Headers */}
-      <div className="grid grid-cols-5 gap-3 px-3 py-2 text-sm font-medium text-gray-700 border-b border-gray-200">
+      <div className="grid grid-cols-5 gap-3 px-3 py-2 text-sm font-medium text-muted-foreground border-b border-border">
         <div>Set</div>
         <div>Previous</div>
         <div>-lbs</div>
@@ -233,7 +233,7 @@ export const ExerciseSection: React.FC<ExerciseSectionProps> = ({
           <Button
             variant="outline"
             onClick={() => onAddSet(exercise.id)}
-            className="w-full h-12 border-dashed border-gray-300 text-gray-600 hover:text-gray-800 hover:border-gray-400 bg-gray-50"
+            className="w-full h-12 border-dashed border-border text-muted-foreground hover:text-foreground hover:border-border bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800"
           >
             <Plus className="h-4 w-4 mr-2" />
             Add Set
