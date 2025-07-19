@@ -35,6 +35,16 @@
     --sidebar-border: oklch(0.92 0.004 286.32);
     --sidebar-ring: oklch(0.606 0.25 292.717);
     
+    /* Workout-specific semantic variables - Light Mode */
+    --workout-success: oklch(0.55 0.15 145);
+    --workout-success-bg: oklch(0.97 0.02 145);
+    --workout-success-border: oklch(0.75 0.12 145);
+    --workout-active: oklch(0.6 0.3 240);
+    --workout-active-bg: transparent;
+    --workout-active-border: oklch(0.75 0.25 240);
+    --workout-surface: oklch(0.95 0.004 286.32);
+    --workout-surface-hover: oklch(0.88 0.008 286.32);
+    --workout-text: oklch(0.45 0.01 286);
   }
 
   .dark {
@@ -70,6 +80,16 @@
     --sidebar-border: oklch(1 0 0 / 10%);
     --sidebar-ring: oklch(0.541 0.281 293.009);
     
+    /* Workout-specific semantic variables - Dark Mode */
+    --workout-success: oklch(0.65 0.18 145);
+    --workout-success-bg: oklch(0.18 0.04 145);
+    --workout-success-border: oklch(0.45 0.15 145);
+    --workout-active: oklch(0.75 0.35 240);
+    --workout-active-bg: transparent;
+    --workout-active-border: oklch(0.55 0.3 240);
+    --workout-surface: oklch(0.274 0.006 286.033);
+    --workout-surface-hover: oklch(0.35 0.01 286.033);
+    --workout-text: oklch(0.85 0.005 286);
   }
 }
 
@@ -177,6 +197,17 @@
   
   .hide-scrollbar::-webkit-scrollbar {
     display: none;
+  }
+
+  /* Hide number input spinners while keeping number input functionality */
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  input[type="number"] {
+    -moz-appearance: textfield; /* Firefox */
   }
 
   /* Touch action utilities for horizontal galleries */

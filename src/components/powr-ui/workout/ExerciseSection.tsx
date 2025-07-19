@@ -69,15 +69,15 @@ const SetRowComponent: React.FC<SetRowProps> = ({
   return (
     <div className={cn(
       "grid grid-cols-5 gap-3 px-3 py-3 rounded-lg transition-colors",
-      isSetCompleted && "bg-green-50 dark:bg-green-950/20",
-      isCurrentSet && "bg-blue-50 dark:bg-blue-950/20 ring-2 ring-blue-200 dark:ring-blue-800"
+      isSetCompleted && "bg-[var(--workout-success-bg)] border border-[var(--workout-success-border)]",
+      isCurrentSet && "bg-[var(--workout-active-bg)] ring-2 ring-[var(--workout-active-border)]"
     )}>
       {/* Set Number */}
       <div className="flex items-center">
         <div className={cn(
           "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium",
-          isSetCompleted ? "bg-green-600 text-white" : 
-          isCurrentSet ? "bg-blue-600 text-white" : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
+          isSetCompleted ? "bg-[var(--workout-success)] text-white" : 
+          isCurrentSet ? "bg-[var(--workout-active)] text-white" : "bg-[var(--workout-surface)] text-[var(--workout-text)]"
         )}>
           {setIndex + 1}
         </div>
@@ -121,14 +121,14 @@ const SetRowComponent: React.FC<SetRowProps> = ({
       {/* Complete Button */}
       <div className="flex items-center justify-center">
         {isSetCompleted ? (
-          <div className="w-10 h-10 rounded-lg bg-green-600 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-lg bg-[var(--workout-success)] flex items-center justify-center">
             <Check className="h-5 w-5 text-white" />
           </div>
         ) : (
           <Button
             variant="outline"
             size="icon"
-            className="w-10 h-10 border-border hover:bg-green-50 hover:border-green-600 dark:hover:bg-green-950/20"
+            className="w-10 h-10 border-border hover:bg-[var(--workout-success-bg)] hover:border-[var(--workout-success-border)]"
             onClick={() => onComplete({
               weight: parseFloat(weight) || 0,
               reps: parseInt(reps) || 0,
@@ -233,7 +233,7 @@ export const ExerciseSection: React.FC<ExerciseSectionProps> = ({
           <Button
             variant="outline"
             onClick={() => onAddSet(exercise.id)}
-            className="w-full h-12 border-dashed border-border text-muted-foreground hover:text-foreground hover:border-border bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800"
+            className="w-full h-12 border-dashed border-border text-muted-foreground hover:text-foreground hover:border-border bg-[var(--workout-surface)] hover:bg-[var(--workout-surface-hover)]"
           >
             <Plus className="h-4 w-4 mr-2" />
             Add Set
