@@ -335,7 +335,7 @@ export function WorkoutListManager() {
       console.log(`[WorkoutListManager] Batching ${exerciseDTags.length} exercises from ${exerciseAuthors.size} authors...`);
       
       const filter: NDKFilter = {
-        kinds: [33401],
+        kinds: [33401 as any],
         authors: Array.from(exerciseAuthors),
         '#d': exerciseDTags
       };

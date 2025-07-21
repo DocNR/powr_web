@@ -481,9 +481,9 @@ export function DependencyResolutionServiceTest() {
                         <div className="text-xs space-y-1">
                           {result.testName === 'Single Template Resolution' && (
                             <div>
-                              <p><strong>Template:</strong> {(result.data as any).template?.name || 'N/A'}</p>
-                              <p><strong>Exercises Found:</strong> {(result.data as any).exercises?.length || 0}</p>
-                              <p><strong>Load Time:</strong> {(result.data as any).loadTime}ms</p>
+                              <p><strong>Template:</strong> {(result.data as any)?.template?.name || 'N/A'}</p>
+                              <p><strong>Exercises Found:</strong> {(result.data as any)?.exercises?.length || 0}</p>
+                              <p><strong>Load Time:</strong> {(result.data as any)?.loadTime}ms</p>
                             </div>
                           )}
                           
