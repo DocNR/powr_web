@@ -4,7 +4,6 @@ import { Button } from '@/components/powr-ui/primitives/Button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Play, ArrowLeft, User, Settings, AlertCircle } from 'lucide-react';
 import { WorkoutImageHandler } from './WorkoutImageHandler';
-import { ActiveWorkoutInterface } from './ActiveWorkoutInterface';
 
 interface Exercise {
   name: string;
@@ -30,12 +29,6 @@ interface WorkoutDetailModalProps {
   isLoading: boolean;
   templateData?: TemplateData;
   error?: string;
-  isWorkoutActive?: boolean;
-  userPubkey?: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  workoutMachineState?: any; 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  workoutMachineSend?: any;
   onClose: () => void;
   onStartWorkout: () => void;
 }
@@ -45,9 +38,6 @@ export const WorkoutDetailModal = ({
   isLoading,
   templateData,
   error,
-  isWorkoutActive,
-  workoutMachineState,
-  workoutMachineSend,
   onClose,
   onStartWorkout,
 }: WorkoutDetailModalProps) => {
@@ -123,64 +113,6 @@ export const WorkoutDetailModal = ({
   const exercises = templateData.exercises || [];
   const equipment = templateData.equipment || [];
 
-  // ✅ FIXED: If workout is active, show ActiveWorkoutInterface using the machine's data
-  if (isWorkoutActive && workoutMachineState && workoutMachineSend) {
-    console.log('🔧 WorkoutDetailModal: Rendering ActiveWorkoutInterface with machine data');
-    console.log('🔧 Machine state:', workoutMachineState.value);
-    console.log('🔧 Machine context:', workoutMachineState.context);
-
-    // Get the activeWorkoutActor from the WorkoutLifecycleMachine context
-    const activeWorkoutActor = workoutMachineState.context?.activeWorkoutActor;
-    
-    if (!activeWorkoutActor) {
-      console.error('🔧 No activeWorkoutActor found in machine context');
-      return (
-        <Dialog open={isOpen} onOpenChange={onClose}>
-          <DialogContent className="max-w-full max-h-full w-screen h-screen p-0 m-0 rounded-none border-none">
-            <DialogHeader className="sr-only">
-              <DialogTitle>Starting Workout</DialogTitle>
-            </DialogHeader>
-            <div className="flex items-center justify-center h-full bg-background">
-              <div className="text-center p-6">
-                <AlertCircle className="h-12 w-12 text-primary mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2 text-foreground">Starting workout...</h3>
-                <p className="text-muted-foreground">Please wait while we initialize your workout</p>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      );
-    }
-
-    return (
-      <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-full max-h-full w-screen h-[100dvh] supports-[height:100dvh]:h-[100dvh] p-0 m-0 rounded-none border-none" showCloseButton={false}>
-          <ActiveWorkoutInterface 
-            // ✅ Use the existing activeWorkoutActor from WorkoutLifecycleMachine
-            activeWorkoutActor={activeWorkoutActor}
-            onClose={onClose}
-            onWorkoutComplete={(workoutData) => {
-              console.log('🔧 Workout completed, sending to lifecycle machine:', workoutData);
-              // Send completion event to the WorkoutLifecycleMachine
-              workoutMachineSend({ 
-                type: 'WORKOUT_COMPLETED', 
-                workoutData 
-              });
-              onClose();
-            }}
-            onWorkoutCancel={() => {
-              console.log('🔧 Workout cancelled, sending to lifecycle machine');
-              // Send cancellation event to the WorkoutLifecycleMachine
-              workoutMachineSend({ 
-                type: 'WORKOUT_CANCELLED' 
-              });
-              onClose();
-            }}
-          />
-        </DialogContent>
-      </Dialog>
-    );
-  }
 
   return (
       <Dialog open={isOpen} onOpenChange={onClose}>

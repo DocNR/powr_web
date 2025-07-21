@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Button } from '@/components/powr-ui/primitives/Button';
-import { Play, Pause } from 'lucide-react';
+import { Play, Pause, ChevronUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface WorkoutMiniBarProps {
@@ -36,10 +36,19 @@ export const WorkoutMiniBar: React.FC<WorkoutMiniBarProps> = ({
 
   return (
     <div className={cn(
-      "fixed bottom-16 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-40",
+      "fixed bottom-16 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-gray-200/80 shadow-lg z-40",
+      "flex flex-col",
       "safe-area-inset-bottom", // Handle safe area for mobile devices
       className
     )}>
+      {/* Drawer Handle */}
+      <div className="flex justify-center py-2 border-b border-gray-200/50">
+        <div className="flex items-center justify-center w-8 h-6 rounded-full hover:bg-gray-100 transition-colors cursor-pointer">
+          <ChevronUp className="h-4 w-4 text-gray-400" />
+        </div>
+      </div>
+      
+      {/* Mini Bar Content */}
       <div 
         className="flex items-center justify-between p-3 max-w-md mx-auto cursor-pointer"
         onClick={onExpand}

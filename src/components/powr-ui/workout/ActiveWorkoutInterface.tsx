@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import { useSelector } from '@xstate/react';
 import { Button, WorkoutTimer } from '@/components/powr-ui';
 import { ExerciseSection } from './ExerciseSection';
-import { WorkoutMiniBar } from './WorkoutMiniBar';
 import { ArrowLeft, Square } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
@@ -62,7 +61,7 @@ interface WorkoutExercise {
 interface ActiveWorkoutInterfaceProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   activeWorkoutActor: any; // XState actor reference
-  onClose: () => void;
+  onMinimize: () => void; // Changed from onClose to onMinimize
   onWorkoutComplete?: (workoutData: WorkoutData) => void;
   onWorkoutCancel?: () => void;
   className?: string;
@@ -70,14 +69,13 @@ interface ActiveWorkoutInterfaceProps {
 
 export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
   activeWorkoutActor,
-  onClose,
+  onMinimize,
   onWorkoutComplete,
   onWorkoutCancel,
   className
 }) => {
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [showFinishDialog, setShowFinishDialog] = useState(false);
-  const [isMinimized, setIsMinimized] = useState(false);
   
   // ✅ OPTIMIZED: Use fewer, more specific selectors to reduce re-renders
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -115,7 +113,6 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
   };
 
   // Calculate derived state from actor context
-  const title = workoutData?.title || 'Active Workout';
   const isPaused = workoutSession?.isPaused || false;
   const currentExerciseIndex = exerciseProgression?.currentExerciseIndex || 0;
   const currentSetIndex = (exerciseProgression?.currentSetNumber || 1) - 1;
@@ -216,19 +213,11 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
     });
   };
 
-  const handleTogglePause = () => {
-    if (isPaused) {
-      actorSend({ type: 'RESUME_WORKOUT' });
-    } else {
-      actorSend({ type: 'PAUSE_WORKOUT' });
-    }
-  };
-
   const handleCancelConfirm = () => {
     setShowCancelDialog(false);
     actorSend({ type: 'CANCEL_WORKOUT' });
     onWorkoutCancel?.();
-    onClose();
+    onMinimize(); // Minimize after canceling
   };
 
   const handleFinishConfirm = () => {
@@ -241,9 +230,6 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
     }
   };
 
-  const handleToggleMinimize = () => {
-    setIsMinimized(!isMinimized);
-  };
 
   // Handle actor state changes
   useEffect(() => {
@@ -266,19 +252,6 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
   );
 
 
-  // If minimized, show only the mini bar
-  if (isMinimized) {
-    return (
-      <WorkoutMiniBar
-        workoutTitle={title}
-        elapsedTime={elapsedTime}
-        isPaused={isPaused}
-        onTogglePause={handleTogglePause}
-        onExpand={handleToggleMinimize}
-        className={className}
-      />
-    );
-  }
 
   return (
     <>
@@ -290,12 +263,16 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
       )}>
         {/* Clean 3-Element Header */}
         <div className="flex items-center justify-between p-4 bg-background border-b border-border">
-          {/* Back Button */}
+          {/* Minimize Button */}
           <Button
             variant="ghost"
             size="icon"
-            onClick={onClose}
+            onClick={() => {
+              console.log('🔙 ActiveWorkoutInterface: Back button clicked - calling onMinimize');
+              onMinimize();
+            }}
             className="text-muted-foreground hover:text-foreground"
+            title="Minimize workout (workout continues in background)"
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
@@ -353,15 +330,6 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
             >
               <Square className="h-4 w-4 mr-2" />
               Cancel
-            </Button>
-
-            {/* Minimize Button */}
-            <Button
-              variant="outline"
-              onClick={handleToggleMinimize}
-              className="px-6"
-            >
-              Minimize
             </Button>
 
             {/* Finish Button */}

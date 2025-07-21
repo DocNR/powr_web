@@ -12,16 +12,13 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { CalendarBar, WorkoutCard, ScrollableGallery, SearchableWorkoutDiscovery, WorkoutDetailModal } from '@/components/powr-ui/workout';
 import WorkoutCardSkeleton from '@/components/powr-ui/workout/WorkoutCardSkeleton';
 import { useWorkoutData } from '@/providers/WorkoutDataProvider';
-import { useMachine } from '@xstate/react';
-import { workoutLifecycleMachine } from '@/lib/machines/workout/workoutLifecycleMachine';
+import { useWorkoutContext } from '@/hooks/useWorkoutContext';
 import { usePubkey } from '@/lib/auth/hooks';
 
 export default function WorkoutsTab() {
   const [selectedDate, setSelectedDate] = useState(new Date());
 
-  // Modal state
-  const [selectedWorkout, setSelectedWorkout] = useState<Record<string, unknown> | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  // Modal state now managed by global workout context
   const [modalError, setModalError] = useState<string | undefined>();
 
   // Get authenticated user pubkey
@@ -42,17 +39,10 @@ export default function WorkoutsTab() {
     isLoadingMore
   } = useWorkoutData();
 
-  // Workout Lifecycle Machine
-  const [workoutState, workoutSend] = useMachine(workoutLifecycleMachine, {
-    input: {
-      userInfo: {
-        pubkey: userPubkey || 'user-pubkey', // Use real pubkey from auth
-        displayName: 'User'
-      }
-    }
-  });
+  // Global Workout Context - replaces local machine
+  const { workoutState, workoutSend } = useWorkoutContext();
 
-  // Machine state-based UI updates
+  // Machine state-based UI updates - modal state now derived from global state
   useEffect(() => {
     console.log('🔄 Workout machine state changed:', workoutState.value);
     
@@ -61,54 +51,26 @@ export default function WorkoutsTab() {
       console.log('📋 Machine in setup state - waiting for template resolution...');
       
     } else if (workoutState.matches('setupComplete')) {
-      // Setup complete - template is resolved, show modal with resolved data
+      // Setup complete - template is resolved, modal will show resolved data
       console.log('✅ Setup complete - template resolved:', workoutState.context.templateSelection);
-      
-      // NOW open modal with resolved data from machine state
-      if (workoutState.context.templateSelection && workoutState.context.workoutData) {
-        const resolvedWorkout = {
-          title: workoutState.context.workoutData.title,
-          description: `Template: ${workoutState.context.templateSelection.templateId}`,
-          content: JSON.stringify(workoutState.context.workoutData),
-          exercises: workoutState.context.workoutData.exercises || [],
-          equipment: ['Various'],
-          tags: [['t', 'fitness']],
-          eventKind: 33402,
-          templateRef: workoutState.context.templateSelection.templateReference
-        };
-        
-        setSelectedWorkout(resolvedWorkout);
-        setIsModalOpen(true); // Open modal NOW with resolved data
-      }
       
     } else if (workoutState.matches('active')) {
       // Active state - activeWorkoutMachine is running
       console.log('🏃‍♂️ Machine in active state - workout is running');
-      // Keep modal OPEN to show active workout UI
-      setIsModalOpen(true);
       
     } else if (workoutState.matches('completed')) {
       // Completed state - show completion UI or navigate back
       console.log('✅ Machine in completed state - workout finished');
-      setIsModalOpen(false);
     } else if (workoutState.matches('idle')) {
       // Idle state - machine is ready for new workout
       console.log('💤 Machine in idle state - ready for new workout');
     }
   }, [workoutState]);
 
-  // Cleanup effect - reset machine on component unmount only
-  useEffect(() => {
-    return () => {
-      // This cleanup function only runs on actual component unmount
-      // Check current state and reset if needed
-      const currentSnapshot = workoutState;
-      if (currentSnapshot && !currentSnapshot.matches('idle')) {
-        console.log('🧹 Component unmounting - resetting machine to idle state');
-        workoutSend({ type: 'RESET_LIFECYCLE' });
-      }
-    };
-  }, [workoutSend, workoutState]);
+  // ✅ REMOVED: Aggressive cleanup on component unmount
+  // This was causing workout state loss during tab navigation
+  // Global workout state now persists across all navigation
+  // Only essential cleanup remains (app close, logout, explicit cancellation)
 
   // POWR WOD - keep as featured content for now
   const powrWOD = useMemo(() => ({
@@ -250,19 +212,19 @@ export default function WorkoutsTab() {
   };
 
   const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setSelectedWorkout(null);
     setModalError(undefined);
     
-    // CRITICAL: Reset machine to idle state when modal closes
-    // This prevents multiple machines from accumulating
+    // ✅ FIXED: Only reset machine if we're in setup states, not active workout
     if (workoutState.matches('setupComplete')) {
       console.log('🔄 Canceling setup - returning machine to idle state');
       workoutSend({ type: 'CANCEL_SETUP' });
-    } else if (!workoutState.matches('idle')) {
-      console.log('🔄 Resetting lifecycle - returning machine to idle state');
-      workoutSend({ type: 'RESET_LIFECYCLE' });
+    } else if (workoutState.matches('setup')) {
+      console.log('🔄 Canceling setup in progress - returning machine to idle state');
+      workoutSend({ type: 'CANCEL_SETUP' });
     }
+    // ✅ CRITICAL: Do NOT reset machine when workout is active
+    // The modal should close but the workout should continue running in background
+    // This enables the mini playbar functionality
   };
 
   const handleStartWorkout = () => {
@@ -280,19 +242,14 @@ export default function WorkoutsTab() {
       console.error('❌ No workout data available in machine context');
       console.log('🔍 Machine context:', workoutState.context);
       
-      // Fallback to old behavior if machine data is missing (shouldn't happen)
-      console.warn('⚠️ Falling back to reconstructed workout data');
+      // Fallback to basic workout data if machine data is missing (shouldn't happen)
+      console.warn('⚠️ Falling back to basic workout data');
       workoutSend({ 
         type: 'START_WORKOUT',
         workoutData: {
           workoutId: `workout_${Date.now()}`,
-          title: selectedWorkout?.title as string || 'Workout',
-          exercises: (selectedWorkout?.exercises as Array<{ name: string; sets: number; reps: number; weight: number }> || []).map(ex => ({
-            exerciseRef: `33401:user-pubkey:${ex.name.toLowerCase().replace(/\s+/g, '-')}`,
-            sets: ex.sets,
-            reps: ex.reps,
-            weight: ex.weight
-          })),
+          title: 'Workout',
+          exercises: [],
           completedSets: [],
           workoutType: 'strength',
           startTime: Date.now()
@@ -558,16 +515,26 @@ export default function WorkoutsTab() {
 
       {/* Workout Detail Modal */}
       <WorkoutDetailModal
-        isOpen={isModalOpen}
-        isLoading={false}
-        templateData={selectedWorkout || undefined}
+        isOpen={workoutState.matches('setupComplete')}
+        isLoading={workoutState.matches('setup')}
+        templateData={workoutState.context.workoutData ? {
+          title: workoutState.context.workoutData.title,
+          description: `Template: ${workoutState.context.templateSelection?.templateId || 'Unknown'}`,
+          content: JSON.stringify(workoutState.context.workoutData),
+          exercises: (workoutState.context.workoutData.exercises || []).map((exercise: any) => ({
+            name: exercise.exerciseRef?.split(':')[2]?.replace(/-/g, ' ') || 'Exercise',
+            sets: exercise.sets || 3,
+            reps: exercise.reps || 12,
+            description: `${exercise.sets || 3} sets of ${exercise.reps || 12} reps`
+          })),
+          equipment: ['Various'],
+          tags: [['t', 'fitness']],
+          eventKind: 33402,
+          templateRef: workoutState.context.templateSelection?.templateReference
+        } : undefined}
         error={modalError}
         onClose={handleCloseModal}
         onStartWorkout={handleStartWorkout}
-        isWorkoutActive={workoutState.matches('active')}
-        userPubkey={userPubkey}
-        workoutMachineState={workoutState}
-        workoutMachineSend={workoutSend}
       />
     </div>
   );
