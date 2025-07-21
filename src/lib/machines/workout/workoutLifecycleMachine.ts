@@ -245,12 +245,12 @@ export const workoutLifecycleMachine = setup({
   
   context: ({ input }) => ({
     ...defaultWorkoutLifecycleContext,
-    userInfo: input.userInfo,
+    userInfo: input?.userInfo || { pubkey: '', displayName: 'Unknown User' },
     lifecycleStartTime: Date.now(),
     // Add activeWorkoutActor to context (following NOGA pattern)
     activeWorkoutActor: undefined,
     // Add templateReference from input
-    templateReference: input.templateReference
+    templateReference: input?.templateReference
   }),
   
   states: {
@@ -360,6 +360,25 @@ export const workoutLifecycleMachine = setup({
       entry: ['logTransition'],
       // Add exit action for cleanup
       exit: ['stopActiveWorkout', 'clearActiveWorkoutActor'],
+      initial: 'expanded',
+      states: {
+        expanded: {
+          on: {
+            MINIMIZE_INTERFACE: {
+              target: 'minimized',
+              actions: ['logTransition']
+            }
+          }
+        },
+        minimized: {
+          on: {
+            EXPAND_INTERFACE: {
+              target: 'expanded',
+              actions: ['logTransition']
+            }
+          }
+        }
+      },
       on: {
         // Handle WORKOUT_COMPLETED event from sendParent in activeWorkoutMachine
         WORKOUT_COMPLETED: {

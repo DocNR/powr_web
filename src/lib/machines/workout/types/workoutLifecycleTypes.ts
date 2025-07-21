@@ -54,6 +54,8 @@ export type WorkoutLifecycleEvent =
   | { type: 'WORKOUT_RESUMED' }
   | { type: 'WORKOUT_COMPLETED'; workoutData: WorkoutData }
   | { type: 'WORKOUT_CANCELLED' }
+  | { type: 'MINIMIZE_INTERFACE' }
+  | { type: 'EXPAND_INTERFACE' }
   | { type: 'RESET_LIFECYCLE' }
   | { type: 'ERROR_OCCURRED'; error: ErrorInfo }
   | { type: 'RETRY_OPERATION' }
