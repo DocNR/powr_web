@@ -1,15 +1,12 @@
 'use client';
 
 import React from 'react';
-import { Button } from '@/components/powr-ui/primitives/Button';
-import { Play, Pause, Timer } from 'lucide-react';
+import { Timer } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface WorkoutMiniBarProps {
   workoutTitle: string;
   elapsedTime: number; // in milliseconds
-  isPaused?: boolean;
-  onTogglePause?: () => void;
   onExpand?: () => void;
   className?: string;
 }
@@ -17,8 +14,6 @@ interface WorkoutMiniBarProps {
 export const WorkoutMiniBar: React.FC<WorkoutMiniBarProps> = ({
   workoutTitle,
   elapsedTime,
-  isPaused = false,
-  onTogglePause,
   onExpand,
   className
 }) => {
@@ -47,7 +42,7 @@ export const WorkoutMiniBar: React.FC<WorkoutMiniBarProps> = ({
       "safe-area-inset-x",
       className
     )}>
-      {/* Main Content - No caret, just the workout info */}
+      {/* Main Content - Simple workout info display */}
       <div 
         className="flex items-center justify-between p-4 max-w-md mx-auto cursor-pointer group transition-all duration-200 hover:bg-accent/50"
         onClick={onExpand}
@@ -55,18 +50,12 @@ export const WorkoutMiniBar: React.FC<WorkoutMiniBarProps> = ({
         {/* Left Section: Title and Status */}
         <div className="flex-1 min-w-0 mr-4">
           <div className="flex items-center gap-2 mb-1">
-            {/* Activity indicator */}
-            <div className={cn(
-              "w-2 h-2 rounded-full transition-colors",
-              isPaused ? "bg-orange-500" : "bg-primary animate-pulse"
-            )} />
+            {/* Activity indicator - always active (no pause) */}
+            <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
             
-            {/* Status text */}
-            <span className={cn(
-              "text-xs font-medium uppercase tracking-wide",
-              isPaused ? "text-orange-500" : "text-primary"
-            )}>
-              {isPaused ? "Paused" : "Active"}
+            {/* Status text - always active */}
+            <span className="text-xs font-medium uppercase tracking-wide text-primary">
+              Active
             </span>
           </div>
           
@@ -76,48 +65,14 @@ export const WorkoutMiniBar: React.FC<WorkoutMiniBarProps> = ({
           </h4>
         </div>
 
-        {/* Right Section: Timer and Controls */}
-        <div className="flex items-center gap-3 flex-shrink-0">
+        {/* Right Section: Timer Display */}
+        <div className="flex items-center gap-2 flex-shrink-0">
           {/* Timer with icon */}
-          <div className="flex items-center gap-2 min-w-0">
-            <Timer className={cn(
-              "h-4 w-4 flex-shrink-0",
-              isPaused ? "text-orange-500" : "text-primary"
-            )} />
-            
-            <div className={cn(
-              "font-mono text-lg font-bold tabular-nums",
-              isPaused ? "text-orange-500" : "text-foreground"
-            )}>
-              {formatTime(elapsedTime)}
-            </div>
+          <Timer className="h-4 w-4 flex-shrink-0 text-primary" />
+          
+          <div className="font-mono text-lg font-bold tabular-nums text-foreground">
+            {formatTime(elapsedTime)}
           </div>
-
-          {/* Pause/Resume Button */}
-          {onTogglePause && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={(e) => {
-                e.stopPropagation(); // Prevent triggering onExpand
-                onTogglePause();
-              }}
-              className={cn(
-                "h-9 w-9 rounded-full transition-all duration-200",
-                "hover:bg-primary/10 hover:scale-105",
-                "focus:bg-primary/10 focus:ring-2 focus:ring-primary/20",
-                isPaused 
-                  ? "text-orange-500 hover:text-orange-600" 
-                  : "text-primary hover:text-primary/80"
-              )}
-            >
-              {isPaused ? (
-                <Play className="h-4 w-4 ml-0.5" /> // Slight offset for visual balance
-              ) : (
-                <Pause className="h-4 w-4" />
-              )}
-            </Button>
-          )}
         </div>
       </div>
     </div>

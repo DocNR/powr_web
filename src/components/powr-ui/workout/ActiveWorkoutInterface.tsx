@@ -83,8 +83,6 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const exerciseProgression = useSelector(activeWorkoutActor, (state: any) => state.context?.exerciseProgression);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const workoutSession = useSelector(activeWorkoutActor, (state: any) => state.context?.workoutSession);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const timingInfo = useSelector(activeWorkoutActor, (state: any) => state.context?.timingInfo);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const actorState = useSelector(activeWorkoutActor, (state: any) => state);
@@ -113,31 +111,23 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
   };
 
   // Calculate derived state from actor context
-  const isPaused = workoutSession?.isPaused || false;
   const currentExerciseIndex = exerciseProgression?.currentExerciseIndex || 0;
 
   // Calculate elapsed time from actor timing info
   const [elapsedTime, setElapsedTime] = useState(0);
   
+  // Simple continuous timer showing total gym time
   useEffect(() => {
-    if (!timingInfo?.startTime || isPaused) return;
+    if (!timingInfo?.startTime) return;
     
     const interval = setInterval(() => {
       const now = Date.now();
-      const pauseTime = timingInfo.pauseTime || 0;
-      const totalPauseTime = workoutSession?.totalPauseTime || 0;
-      
-      if (pauseTime > 0) {
-        // Currently paused - don't include current pause time
-        setElapsedTime(Math.floor((timingInfo.startTime + totalPauseTime) / 1000));
-      } else {
-        // Active - include all time except previous pauses
-        setElapsedTime(Math.floor((now - timingInfo.startTime - totalPauseTime) / 1000));
-      }
+      const elapsed = Math.floor((now - timingInfo.startTime) / 1000);
+      setElapsedTime(elapsed);
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [timingInfo, isPaused, workoutSession?.totalPauseTime]);
+  }, [timingInfo?.startTime]);
 
   // ✅ FIXED: Create exercises from workout data with extraSetsRequested support
   const exercises: ExerciseData[] = workoutData?.exercises?.map((exercise: WorkoutExercise, index: number) => {

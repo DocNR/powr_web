@@ -13,7 +13,6 @@ import { CalendarBar, WorkoutCard, ScrollableGallery, SearchableWorkoutDiscovery
 import WorkoutCardSkeleton from '@/components/powr-ui/workout/WorkoutCardSkeleton';
 import { useWorkoutData } from '@/providers/WorkoutDataProvider';
 import { useWorkoutContext } from '@/hooks/useWorkoutContext';
-import { usePubkey } from '@/lib/auth/hooks';
 
 export default function WorkoutsTab() {
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -21,8 +20,8 @@ export default function WorkoutsTab() {
   // Modal state now managed by global workout context
   const [modalError, setModalError] = useState<string | undefined>();
 
-  // Get authenticated user pubkey
-  const userPubkey = usePubkey();
+  // Get authenticated user pubkey (for future use)
+  // const userPubkey = usePubkey();
 
   // Get cached data from provider (now template-focused)
   const {
@@ -521,7 +520,7 @@ export default function WorkoutsTab() {
           title: workoutState.context.workoutData.title,
           description: `Template: ${workoutState.context.templateSelection?.templateId || 'Unknown'}`,
           content: JSON.stringify(workoutState.context.workoutData),
-          exercises: (workoutState.context.workoutData.exercises || []).map((exercise: any) => ({
+          exercises: (workoutState.context.workoutData.exercises || []).map((exercise: { exerciseRef?: string; sets?: number; reps?: number }) => ({
             name: exercise.exerciseRef?.split(':')[2]?.replace(/-/g, ' ') || 'Exercise',
             sets: exercise.sets || 3,
             reps: exercise.reps || 12,

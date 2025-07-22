@@ -28,7 +28,7 @@ interface WorkoutUIProviderProps {
 
 export const WorkoutUIProvider: React.FC<WorkoutUIProviderProps> = ({ children }) => {
   const { workoutState, workoutSend } = useWorkoutContext();
-  const { activeTab, setActiveTab } = useNavigation();
+  const { setActiveTab } = useNavigation();
   const [isClient, setIsClient] = useState(false);
   
   // Real-time timer using React state that updates every second
@@ -76,7 +76,7 @@ export const WorkoutUIProvider: React.FC<WorkoutUIProviderProps> = ({ children }
     expandWorkout
   };
 
-  // Calculate workout data for mini bar
+  // Calculate workout data for mini bar - SIMPLIFIED: No pause functionality
   const getMiniBarData = () => {
     const workoutData = workoutState.context?.workoutData;
     const activeWorkoutActor = workoutState.context?.activeWorkoutActor;
@@ -85,30 +85,22 @@ export const WorkoutUIProvider: React.FC<WorkoutUIProviderProps> = ({ children }
       return null;
     }
 
-    // Calculate elapsed time and pause state
+    // Simple elapsed time calculation: now - startTime
     let elapsedTime = 0;
-    let isPaused = false;
     
     if (activeWorkoutActor && typeof activeWorkoutActor === 'object' && 'getSnapshot' in activeWorkoutActor) {
       try {
         const activeWorkoutSnapshot = (activeWorkoutActor as { getSnapshot: () => { 
           context: { 
-            timingInfo?: { startTime?: number; pauseTime?: number }; 
-            workoutSession?: { isPaused?: boolean; totalPauseTime?: number }
+            timingInfo?: { startTime?: number }; 
           }; 
-          matches: (state: string) => boolean 
         } }).getSnapshot();
         
         const timingInfo = activeWorkoutSnapshot.context?.timingInfo;
-        const sessionInfo = activeWorkoutSnapshot.context?.workoutSession;
         
         if (timingInfo?.startTime) {
-          const baseElapsed = currentTime - timingInfo.startTime;
-          const pauseTime = sessionInfo?.totalPauseTime || 0;
-          elapsedTime = Math.max(0, baseElapsed - pauseTime);
+          elapsedTime = Math.max(0, currentTime - timingInfo.startTime);
         }
-        
-        isPaused = sessionInfo?.isPaused || activeWorkoutSnapshot.matches('paused') || false;
         
       } catch (error) {
         console.warn('Error reading active workout timing info:', error);
@@ -124,23 +116,9 @@ export const WorkoutUIProvider: React.FC<WorkoutUIProviderProps> = ({ children }
       }
     }
 
-    const handleTogglePause = () => {
-      if (activeWorkoutActor && typeof activeWorkoutActor === 'object' && 'send' in activeWorkoutActor) {
-        try {
-          (activeWorkoutActor as { send: (event: unknown) => void }).send({ 
-            type: isPaused ? 'RESUME_WORKOUT' : 'PAUSE_WORKOUT' 
-          });
-        } catch (error) {
-          console.error('Error toggling workout pause:', error);
-        }
-      }
-    };
-
     return {
       workoutTitle: workoutData.title || 'Active Workout',
       elapsedTime,
-      isPaused,
-      onTogglePause: handleTogglePause,
       onExpand: expandWorkout
     };
   };

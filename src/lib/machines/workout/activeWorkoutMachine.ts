@@ -589,18 +589,9 @@ export const activeWorkoutMachine = setup({
         },
         
         // Workout control (like Noga's round control)
+        // PAUSE_WORKOUT: No-op - pause functionality removed for simpler UX
         PAUSE_WORKOUT: {
-          target: 'paused',
-          actions: assign({
-            workoutSession: ({ context }) => ({
-              ...context.workoutSession,
-              isPaused: true
-            }),
-            timingInfo: ({ context }) => ({
-              ...context.timingInfo,
-              pauseTime: Date.now()
-            })
-          })
+          // No-op: Do nothing, stay in current state
         },
         
         COMPLETE_WORKOUT: {

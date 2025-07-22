@@ -43,7 +43,7 @@ export const GlobalWorkoutStatePersistenceValidationTest: React.FC = () => {
   };
 
   const testMiniBarVisibility = () => {
-    const isWorkoutActive = state.matches('workoutActive');
+    const isWorkoutActive = state.matches('active');
     addTestResult(`🔍 Workout active state: ${isWorkoutActive ? 'ACTIVE' : 'INACTIVE'}`);
     
     if (isWorkoutActive) {
@@ -80,7 +80,7 @@ export const GlobalWorkoutStatePersistenceValidationTest: React.FC = () => {
     setTestResults([]);
   };
 
-  const isWorkoutActive = state.matches('workoutActive');
+  const isWorkoutActive = state.matches('active');
   const workoutTitle = state.context.selectedTemplate?.title || 'Test Workout';
 
   return (
