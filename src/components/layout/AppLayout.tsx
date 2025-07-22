@@ -14,124 +14,7 @@ import { getSubNavigation } from '@/config/subNavigation';
 import { WorkoutDataProvider } from '@/providers/WorkoutDataProvider';
 import { WorkoutUIProvider } from '@/providers/WorkoutUIProvider';
 import { WorkoutContext } from '@/contexts/WorkoutContext';
-import { WorkoutMiniBar } from '@/components/powr-ui/workout/WorkoutMiniBar';
 import { usePubkey } from '@/lib/auth/hooks';
-
-// WorkoutMiniBarContainer - Shows mini bar when workout is active AND not on WorkoutsTab
-function WorkoutMiniBarContainer() {
-  // Hooks must be called at the top level
-  const workoutState = WorkoutContext.useSelector((state) => state);
-  const workoutSend = WorkoutContext.useActorRef().send;
-  const { activeTab, setActiveTab } = useNavigation();
-
-  // Real-time timer using React state that updates every second
-  const [currentTime, setCurrentTime] = React.useState(Date.now());
-
-  // Update timer every second when workout is active
-  React.useEffect(() => {
-    if (!workoutState?.matches('active')) {
-      return;
-    }
-
-    const interval = setInterval(() => {
-      setCurrentTime(Date.now());
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [workoutState?.matches('active')]);
-
-  try {
-    // Only show mini bar when workout is active AND minimized
-    if (!workoutState?.matches('active') || !workoutState?.matches({ active: 'minimized' })) {
-      return null;
-    }
-
-    // Don't show mini bar on WorkoutsTab - the full ActiveWorkoutInterface handles it there
-    if (activeTab === 'workouts') {
-      return null;
-    }
-
-    const workoutData = workoutState.context?.workoutData;
-    const activeWorkoutActor = workoutState.context?.activeWorkoutActor;
-
-    if (!workoutData) {
-      return null;
-    }
-
-    // Get real elapsed time from active workout actor if available
-    let elapsedTime = 0;
-    let isPaused = false;
-    
-    if (activeWorkoutActor && typeof activeWorkoutActor === 'object' && 'getSnapshot' in activeWorkoutActor) {
-      try {
-        const activeWorkoutSnapshot = (activeWorkoutActor as { getSnapshot: () => { context: { timingInfo?: { startTime?: number; pauseTime?: number } }; matches: (state: string) => boolean } }).getSnapshot();
-        const activeWorkoutContext = activeWorkoutSnapshot.context;
-        
-        // Get actual start time from active workout timing info
-        const startTime = activeWorkoutContext?.timingInfo?.startTime || workoutState.context.lifecycleStartTime || Date.now();
-        elapsedTime = currentTime - startTime;
-        
-        // Check if workout is paused
-        isPaused = activeWorkoutSnapshot.matches && activeWorkoutSnapshot.matches('paused') || false;
-        
-        // If paused, calculate elapsed time up to pause point
-        if (isPaused && activeWorkoutContext?.timingInfo?.pauseTime) {
-          elapsedTime = activeWorkoutContext.timingInfo.pauseTime - startTime;
-        }
-      } catch (error) {
-        console.warn('Could not get active workout state, using fallback:', error);
-        // Fallback to lifecycle start time
-        const startTime = workoutState.context.lifecycleStartTime || Date.now();
-        elapsedTime = currentTime - startTime;
-      }
-    } else {
-      // Fallback when no active workout actor
-      const startTime = workoutState.context.lifecycleStartTime || Date.now();
-      elapsedTime = currentTime - startTime;
-    }
-
-    const handleTogglePause = () => {
-      try {
-        if (activeWorkoutActor && typeof activeWorkoutActor === 'object' && 'send' in activeWorkoutActor) {
-          // Send pause/resume to active workout actor
-          const actorRef = activeWorkoutActor as { send: (event: { type: string }) => void };
-          if (isPaused) {
-            actorRef.send({ type: 'RESUME_WORKOUT' });
-          } else {
-            actorRef.send({ type: 'PAUSE_WORKOUT' });
-          }
-        } else {
-          // Fallback to lifecycle machine
-          if (isPaused) {
-            workoutSend({ type: 'WORKOUT_RESUMED' });
-          } else {
-            workoutSend({ type: 'WORKOUT_PAUSED' });
-          }
-        }
-      } catch (error) {
-        console.error('Error toggling workout pause:', error);
-      }
-    };
-
-    const handleExpand = () => {
-      // Navigate to WorkoutsTab and the active workout will be automatically shown
-      setActiveTab('workouts');
-    };
-
-    return (
-      <WorkoutMiniBar
-        workoutTitle={workoutData.title || 'Active Workout'}
-        elapsedTime={elapsedTime}
-        isPaused={isPaused}
-        onTogglePause={handleTogglePause}
-        onExpand={handleExpand}
-      />
-    );
-  } catch (error) {
-    console.error('Error in WorkoutMiniBarContainer:', error);
-    return null; // Gracefully fail without crashing the app
-  }
-}
 
 export function AppLayout() {
   const isMobile = useMediaQuery('(max-width: 640px)');
@@ -209,7 +92,6 @@ export function AppLayout() {
               <WorkoutDataProvider>
                 <WorkoutUIProvider>
                   <TabRouter />
-                  <WorkoutMiniBarContainer />
                 </WorkoutUIProvider>
               </WorkoutDataProvider>
             </WorkoutContext.Provider>

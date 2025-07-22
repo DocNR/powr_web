@@ -115,7 +115,6 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
   // Calculate derived state from actor context
   const isPaused = workoutSession?.isPaused || false;
   const currentExerciseIndex = exerciseProgression?.currentExerciseIndex || 0;
-  const currentSetIndex = (exerciseProgression?.currentSetNumber || 1) - 1;
 
   // Calculate elapsed time from actor timing info
   const [elapsedTime, setElapsedTime] = useState(0);
@@ -181,18 +180,54 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
     };
   }) || [];
 
+  // ✅ NEW: SMART SET PROGRESSION LOGIC - Calculate currentSetIndex intelligently
+  const calculateCurrentSetIndex = (exerciseIndex: number): number => {
+    if (exerciseIndex !== currentExerciseIndex) {
+      return -1; // Not the active exercise
+    }
+    
+    const currentExercise = exercises[exerciseIndex];
+    if (!currentExercise) return -1;
+    
+    // Find the first incomplete set
+    const nextEmptySetIndex = currentExercise.sets.findIndex(set => !set.completed);
+    
+    if (nextEmptySetIndex >= 0) {
+      // Found an incomplete set - highlight it
+      return nextEmptySetIndex;
+    }
+    
+    // All sets are complete - return special value to highlight "Add Set" button
+    return -2; // Special value meaning "highlight Add Set button"
+  };
+
   // Event handlers that send events to the actor
   const handleSetComplete = (exerciseId: string, setIndex: number, setData: SetData) => {
-    // Send COMPLETE_SET event to activeWorkoutActor
-    actorSend({ 
-      type: 'COMPLETE_SET',
-      setData: {
-        weight: setData.weight,
-        reps: setData.reps,
-        rpe: setData.rpe,
-        setType: setData.setType
-      }
-    });
+    // First, navigate to the correct exercise (find its index)
+    const exerciseIndex = exercises.findIndex(ex => ex.id === exerciseId);
+    
+    if (exerciseIndex !== -1) {
+      // Navigate to the exercise first
+      actorSend({ 
+        type: 'NAVIGATE_TO_EXERCISE',
+        exerciseIndex 
+      });
+      
+      // Small delay to ensure navigation completes, then complete the set
+      setTimeout(() => {
+        actorSend({ 
+          type: 'COMPLETE_SET',
+          exerciseRef: exerciseId,  // Include for good measure
+          setIndex,                 // Include set index
+          setData: {
+            weight: setData.weight,
+            reps: setData.reps,
+            rpe: setData.rpe,
+            setType: setData.setType
+          }
+        });
+      }, 50); // Small delay to ensure navigation happens first
+    }
   };
 
   // ✅ FIXED: Add set functionality
@@ -230,7 +265,6 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
     }
   };
 
-
   // Handle actor state changes
   useEffect(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -250,8 +284,6 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
     (total: number, exercise: ExerciseData) => total + exercise.sets.filter((set: SetData) => set.completed).length, 
     0
   );
-
-
 
   return (
     <>
@@ -302,13 +334,16 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
         <div className="flex-1 overflow-y-auto p-4 pb-20 space-y-4">
           {exercises.map((exercise: ExerciseData, exerciseIndex: number) => {
             const isActiveExercise = exerciseIndex === currentExerciseIndex;
+            const smartSetIndex = calculateCurrentSetIndex(exerciseIndex);
+            const shouldHighlightAddSet = smartSetIndex === -2;
 
             return (
               <ExerciseSection
                 key={exercise.id}
                 exercise={exercise}
                 isActive={isActiveExercise}
-                currentSetIndex={isActiveExercise ? currentSetIndex : -1}
+                currentSetIndex={smartSetIndex >= 0 ? smartSetIndex : -1} // Only pass valid set indices
+                shouldHighlightAddSet={shouldHighlightAddSet} // NEW PROP for Add Set highlighting
                 onSetComplete={(exerciseId: string, setIndex: number, setData: SetData) => 
                   handleSetComplete(exerciseId, setIndex, setData)
                 }

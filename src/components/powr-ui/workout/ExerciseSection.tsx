@@ -30,6 +30,7 @@ interface ExerciseSectionProps {
   exercise: ExerciseData;
   isActive?: boolean;
   currentSetIndex?: number;
+  shouldHighlightAddSet?: boolean; // NEW PROP for smart Add Set highlighting
   onSetComplete: (exerciseId: string, setIndex: number, setData: SetData) => void;
   onAddSet?: (exerciseId: string) => void;
   onExerciseSelect?: () => void;
@@ -150,6 +151,7 @@ export const ExerciseSection: React.FC<ExerciseSectionProps> = ({
   exercise,
   isActive = false,
   currentSetIndex = 0,
+  shouldHighlightAddSet = false, // NEW PROP with default value
   onSetComplete,
   onAddSet,
   onExerciseSelect,
@@ -227,13 +229,18 @@ export const ExerciseSection: React.FC<ExerciseSectionProps> = ({
         })}
       </div>
 
-      {/* Add Set Button */}
+      {/* Add Set Button with Smart Highlighting */}
       {onAddSet && (
         <div className="mt-4">
           <Button
             variant="outline"
             onClick={() => onAddSet(exercise.id)}
-            className="w-full h-12 border-dashed border-border text-muted-foreground hover:text-foreground hover:border-border bg-[var(--workout-surface)] hover:bg-[var(--workout-surface-hover)]"
+            className={cn(
+              "w-full h-12 border-dashed transition-all duration-200",
+              shouldHighlightAddSet 
+                ? "border-[var(--workout-active-border)] bg-[var(--workout-active-bg)] text-[var(--workout-active)] ring-2 ring-[var(--workout-active-border)] animate-pulse" 
+                : "border-border text-muted-foreground hover:text-foreground hover:border-border bg-[var(--workout-surface)] hover:bg-[var(--workout-surface-hover)]"
+            )}
           >
             <Plus className="h-4 w-4 mr-2" />
             Add Set

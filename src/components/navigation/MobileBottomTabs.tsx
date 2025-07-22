@@ -20,7 +20,14 @@ interface MobileBottomTabsProps {
 export function MobileBottomTabs({ activeTab, onTabChange, tabs }: MobileBottomTabsProps) {
   return (
     <div className="fixed left-0 right-0 bottom-0 z-50 bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60 border-t border-border">
-      <div className="flex items-center justify-around px-1 safe-area-pb" style={{ paddingTop: '0.25rem', paddingBottom: `calc(0.25rem + env(safe-area-inset-bottom, 0px))` }}>
+      <div 
+        className="flex items-center justify-around px-2"
+        style={{ 
+          paddingTop: '0.75rem', // 12px - more breathing room at top
+          paddingBottom: `calc(0.75rem + env(safe-area-inset-bottom, 0px))`, // 12px + safe area
+          height: 'calc(64px + env(safe-area-inset-bottom, 0px))' // Ensure 64px + safe area total
+        }}
+      >
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -31,9 +38,9 @@ export function MobileBottomTabs({ activeTab, onTabChange, tabs }: MobileBottomT
               variant="ghost"
               size="sm"
               className={cn(
-                "flex items-center justify-center h-12 w-12 sm:h-14 sm:w-14 md:h-16 md:w-16 p-2 relative rounded-full flex-shrink-0",
+                "flex items-center justify-center h-14 w-14 p-2 relative rounded-full flex-shrink-0",
                 "transition-all duration-200 ease-out will-change-auto",
-                "min-h-[44px] min-w-[44px]", // Ensure 44px+ touch targets for gym use
+                "min-h-[48px] min-w-[48px]", // Even larger touch targets for gym use
                 "touch-manipulation", // Optimize for touch on mobile
                 "select-none", // Prevent text selection on buttons
                 isActive 
@@ -45,20 +52,20 @@ export function MobileBottomTabs({ activeTab, onTabChange, tabs }: MobileBottomT
             >
               <div className="relative">
                 <Icon className={cn(
-                  "h-5 w-5 sm:h-6 sm:w-6 transition-all duration-150 ease-out will-change-auto",
+                  "h-6 w-6 transition-all duration-150 ease-out will-change-auto", // Larger icons
                   isActive && "scale-110"
                 )} />
                 
                 {/* Badge */}
                 {tab.badge && tab.badge > 0 && (
-                  <div className="absolute -top-2 -right-2 h-4 w-4 sm:h-5 sm:w-5 bg-red-500 text-white text-xs flex items-center justify-center rounded-full font-medium">
+                  <div className="absolute -top-2 -right-2 h-5 w-5 bg-red-500 text-white text-xs flex items-center justify-center rounded-full font-medium">
                     {tab.badge > 99 ? '99+' : tab.badge}
                   </div>
                 )}
                 
                 {/* Notification Dot */}
                 {tab.notificationDot && (
-                  <div className="absolute -top-1 -right-1 h-2 w-2 sm:h-2.5 sm:w-2.5 bg-destructive rounded-full" />
+                  <div className="absolute -top-1 -right-1 h-2.5 w-2.5 bg-destructive rounded-full" />
                 )}
               </div>
             </Button>
