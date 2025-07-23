@@ -24,6 +24,14 @@ interface SetRowProps {
   onComplete: (setData: SetData) => void;
   onEdit?: (setData: SetData) => void;
   className?: string;
+  // NEW: Flexible set interaction props
+  exerciseRef?: string;
+  exerciseIndex?: number;
+  setIndex?: number;
+  onCompleteSpecific?: (exerciseRef: string, setNumber: number, setData: SetData) => void;
+  onUncompleteSpecific?: (exerciseRef: string, setNumber: number) => void;
+  onEditCompleted?: (exerciseRef: string, setNumber: number, field: string, value: string | number) => void;
+  onSelectSet?: (exerciseIndex: number, setIndex: number) => void;
 }
 
 export const SetRow: React.FC<SetRowProps> = ({

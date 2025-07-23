@@ -90,12 +90,18 @@ export type ActiveWorkoutEvent =
   | { type: 'NAVIGATE_TO_EXERCISE'; exerciseIndex: number }
   | { type: 'ADD_SET'; exerciseRef: string }
 
-  // Set completion events
+  // Set completion events (existing)
   | { type: 'START_SET'; setNumber: number }
   | { type: 'COMPLETE_SET'; setData?: Partial<CompletedSet> } // Optional - machine auto-generates
   | { type: 'SKIP_SET' }
   | { type: 'REDO_SET'; setNumber: number }
   | { type: 'END_REST_PERIOD' }
+  
+  // NEW: Simplified flexible set interaction events
+  | { type: 'COMPLETE_SPECIFIC_SET'; exerciseRef: string; setNumber: number; setData: Partial<CompletedSet> }
+  | { type: 'UNCOMPLETE_SPECIFIC_SET'; exerciseRef: string; setNumber: number }
+  | { type: 'EDIT_COMPLETED_SET'; exerciseRef: string; setNumber: number; field: string; value: string | number }
+  | { type: 'SELECT_SET'; exerciseIndex: number; setIndex: number }
   
   // Publishing events
   | { type: 'PUBLISH_WORKOUT' }

@@ -422,6 +422,81 @@ export const activeWorkoutMachine = setup({
                 },
                 lastActivityAt: Date.now()
               })
+            },
+            
+            // NEW: Flexible set interaction handlers - SIMPLIFIED
+            COMPLETE_SPECIFIC_SET: {
+              actions: assign({
+                workoutData: ({ context, event }) => {
+                  console.log(`[ActiveWorkoutMachine] ✅ COMPLETE_SPECIFIC_SET: ${event.exerciseRef} set ${event.setNumber}`);
+                  
+                  // Simple: Use logical set number directly (no technical IDs needed)
+                  const setData = {
+                    exerciseRef: event.exerciseRef,
+                    setNumber: event.setNumber, // Simple logical set number (1, 2, 3...)
+                    reps: event.setData.reps || 0,
+                    weight: event.setData.weight || 0,
+                    rpe: event.setData.rpe || 7,
+                    setType: event.setData.setType || 'normal',
+                    completedAt: Date.now()
+                  };
+                  
+                  return {
+                    ...context.workoutData,
+                    completedSets: [...context.workoutData.completedSets, setData]
+                  };
+                },
+                lastActivityAt: Date.now()
+              })
+            },
+            
+            UNCOMPLETE_SPECIFIC_SET: {
+              actions: assign({
+                workoutData: ({ context, event }) => {
+                  console.log(`[ActiveWorkoutMachine] ❌ UNCOMPLETE_SPECIFIC_SET: ${event.exerciseRef} set ${event.setNumber}`);
+                  
+                  return {
+                    ...context.workoutData,
+                    completedSets: context.workoutData.completedSets.filter(
+                      set => !(set.exerciseRef === event.exerciseRef && set.setNumber === event.setNumber)
+                    )
+                  };
+                },
+                lastActivityAt: Date.now()
+              })
+            },
+            
+            EDIT_COMPLETED_SET: {
+              actions: assign({
+                workoutData: ({ context, event }) => {
+                  console.log(`[ActiveWorkoutMachine] ✏️ EDIT_COMPLETED_SET: ${event.exerciseRef} set ${event.setNumber} ${event.field}=${event.value}`);
+                  
+                  return {
+                    ...context.workoutData,
+                    completedSets: context.workoutData.completedSets.map(set =>
+                      set.exerciseRef === event.exerciseRef && set.setNumber === event.setNumber
+                        ? { ...set, [event.field]: event.value }
+                        : set
+                    )
+                  };
+                },
+                lastActivityAt: Date.now()
+              })
+            },
+            
+            SELECT_SET: {
+              actions: assign({
+                exerciseProgression: ({ context, event }) => {
+                  console.log(`[ActiveWorkoutMachine] 🎯 SELECT_SET: Exercise ${event.exerciseIndex}, Set ${event.setIndex}`);
+                  
+                  return {
+                    ...context.exerciseProgression,
+                    currentExerciseIndex: event.exerciseIndex,  // Exercise follows selection
+                    currentSetNumber: event.setIndex + 1        // Set follows selection (convert to 1-based)
+                  };
+                },
+                lastActivityAt: Date.now()
+              })
             }
           }
         },
