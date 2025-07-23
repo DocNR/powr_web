@@ -69,26 +69,26 @@ export const ExerciseSection: React.FC<ExerciseSectionProps> = ({
   };
 
   return (
-    <div className={cn("py-6", className)}>
-      {/* Exercise Header */}
-      <div className="flex items-center justify-between mb-4">
+    <div className={cn("py-4", className)}>
+      {/* Exercise Header - Compact */}
+      <div className="flex items-center justify-between mb-3">
         <button
           onClick={onExerciseSelect}
-          className="text-lg font-semibold text-primary hover:text-primary/80 transition-colors underline-offset-4 hover:underline text-left cursor-pointer"
+          className="text-base font-semibold text-primary hover:text-primary/80 transition-colors underline-offset-4 hover:underline text-left cursor-pointer"
         >
           {exercise.name} {exercise.equipment && `(${exercise.equipment})`}
         </button>
         
         <button
           onClick={onExerciseSelect}
-          className="text-primary hover:text-primary/80 transition-colors p-2 -m-2 cursor-pointer hover:bg-primary/10 rounded"
+          className="text-primary hover:text-primary/80 transition-colors p-1 -m-1 cursor-pointer hover:bg-primary/10 rounded"
         >
-          <MoreHorizontal className="h-5 w-5" />
+          <MoreHorizontal className="h-4 w-4" />
         </button>
       </div>
 
-      {/* Prescribed Sets Info */}
-      <div className="text-sm text-muted-foreground mb-4">
+      {/* Prescribed Sets Info - Compact */}
+      <div className="text-xs text-muted-foreground mb-3">
         {exercise.prescribedSets && exercise.prescribedReps ? (
           `${exercise.prescribedSets} sets of ${exercise.prescribedReps} reps${exercise.prescribedRpe ? ` @ RPE ${exercise.prescribedRpe}` : ''}`
         ) : exercise.prescribedReps ? (
@@ -100,8 +100,18 @@ export const ExerciseSection: React.FC<ExerciseSectionProps> = ({
         )}
       </div>
 
-      {/* Set Rows - Using Flexible SetRow Component */}
-      <div className="space-y-2 mt-2">
+      {/* Table Headers - Compact mobile layout */}
+      <div className="flex items-center gap-2 px-1 pb-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+        <div className="w-8 text-center">Set</div>
+        <div className="w-16 text-center">Previous</div>
+        <div className="flex-1 text-center">lbs</div>
+        <div className="flex-1 text-center">Reps</div>
+        <div className="w-12 text-center">RPE</div>
+        <div className="w-10 text-center">✓</div>
+      </div>
+
+      {/* Set Rows - Compact spacing */}
+      <div className="space-y-1">
         {exercise.sets.map((set, index) => {
           const isSetCompleted = set.completed || false;
           const previousSetData = getPreviousSetData(index);
@@ -119,9 +129,8 @@ export const ExerciseSection: React.FC<ExerciseSectionProps> = ({
                 completed: set.completed
               }}
               isCompleted={isSetCompleted}
-              isActive={false} // SIMPLIFIED: No more active set highlighting
+              isActive={false}
               onComplete={(setData) => handleSetComplete(index, setData)}
-              // NEW: Flexible set interaction props
               exerciseRef={exercise.id}
               exerciseIndex={exerciseIndex}
               setIndex={index}
@@ -134,20 +143,20 @@ export const ExerciseSection: React.FC<ExerciseSectionProps> = ({
         })}
       </div>
 
-      {/* Add Set Button with Smart Highlighting */}
+      {/* Add Set Button - Compact */}
       {onAddSet && (
-        <div className="mt-4">
+        <div className="mt-3">
           <Button
             variant="outline"
             onClick={() => onAddSet(exercise.id)}
             className={cn(
-              "w-full h-12 border-dashed transition-all duration-200",
+              "w-full h-10 border-dashed transition-all duration-200 text-sm",
               shouldHighlightAddSet 
-                ? "border-[var(--workout-active-border)] bg-[var(--workout-active-bg)] text-[var(--workout-active)] ring-2 ring-[var(--workout-active-border)] animate-pulse" 
-                : "border-border text-muted-foreground hover:text-foreground hover:border-border bg-[var(--workout-surface)] hover:bg-[var(--workout-surface-hover)]"
+                ? "border-[var(--workout-active-border)] bg-[var(--workout-active-bg)] text-[var(--workout-active)] ring-1 ring-[var(--workout-active-border)] animate-pulse" 
+                : "border-border text-muted-foreground hover:text-foreground hover:border-border bg-transparent hover:bg-muted/20"
             )}
           >
-            <Plus className="h-4 w-4 mr-2" />
+            <Plus className="h-3 w-3 mr-2" />
             Add Set
           </Button>
         </div>

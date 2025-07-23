@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/powr-ui/primitives/Input';
-import { Label } from '@/components/powr-ui/primitives/Label';
 import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -111,41 +110,32 @@ export const SetRow: React.FC<SetRowProps> = ({
 
   const isValid = weight !== '' && reps !== '' && parseFloat(weight) >= 0 && parseInt(reps) > 0;
 
-  // Display mode for completed sets - NOW FULLY EDITABLE
+  // Display mode for completed sets - Compact mobile-optimized layout
   if (isCompleted) {
     return (
       <div 
         className={cn(
-          "flex items-start gap-3 p-3 bg-workout-success-bg border border-workout-success-border rounded-lg transition-colors",
-          isActive && "ring-2 ring-workout-active-border ring-offset-2",
+          "flex items-center gap-2 py-2 px-1 bg-workout-success-bg/50 transition-colors",
+          isActive && "ring-1 ring-workout-success",
           className
         )}
         onClick={handleSetClick}
       >
-        {/* Set Number - Perfect Circle */}
-        <div className="flex flex-col gap-1 flex-shrink-0">
-          <div className="h-4"></div> {/* Spacer to align with label height */}
-          <div className="flex items-center justify-center w-12 h-12 bg-workout-success text-white rounded-full text-sm font-semibold">
-            {setNumber}
-          </div>
+        {/* Set Number - Smaller circle */}
+        <div className="flex items-center justify-center w-8 h-8 bg-workout-success text-white rounded-full text-sm font-medium flex-shrink-0">
+          {setNumber}
         </div>
 
-        {/* Previous Set Reference - Fixed width for consistent layout */}
-        <div className="flex flex-col gap-1 w-20 flex-shrink-0">
-          <div className="h-4"></div> {/* Spacer to align with label height */}
-          <div className="h-12 flex items-center justify-center text-sm text-workout-text">
-            {previousSetData 
-              ? (previousSetData.weight > 0 ? `${previousSetData.weight} lb` : 'BW') + ` × ${previousSetData.reps}`
-              : '---'
-            }
-          </div>
+        {/* Previous Set Reference - Compact */}
+        <div className="w-16 flex items-center justify-center text-xs text-workout-text flex-shrink-0">
+          {previousSetData 
+            ? (previousSetData.weight > 0 ? `${previousSetData.weight}` : 'BW') + ` × ${previousSetData.reps}`
+            : '---'
+          }
         </div>
 
-        {/* Editable Weight */}
-        <div className="flex flex-col gap-1 min-w-0 flex-1">
-          <Label htmlFor={`completed-weight-${setNumber}`} className="text-xs text-workout-text">
-            lbs
-          </Label>
+        {/* Editable Weight - Compact */}
+        <div className="flex-1 min-w-0">
           <Input
             id={`completed-weight-${setNumber}`}
             type="number"
@@ -158,15 +148,12 @@ export const SetRow: React.FC<SetRowProps> = ({
               }
             }}
             onFocus={handleSetClick}
-            className="h-12 text-lg font-semibold text-center bg-workout-surface border-workout-success-border focus:border-workout-success focus:ring-0"
+            className="h-10 text-base font-medium text-center bg-transparent border-0 focus:ring-1 focus:ring-workout-success rounded"
           />
         </div>
 
-        {/* Editable Reps */}
-        <div className="flex flex-col gap-1 min-w-0 flex-1">
-          <Label htmlFor={`completed-reps-${setNumber}`} className="text-xs text-[var(--workout-text)]">
-            Reps
-          </Label>
+        {/* Editable Reps - Compact */}
+        <div className="flex-1 min-w-0">
           <Input
             id={`completed-reps-${setNumber}`}
             type="number"
@@ -179,15 +166,12 @@ export const SetRow: React.FC<SetRowProps> = ({
               }
             }}
             onFocus={handleSetClick}
-            className="h-12 text-lg font-semibold text-center bg-[var(--workout-surface)] border-[var(--workout-success-border)] focus:border-[var(--workout-success)]"
+            className="h-10 text-base font-medium text-center bg-transparent border-0 focus:ring-1 focus:ring-workout-success rounded"
           />
         </div>
 
-        {/* Editable RPE */}
-        <div className="flex flex-col gap-1 min-w-0 w-16 flex-shrink-0">
-          <Label htmlFor={`completed-rpe-${setNumber}`} className="text-xs text-[var(--workout-text)]">
-            RPE
-          </Label>
+        {/* Editable RPE - Compact */}
+        <div className="w-12 flex-shrink-0">
           <Input
             id={`completed-rpe-${setNumber}`}
             type="number"
@@ -203,62 +187,52 @@ export const SetRow: React.FC<SetRowProps> = ({
             min="1"
             max="10"
             step="0.5"
-            className="h-12 text-lg font-semibold text-center bg-[var(--workout-surface)] border-[var(--workout-success-border)] focus:border-[var(--workout-success)]"
+            className="h-10 text-base font-medium text-center bg-transparent border-0 focus:ring-1 focus:ring-workout-success rounded"
           />
         </div>
 
-        {/* Filled Checkbox for Completed Sets - Aligned with inputs */}
-        <div className="flex flex-col gap-1 flex-shrink-0">
-          <div className="h-4"></div> {/* Spacer to align with label height */}
+        {/* Filled Checkbox for Completed Sets - Compact */}
+        <div className="flex-shrink-0">
           <button
             onClick={(e) => {
               e.stopPropagation(); // Prevent triggering handleSetClick
               handleUncomplete();
             }}
-            className="h-12 w-12 flex items-center justify-center rounded border-2 border-[var(--workout-success)] bg-[var(--workout-success)] text-white hover:bg-[var(--workout-success)]/90 transition-colors"
+            className="h-10 w-10 flex items-center justify-center rounded border border-workout-success bg-workout-success text-white hover:bg-workout-success/90 transition-colors"
             title="Click to uncomplete set"
           >
-            <Check className="h-5 w-5" />
+            <Check className="h-4 w-4" />
           </button>
         </div>
       </div>
     );
   }
 
-  // Input mode for incomplete sets - SIMPLIFIED: All incomplete sets look the same
+  // Input mode for incomplete sets - Compact mobile-optimized layout
   return (
     <div 
       className={cn(
-        "flex items-start gap-3 p-3 border rounded-lg transition-all duration-200 cursor-pointer",
-        "bg-[var(--workout-surface)] border-border hover:border-ring",
+        "flex items-center gap-2 py-2 px-1 transition-all duration-200 cursor-pointer",
+        "hover:bg-muted/20",
         className
       )}
       onClick={handleSetClick}
     >
-      {/* Set Number - Perfect Circle - All incomplete sets use same neutral gray styling */}
-      <div className="flex flex-col gap-1 flex-shrink-0">
-        <div className="h-4"></div> {/* Spacer to align with label height */}
-        <div className="flex items-center justify-center w-12 h-12 rounded-full text-sm font-semibold bg-muted-foreground text-white">
-          {setNumber}
-        </div>
+      {/* Set Number - Smaller circle */}
+      <div className="flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium bg-muted text-muted-foreground flex-shrink-0">
+        {setNumber}
       </div>
 
-      {/* Previous Set Reference - Fixed width for consistent layout */}
-      <div className="flex flex-col gap-1 w-20 flex-shrink-0">
-        <div className="h-4"></div> {/* Spacer to align with label height */}
-        <div className="h-12 flex items-center justify-center text-sm text-[var(--workout-text)]">
-          {previousSetData 
-            ? (previousSetData.weight > 0 ? `${previousSetData.weight} lb` : 'BW') + ` × ${previousSetData.reps}`
-            : '---'
-          }
-        </div>
+      {/* Previous Set Reference - Compact */}
+      <div className="w-16 flex items-center justify-center text-xs text-muted-foreground flex-shrink-0">
+        {previousSetData 
+          ? (previousSetData.weight > 0 ? `${previousSetData.weight}` : 'BW') + ` × ${previousSetData.reps}`
+          : '---'
+        }
       </div>
 
-      {/* Weight Input - Simplified: All inputs use same styling, focus provides the visual feedback */}
-      <div className="flex flex-col gap-1 min-w-0 flex-1">
-        <Label htmlFor={`weight-${setNumber}`} className="text-xs text-[var(--workout-text)]">
-          lbs
-        </Label>
+      {/* Weight Input - Compact */}
+      <div className="flex-1 min-w-0">
         <Input
           id={`weight-${setNumber}`}
           type="number"
@@ -267,15 +241,12 @@ export const SetRow: React.FC<SetRowProps> = ({
           value={weight}
           onChange={(e) => setWeight(e.target.value)}
           onFocus={handleSetClick}
-          className="h-12 text-lg font-semibold text-center bg-[var(--workout-surface)] border-border focus:border-ring focus:ring-2 focus:ring-ring/20 transition-all duration-200"
+          className="h-10 text-base font-medium text-center bg-transparent border-0 focus:ring-1 focus:ring-ring rounded"
         />
       </div>
 
-      {/* Reps Input - Simplified: All inputs use same styling, focus provides the visual feedback */}
-      <div className="flex flex-col gap-1 min-w-0 flex-1">
-        <Label htmlFor={`reps-${setNumber}`} className="text-xs text-[var(--workout-text)]">
-          Reps
-        </Label>
+      {/* Reps Input - Compact */}
+      <div className="flex-1 min-w-0">
         <Input
           id={`reps-${setNumber}`}
           type="number"
@@ -284,15 +255,12 @@ export const SetRow: React.FC<SetRowProps> = ({
           value={reps}
           onChange={(e) => setReps(e.target.value)}
           onFocus={handleSetClick}
-          className="h-12 text-lg font-semibold text-center bg-[var(--workout-surface)] border-border focus:border-ring focus:ring-2 focus:ring-ring/20 transition-all duration-200"
+          className="h-10 text-base font-medium text-center bg-transparent border-0 focus:ring-1 focus:ring-ring rounded"
         />
       </div>
 
-      {/* RPE Input - Simplified: All inputs use same styling, focus provides the visual feedback */}
-      <div className="flex flex-col gap-1 min-w-0 w-16 flex-shrink-0">
-        <Label htmlFor={`rpe-${setNumber}`} className="text-xs text-[var(--workout-text)]">
-          RPE
-        </Label>
+      {/* RPE Input - Compact */}
+      <div className="w-12 flex-shrink-0">
         <Input
           id={`rpe-${setNumber}`}
           type="number"
@@ -304,25 +272,24 @@ export const SetRow: React.FC<SetRowProps> = ({
           min="1"
           max="10"
           step="0.5"
-          className="h-12 text-lg font-semibold text-center bg-[var(--workout-surface)] border-border focus:border-ring focus:ring-2 focus:ring-ring/20 transition-all duration-200"
+          className="h-10 text-base font-medium text-center bg-transparent border-0 focus:ring-1 focus:ring-ring rounded"
         />
       </div>
 
-      {/* Checkbox - Simplified: Clear valid/invalid states with subtle completion animation */}
-      <div className="flex flex-col gap-1 flex-shrink-0">
-        <div className="h-4"></div> {/* Spacer to align with label height */}
+      {/* Checkbox - Compact */}
+      <div className="flex-shrink-0">
         <button
           onClick={isValid ? handleComplete : undefined}
           disabled={!isValid}
           className={cn(
-            "h-12 w-12 flex items-center justify-center rounded border-2 transition-all duration-200",
+            "h-10 w-10 flex items-center justify-center rounded border transition-all duration-200",
             isValid 
-              ? "border-[var(--workout-success)] bg-[var(--workout-surface)] text-[var(--workout-success)] hover:bg-[var(--workout-success)]/10 hover:scale-105 cursor-pointer" 
-              : "border-border bg-[var(--workout-surface)] text-muted-foreground cursor-not-allowed opacity-50"
+              ? "border-ring bg-transparent text-ring hover:bg-ring/10 cursor-pointer" 
+              : "border-border bg-transparent text-muted-foreground cursor-not-allowed opacity-50"
           )}
           title={isValid ? "Complete set" : "Fill in weight and reps to complete"}
         >
-          <Check className={cn("h-5 w-5 transition-transform duration-200", isValid && "scale-110")} />
+          <Check className="h-4 w-4" />
         </button>
       </div>
     </div>

@@ -376,8 +376,8 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
               </Button>
             </div>
 
-            {/* Exercise List - Scrollable */}
-            <div className="flex-1 overflow-y-auto p-4 pb-20 space-y-4">
+            {/* Exercise List - Scrollable with comfortable padding */}
+            <div className="flex-1 overflow-y-auto px-4 pb-20 space-y-2">
               {exercises.map((exercise: ExerciseData, exerciseIndex: number) => {
                 const smartSetIndex = calculateCurrentSetIndex(exerciseIndex);
                 const shouldHighlightAddSet = smartSetIndex === -2;
