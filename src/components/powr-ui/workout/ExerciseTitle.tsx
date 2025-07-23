@@ -25,10 +25,10 @@ export const ExerciseTitle: React.FC<ExerciseTitleProps> = ({
       onClick={onClick}
       className={cn(
         "text-lg font-semibold transition-colors text-left",
-        onClick && "cursor-pointer hover:text-[var(--workout-primary)]/80",
+        onClick && "cursor-pointer hover:text-workout-primary/80",
         isActive 
-          ? "text-[var(--workout-timer)]" 
-          : "text-[var(--workout-primary)]",
+          ? "text-workout-timer" 
+          : "text-workout-primary",
         gymPersonality === 'hardcore' && "font-black uppercase tracking-wide text-xl",
         gymPersonality === 'zen' && "font-light text-base",
         gymPersonality === 'corporate' && "font-semibold text-lg",

@@ -36,15 +36,17 @@
     --sidebar-ring: oklch(0.606 0.25 292.717);
     
     /* Workout-specific semantic variables - Light Mode */
-    --workout-success: oklch(0.55 0.15 145);
-    --workout-success-bg: oklch(0.97 0.02 145);
-    --workout-success-border: oklch(0.75 0.12 145);
+    --workout-success: oklch(0.45 0.18 220);
+    --workout-success-bg: oklch(0.97 0.02 220);
+    --workout-success-border: oklch(0.65 0.15 220);
     --workout-active: oklch(0.6 0.3 240);
     --workout-active-bg: transparent;
     --workout-active-border: oklch(0.75 0.25 240);
     --workout-surface: oklch(0.95 0.004 286.32);
     --workout-surface-hover: oklch(0.88 0.008 286.32);
     --workout-text: oklch(0.45 0.01 286);
+    --workout-primary: oklch(0.45 0.18 220);
+    --workout-timer: oklch(0.6 0.25 35);
   }
 
   .dark {
@@ -81,15 +83,17 @@
     --sidebar-ring: oklch(0.541 0.281 293.009);
     
     /* Workout-specific semantic variables - Dark Mode */
-    --workout-success: oklch(0.65 0.18 145);
-    --workout-success-bg: oklch(0.18 0.04 145);
-    --workout-success-border: oklch(0.45 0.15 145);
+    --workout-success: oklch(0.65 0.18 220);
+    --workout-success-bg: oklch(0.18 0.04 220);
+    --workout-success-border: oklch(0.45 0.15 220);
     --workout-active: oklch(0.75 0.35 240);
     --workout-active-bg: transparent;
     --workout-active-border: oklch(0.55 0.3 240);
     --workout-surface: oklch(0.274 0.006 286.033);
     --workout-surface-hover: oklch(0.35 0.01 286.033);
     --workout-text: oklch(0.85 0.005 286);
+    --workout-primary: oklch(0.65 0.18 220);
+    --workout-timer: oklch(0.7 0.28 35);
   }
 }
 
@@ -126,6 +130,19 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  
+  /* Workout-specific semantic colors for Tailwind */
+  --color-workout-success: var(--workout-success);
+  --color-workout-success-bg: var(--workout-success-bg);
+  --color-workout-success-border: var(--workout-success-border);
+  --color-workout-active: var(--workout-active);
+  --color-workout-active-bg: var(--workout-active-bg);
+  --color-workout-active-border: var(--workout-active-border);
+  --color-workout-surface: var(--workout-surface);
+  --color-workout-surface-hover: var(--workout-surface-hover);
+  --color-workout-text: var(--workout-text);
+  --color-workout-primary: var(--workout-primary);
+  --color-workout-timer: var(--workout-timer);
 }
 
 @layer base {

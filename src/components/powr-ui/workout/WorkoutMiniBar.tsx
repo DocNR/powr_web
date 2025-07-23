@@ -3,6 +3,7 @@
 import React from 'react';
 import { Timer } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 
 interface WorkoutMiniBarProps {
   workoutTitle: string;
@@ -17,6 +18,8 @@ export const WorkoutMiniBar: React.FC<WorkoutMiniBarProps> = ({
   onExpand,
   className
 }) => {
+  const isMobile = useMediaQuery('(max-width: 640px)');
+  
   const formatTime = (ms: number): string => {
     const totalSeconds = Math.floor(ms / 1000);
     const hours = Math.floor(totalSeconds / 3600);
@@ -31,9 +34,12 @@ export const WorkoutMiniBar: React.FC<WorkoutMiniBarProps> = ({
 
   return (
     <div className={cn(
-      // Position - sits right above the new 64px bottom tabs
-      "fixed left-0 right-0 z-40",
-      "bottom-[64px]", // Now sits right above the taller bottom tabs
+      // Position - responsive bottom positioning
+      "fixed right-0 z-40",
+      // Responsive left positioning: full width on mobile, respect sidebar on desktop
+      isMobile ? "left-0" : "left-64", // left-64 = 256px sidebar width
+      // Responsive bottom positioning: above tabs on mobile, at bottom on desktop
+      isMobile ? "bottom-[64px]" : "bottom-0", // Mobile: above 64px tabs, Desktop: at bottom
       // Background with proper backdrop blur and theme support
       "bg-card/95 backdrop-blur-md supports-[backdrop-filter]:bg-card/90",
       // Border and shadow with theme support

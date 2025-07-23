@@ -97,11 +97,11 @@ export type ActiveWorkoutEvent =
   | { type: 'REDO_SET'; setNumber: number }
   | { type: 'END_REST_PERIOD' }
   
-  // NEW: Simplified flexible set interaction events
-  | { type: 'COMPLETE_SPECIFIC_SET'; exerciseRef: string; setNumber: number; setData: Partial<CompletedSet> }
-  | { type: 'UNCOMPLETE_SPECIFIC_SET'; exerciseRef: string; setNumber: number }
-  | { type: 'EDIT_COMPLETED_SET'; exerciseRef: string; setNumber: number; field: string; value: string | number }
-  | { type: 'SELECT_SET'; exerciseIndex: number; setIndex: number }
+  // NEW: Flexible set interaction events (Phase 1)
+  | { type: 'COMPLETE_SPECIFIC_SET'; exerciseRef: string; setNumber: number; setData?: Partial<CompletedSet> }
+  | { type: 'UNCOMPLETE_SET'; exerciseRef: string; setNumber: number }
+  | { type: 'EDIT_COMPLETED_SET'; exerciseRef: string; setNumber: number; field: keyof CompletedSet; value: string | number }
+  | { type: 'SELECT_SET'; exerciseRef: string; setNumber: number }
   
   // Publishing events
   | { type: 'PUBLISH_WORKOUT' }

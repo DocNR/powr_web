@@ -2,9 +2,9 @@
 
 import React from 'react';
 import { Button } from '@/components/powr-ui/primitives/Button';
-import { Input } from '@/components/powr-ui/primitives/Input';
-import { Plus, Check, MoreHorizontal } from 'lucide-react';
+import { Plus, MoreHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { SetRow } from './SetRow';
 
 interface SetData {
   weight: number;
@@ -28,133 +28,31 @@ interface ExerciseData {
 
 interface ExerciseSectionProps {
   exercise: ExerciseData;
-  isActive?: boolean;
-  currentSetIndex?: number;
   shouldHighlightAddSet?: boolean; // NEW PROP for smart Add Set highlighting
   onSetComplete: (exerciseId: string, setIndex: number, setData: SetData) => void;
   onAddSet?: (exerciseId: string) => void;
   onExerciseSelect?: () => void;
+  onSelectSet?: (exerciseIndex: number, setIndex: number) => void; // NEW: Set selection handler
+  exerciseIndex?: number; // NEW: Exercise index for set selection
+  // NEW: Flexible set interaction props
+  onCompleteSpecific?: (exerciseRef: string, setNumber: number, setData: SetData) => void;
+  onUncompleteSpecific?: (exerciseRef: string, setNumber: number) => void;
+  onEditCompleted?: (exerciseRef: string, setNumber: number, field: string, value: string | number) => void;
   className?: string;
 }
 
-// Separate component for set row to handle state properly
-interface SetRowProps {
-  set: SetData;
-  setIndex: number;
-  isCurrentSet: boolean;
-  isSetCompleted: boolean;
-  previousSetData?: SetData;
-  onComplete: (setData: SetData) => void;
-}
-
-const SetRowComponent: React.FC<SetRowProps> = ({
-  set,
-  setIndex,
-  isCurrentSet,
-  isSetCompleted,
-  previousSetData,
-  onComplete
-}) => {
-  const [weight, setWeight] = React.useState(set.weight.toString());
-  const [reps, setReps] = React.useState(set.reps.toString());
-
-  // Format previous set display
-  const formatPreviousSet = (setData: SetData | undefined): string => {
-    if (!setData) return '';
-    if (setData.weight === 0) {
-      return `${setData.reps} reps`;
-    }
-    return `${setData.weight} lb × ${setData.reps}`;
-  };
-
-  return (
-    <div className={cn(
-      "grid grid-cols-5 gap-3 px-3 py-3 rounded-lg transition-colors",
-      isSetCompleted && "bg-[var(--workout-success-bg)] border border-[var(--workout-success-border)]",
-      isCurrentSet && "bg-[var(--workout-active-bg)] ring-2 ring-[var(--workout-active-border)]"
-    )}>
-      {/* Set Number */}
-      <div className="flex items-center">
-        <div className={cn(
-          "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium",
-          isSetCompleted ? "bg-[var(--workout-success)] text-white" : 
-          isCurrentSet ? "bg-[var(--workout-active)] text-white" : "bg-[var(--workout-surface)] text-[var(--workout-text)]"
-        )}>
-          {setIndex + 1}
-        </div>
-      </div>
-
-      {/* Previous Set */}
-      <div className="flex items-center text-sm text-muted-foreground">
-        {formatPreviousSet(previousSetData)}
-      </div>
-
-      {/* Weight Input */}
-      <div className="flex items-center">
-        {isSetCompleted ? (
-          <div className="text-sm font-medium">{set.weight || 'BW'}</div>
-        ) : (
-          <Input
-            type="number"
-            value={weight}
-            onChange={(e) => setWeight(e.target.value)}
-            className="h-10 text-center border-border focus:border-primary focus:ring-primary"
-            placeholder="0"
-          />
-        )}
-      </div>
-
-      {/* Reps Input */}
-      <div className="flex items-center">
-        {isSetCompleted ? (
-          <div className="text-sm font-medium">{set.reps}</div>
-        ) : (
-          <Input
-            type="number"
-            value={reps}
-            onChange={(e) => setReps(e.target.value)}
-            className="h-10 text-center border-border focus:border-primary focus:ring-primary"
-            placeholder="0"
-          />
-        )}
-      </div>
-
-      {/* Complete Button */}
-      <div className="flex items-center justify-center">
-        {isSetCompleted ? (
-          <div className="w-10 h-10 rounded-lg bg-[var(--workout-success)] flex items-center justify-center">
-            <Check className="h-5 w-5 text-white" />
-          </div>
-        ) : (
-          <Button
-            variant="outline"
-            size="icon"
-            className="w-10 h-10 border-border hover:bg-[var(--workout-success-bg)] hover:border-[var(--workout-success-border)]"
-            onClick={() => onComplete({
-              weight: parseFloat(weight) || 0,
-              reps: parseInt(reps) || 0,
-              rpe: 7,
-              setType: 'normal',
-              completed: true
-            })}
-            disabled={!weight || !reps}
-          >
-            <Check className="h-5 w-5" />
-          </Button>
-        )}
-      </div>
-    </div>
-  );
-};
-
 export const ExerciseSection: React.FC<ExerciseSectionProps> = ({
   exercise,
-  isActive = false,
-  currentSetIndex = 0,
   shouldHighlightAddSet = false, // NEW PROP with default value
   onSetComplete,
   onAddSet,
   onExerciseSelect,
+  onSelectSet, // NEW: Set selection handler
+  exerciseIndex, // NEW: Exercise index for set selection
+  // NEW: Flexible set interaction props
+  onCompleteSpecific,
+  onUncompleteSpecific,
+  onEditCompleted,
   className
 }) => {
   const completedSets = exercise.sets.filter(set => set.completed).length;
@@ -174,13 +72,16 @@ export const ExerciseSection: React.FC<ExerciseSectionProps> = ({
     <div className={cn("py-6", className)}>
       {/* Exercise Header */}
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold">
+        <button
+          onClick={onExerciseSelect}
+          className="text-lg font-semibold text-primary hover:text-primary/80 transition-colors underline-offset-4 hover:underline text-left cursor-pointer"
+        >
           {exercise.name} {exercise.equipment && `(${exercise.equipment})`}
-        </h3>
+        </button>
         
         <button
           onClick={onExerciseSelect}
-          className="text-primary hover:text-primary/80 transition-colors p-2 -m-2"
+          className="text-primary hover:text-primary/80 transition-colors p-2 -m-2 cursor-pointer hover:bg-primary/10 rounded"
         >
           <MoreHorizontal className="h-5 w-5" />
         </button>
@@ -199,31 +100,35 @@ export const ExerciseSection: React.FC<ExerciseSectionProps> = ({
         )}
       </div>
 
-      {/* Table Headers */}
-      <div className="grid grid-cols-5 gap-3 px-3 py-2 text-sm font-medium text-muted-foreground border-b border-border">
-        <div>Set</div>
-        <div>Previous</div>
-        <div>-lbs</div>
-        <div>Reps</div>
-        <div className="text-center">✓</div>
-      </div>
-
-      {/* Set Rows */}
+      {/* Set Rows - Using Flexible SetRow Component */}
       <div className="space-y-2 mt-2">
         {exercise.sets.map((set, index) => {
-          const isCurrentSet = isActive && index === currentSetIndex;
           const isSetCompleted = set.completed || false;
           const previousSetData = getPreviousSetData(index);
 
           return (
-            <SetRowComponent
+            <SetRow
               key={index}
-              set={set}
-              setIndex={index}
-              isCurrentSet={isCurrentSet}
-              isSetCompleted={isSetCompleted}
+              setNumber={index + 1}
               previousSetData={previousSetData}
+              defaultData={{
+                weight: set.weight,
+                reps: set.reps,
+                rpe: set.rpe,
+                setType: set.setType,
+                completed: set.completed
+              }}
+              isCompleted={isSetCompleted}
+              isActive={false} // SIMPLIFIED: No more active set highlighting
               onComplete={(setData) => handleSetComplete(index, setData)}
+              // NEW: Flexible set interaction props
+              exerciseRef={exercise.id}
+              exerciseIndex={exerciseIndex}
+              setIndex={index}
+              onCompleteSpecific={onCompleteSpecific}
+              onUncompleteSpecific={onUncompleteSpecific}
+              onEditCompleted={onEditCompleted}
+              onSelectSet={onSelectSet}
             />
           );
         })}

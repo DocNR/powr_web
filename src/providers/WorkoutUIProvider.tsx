@@ -5,7 +5,6 @@ import { createPortal } from 'react-dom';
 import { useWorkoutContext } from '@/hooks/useWorkoutContext';
 import { WorkoutMiniBar } from '@/components/powr-ui/workout/WorkoutMiniBar';
 import { ActiveWorkoutInterface } from '@/components/powr-ui/workout/ActiveWorkoutInterface';
-import { useNavigation } from '@/providers/NavigationProvider';
 
 interface WorkoutUIContextType {
   isMinimized: boolean;
@@ -28,7 +27,6 @@ interface WorkoutUIProviderProps {
 
 export const WorkoutUIProvider: React.FC<WorkoutUIProviderProps> = ({ children }) => {
   const { workoutState, workoutSend } = useWorkoutContext();
-  const { setActiveTab } = useNavigation();
   const [isClient, setIsClient] = useState(false);
   
   // Real-time timer using React state that updates every second
@@ -61,12 +59,9 @@ export const WorkoutUIProvider: React.FC<WorkoutUIProviderProps> = ({ children }
   const expandWorkout = () => {
     if (workoutSend && isMinimized) {
       console.log('[WorkoutUIProvider] Expanding workout interface');
-      // Navigate to workouts tab first, then expand after navigation completes
-      setActiveTab('workouts');
-      // Small delay to ensure navigation completes before expanding
-      setTimeout(() => {
-        workoutSend({ type: 'EXPAND_INTERFACE' });
-      }, 50);
+      // Just expand the workout interface - don't change tabs
+      // This allows the workout to expand as an overlay on any tab
+      workoutSend({ type: 'EXPAND_INTERFACE' });
     }
   };
 
@@ -142,25 +137,24 @@ export const WorkoutUIProvider: React.FC<WorkoutUIProviderProps> = ({ children }
       {/* Render ActiveWorkoutInterface as portal when workout is expanded */}
       {isClient && isWorkoutExpanded && isWorkoutActive && workoutState?.context?.activeWorkoutActor && 
         createPortal(
-          <div className="fixed inset-0 z-50 bg-background">
-            <ActiveWorkoutInterface
+          <ActiveWorkoutInterface
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            activeWorkoutActor={workoutState.context.activeWorkoutActor as any}
+            isOpen={isWorkoutExpanded} // NEW: Control modal open state
+            onMinimize={() => {
+              console.log('[WorkoutUIProvider] Minimizing workout interface');
+              workoutSend({ type: 'MINIMIZE_INTERFACE' });
+            }}
+            onWorkoutComplete={(workoutData) => {
+              console.log('[WorkoutUIProvider] Workout completed with data:', workoutData);
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              activeWorkoutActor={workoutState.context.activeWorkoutActor as any}
-              onMinimize={() => {
-                console.log('[WorkoutUIProvider] Minimizing workout interface');
-                workoutSend({ type: 'MINIMIZE_INTERFACE' });
-              }}
-              onWorkoutComplete={(workoutData) => {
-                console.log('[WorkoutUIProvider] Workout completed with data:', workoutData);
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                workoutSend({ type: 'WORKOUT_COMPLETED', workoutData: workoutData as any });
-              }}
-              onWorkoutCancel={() => {
-                console.log('[WorkoutUIProvider] Canceling workout');
-                workoutSend({ type: 'WORKOUT_CANCELLED' });
-              }}
-            />
-          </div>,
+              workoutSend({ type: 'WORKOUT_COMPLETED', workoutData: workoutData as any });
+            }}
+            onWorkoutCancel={() => {
+              console.log('[WorkoutUIProvider] Canceling workout');
+              workoutSend({ type: 'WORKOUT_CANCELLED' });
+            }}
+          />,
           document.body
         )
       }

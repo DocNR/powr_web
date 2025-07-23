@@ -61,6 +61,7 @@ interface WorkoutExercise {
 interface ActiveWorkoutInterfaceProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   activeWorkoutActor: any; // XState actor reference
+  isOpen?: boolean; // NEW: Control modal open state
   onMinimize: () => void; // Changed from onClose to onMinimize
   onWorkoutComplete?: (workoutData: WorkoutData) => void;
   onWorkoutCancel?: () => void;
@@ -69,6 +70,7 @@ interface ActiveWorkoutInterfaceProps {
 
 export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
   activeWorkoutActor,
+  isOpen = true, // NEW: Default to open
   onMinimize,
   onWorkoutComplete,
   onWorkoutCancel,
@@ -170,20 +172,27 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
     };
   }) || [];
 
-  // ✅ NEW: SMART SET PROGRESSION LOGIC - Calculate currentSetIndex intelligently
+  // ✅ FIXED: Use actual selected set from XState machine, not "first empty set"
   const calculateCurrentSetIndex = (exerciseIndex: number): number => {
     if (exerciseIndex !== currentExerciseIndex) {
       return -1; // Not the active exercise
     }
     
+    // Use the actual currentSetNumber from XState machine (1-based) converted to 0-based index
+    const selectedSetIndex = (exerciseProgression?.currentSetNumber || 1) - 1;
+    
     const currentExercise = exercises[exerciseIndex];
     if (!currentExercise) return -1;
     
-    // Find the first incomplete set
+    // Ensure the selected set index is valid for this exercise
+    if (selectedSetIndex >= 0 && selectedSetIndex < currentExercise.sets.length) {
+      return selectedSetIndex;
+    }
+    
+    // Fallback: if selected set is out of bounds, find first incomplete set
     const nextEmptySetIndex = currentExercise.sets.findIndex(set => !set.completed);
     
     if (nextEmptySetIndex >= 0) {
-      // Found an incomplete set - highlight it
       return nextEmptySetIndex;
     }
     
@@ -193,31 +202,18 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
 
   // Event handlers that send events to the actor
   const handleSetComplete = (exerciseId: string, setIndex: number, setData: SetData) => {
-    // First, navigate to the correct exercise (find its index)
-    const exerciseIndex = exercises.findIndex(ex => ex.id === exerciseId);
-    
-    if (exerciseIndex !== -1) {
-      // Navigate to the exercise first
-      actorSend({ 
-        type: 'NAVIGATE_TO_EXERCISE',
-        exerciseIndex 
-      });
-      
-      // Small delay to ensure navigation completes, then complete the set
-      setTimeout(() => {
-        actorSend({ 
-          type: 'COMPLETE_SET',
-          exerciseRef: exerciseId,  // Include for good measure
-          setIndex,                 // Include set index
-          setData: {
-            weight: setData.weight,
-            reps: setData.reps,
-            rpe: setData.rpe,
-            setType: setData.setType
-          }
-        });
-      }, 50); // Small delay to ensure navigation happens first
-    }
+    // NEW: Use flexible set interaction - complete specific set directly
+    actorSend({ 
+      type: 'COMPLETE_SPECIFIC_SET',
+      exerciseRef: exerciseId,
+      setNumber: setIndex + 1, // Convert 0-based index to 1-based set number
+      setData: {
+        weight: setData.weight,
+        reps: setData.reps,
+        rpe: setData.rpe,
+        setType: setData.setType
+      }
+    });
   };
 
   // ✅ FIXED: Add set functionality
@@ -235,6 +231,58 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
     actorSend({ 
       type: 'NAVIGATE_TO_EXERCISE',
       exerciseIndex
+    });
+  };
+
+  // NEW: Set selection handler for input focus following
+  const handleSetSelect = (exerciseIndex: number, setIndex: number) => {
+    // First navigate to the exercise
+    actorSend({ 
+      type: 'NAVIGATE_TO_EXERCISE',
+      exerciseIndex
+    });
+    
+    // Then send a SELECT_SET event for future flexible set interaction
+    const exercise = exercises[exerciseIndex];
+    if (exercise) {
+      actorSend({
+        type: 'SELECT_SET',
+        exerciseRef: exercise.id,
+        setNumber: setIndex + 1 // Convert 0-based index to 1-based set number
+      });
+    }
+  };
+
+  // NEW: Flexible set interaction handlers
+  const handleCompleteSpecific = (exerciseRef: string, setNumber: number, setData: SetData) => {
+    actorSend({ 
+      type: 'COMPLETE_SPECIFIC_SET',
+      exerciseRef,
+      setNumber,
+      setData: {
+        weight: setData.weight,
+        reps: setData.reps,
+        rpe: setData.rpe,
+        setType: setData.setType
+      }
+    });
+  };
+
+  const handleUncompleteSpecific = (exerciseRef: string, setNumber: number) => {
+    actorSend({ 
+      type: 'UNCOMPLETE_SET',
+      exerciseRef,
+      setNumber
+    });
+  };
+
+  const handleEditCompleted = (exerciseRef: string, setNumber: number, field: string, value: string | number) => {
+    actorSend({ 
+      type: 'EDIT_COMPLETED_SET',
+      exerciseRef,
+      setNumber,
+      field,
+      value
     });
   };
 
@@ -277,97 +325,110 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
 
   return (
     <>
-      {/* Full Screen Workout Interface */}
-      <div className={cn(
-        "fixed inset-0 bg-background z-50 flex flex-col",
-        "safe-area-inset-top safe-area-inset-bottom",
-        className
-      )}>
-        {/* Clean 3-Element Header */}
-        <div className="flex items-center justify-between p-4 bg-background border-b border-border">
-          {/* Minimize Button */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => {
-              console.log('🔙 ActiveWorkoutInterface: Back button clicked - calling onMinimize');
-              onMinimize();
-            }}
-            className="text-muted-foreground hover:text-foreground"
-            title="Minimize workout (workout continues in background)"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
+      {/* Responsive Modal Workout Interface - Consistent with WorkoutDetailModal */}
+      <Dialog open={isOpen} onOpenChange={() => onMinimize()}>
+        <DialogContent 
+          className="max-w-full max-h-full w-screen h-[100dvh] supports-[height:100dvh]:h-[100dvh] p-0 m-0 rounded-none border-none" 
+          showCloseButton={false}
+        >
+          <DialogHeader className="sr-only">
+            <DialogTitle>Active Workout</DialogTitle>
+          </DialogHeader>
+          
+          <div className={cn(
+            "relative h-full bg-background overflow-hidden pb-[env(safe-area-inset-bottom)] flex flex-col",
+            className
+          )}>
+            {/* Clean 3-Element Header */}
+            <div className="flex items-center justify-between p-4 bg-background border-b border-border flex-shrink-0">
+              {/* Minimize Button */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  console.log('🔙 ActiveWorkoutInterface: Back button clicked - calling onMinimize');
+                  onMinimize();
+                }}
+                className="text-muted-foreground hover:text-foreground"
+                title="Minimize workout (workout continues in background)"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
 
-          {/* Central Timer */}
-          <div className="flex flex-col items-center">
-            <WorkoutTimer 
-              elapsedTime={elapsedTime}
-              className="text-2xl font-bold"
-            />
-            <div className="text-sm text-muted-foreground mt-1">
-              {completedSets}/{totalSets} sets
+              {/* Central Timer */}
+              <div className="flex flex-col items-center">
+                <WorkoutTimer 
+                  elapsedTime={elapsedTime}
+                  className="text-2xl font-bold"
+                />
+                <div className="text-sm text-muted-foreground mt-1">
+                  {completedSets}/{totalSets} sets
+                </div>
+              </div>
+
+              {/* Finish Button */}
+              <Button
+                variant="workout-success"
+                onClick={() => setShowFinishDialog(true)}
+                className="px-6"
+              >
+                Finish
+              </Button>
+            </div>
+
+            {/* Exercise List - Scrollable */}
+            <div className="flex-1 overflow-y-auto p-4 pb-20 space-y-4">
+              {exercises.map((exercise: ExerciseData, exerciseIndex: number) => {
+                const smartSetIndex = calculateCurrentSetIndex(exerciseIndex);
+                const shouldHighlightAddSet = smartSetIndex === -2;
+
+                return (
+                  <ExerciseSection
+                    key={exercise.id}
+                    exercise={exercise}
+                    shouldHighlightAddSet={shouldHighlightAddSet} // NEW PROP for Add Set highlighting
+                    onSetComplete={(exerciseId: string, setIndex: number, setData: SetData) => 
+                      handleSetComplete(exerciseId, setIndex, setData)
+                    }
+                    onAddSet={(exerciseId: string) => handleAddSet(exerciseId)}
+                    onExerciseSelect={() => handleExerciseSelect(exerciseIndex)}
+                    onSelectSet={handleSetSelect} // NEW: Pass set selection handler
+                    exerciseIndex={exerciseIndex} // NEW: Pass exercise index
+                    // NEW: Flexible set interaction handlers
+                    onCompleteSpecific={handleCompleteSpecific}
+                    onUncompleteSpecific={handleUncompleteSpecific}
+                    onEditCompleted={handleEditCompleted}
+                  />
+                );
+              })}
+            </div>
+
+            {/* Bottom Action Bar */}
+            <div className="p-4 border-t border-border bg-background flex-shrink-0">
+              <div className="flex items-center justify-between gap-4">
+                {/* Cancel Button */}
+                <Button
+                  variant="outline"
+                  onClick={() => setShowCancelDialog(true)}
+                  className="flex-1 text-red-600 border-red-200 hover:bg-red-50"
+                >
+                  <Square className="h-4 w-4 mr-2" />
+                  Cancel
+                </Button>
+
+                {/* Finish Button */}
+                <Button
+                  variant="workout-success"
+                  onClick={() => setShowFinishDialog(true)}
+                  className="flex-1"
+                >
+                  Finish Workout
+                </Button>
+              </div>
             </div>
           </div>
-
-          {/* Finish Button */}
-          <Button
-            variant="workout-success"
-            onClick={() => setShowFinishDialog(true)}
-            className="px-6"
-          >
-            Finish
-          </Button>
-        </div>
-
-        {/* Exercise List - Scrollable */}
-        <div className="flex-1 overflow-y-auto p-4 pb-20 space-y-4">
-          {exercises.map((exercise: ExerciseData, exerciseIndex: number) => {
-            const isActiveExercise = exerciseIndex === currentExerciseIndex;
-            const smartSetIndex = calculateCurrentSetIndex(exerciseIndex);
-            const shouldHighlightAddSet = smartSetIndex === -2;
-
-            return (
-              <ExerciseSection
-                key={exercise.id}
-                exercise={exercise}
-                isActive={isActiveExercise}
-                currentSetIndex={smartSetIndex >= 0 ? smartSetIndex : -1} // Only pass valid set indices
-                shouldHighlightAddSet={shouldHighlightAddSet} // NEW PROP for Add Set highlighting
-                onSetComplete={(exerciseId: string, setIndex: number, setData: SetData) => 
-                  handleSetComplete(exerciseId, setIndex, setData)
-                }
-                onAddSet={(exerciseId: string) => handleAddSet(exerciseId)}
-                onExerciseSelect={() => handleExerciseSelect(exerciseIndex)}
-              />
-            );
-          })}
-        </div>
-
-        {/* Bottom Action Bar */}
-        <div className="p-4 border-t border-border bg-background">
-          <div className="flex items-center justify-between gap-4">
-            {/* Cancel Button */}
-            <Button
-              variant="outline"
-              onClick={() => setShowCancelDialog(true)}
-              className="flex-1 text-red-600 border-red-200 hover:bg-red-50"
-            >
-              <Square className="h-4 w-4 mr-2" />
-              Cancel
-            </Button>
-
-            {/* Finish Button */}
-            <Button
-              variant="workout-success"
-              onClick={() => setShowFinishDialog(true)}
-              className="flex-1"
-            >
-              Finish Workout
-            </Button>
-          </div>
-        </div>
-      </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Cancel Confirmation Dialog */}
       <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>

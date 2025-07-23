@@ -317,6 +317,7 @@ export const activeWorkoutMachine = setup({
               target: 'performingSet',
               actions: [
                 // Record the completed set with auto-generated data and per-exercise set tracking
+                // REMOVED: 'navigateToNextIncompleteSet' - user controls navigation manually
                 assign({
                   workoutData: ({ context, event }) => {
                     // Auto-generate set data from current machine context
@@ -434,10 +435,10 @@ export const activeWorkoutMachine = setup({
                   const setData = {
                     exerciseRef: event.exerciseRef,
                     setNumber: event.setNumber, // Simple logical set number (1, 2, 3...)
-                    reps: event.setData.reps || 0,
-                    weight: event.setData.weight || 0,
-                    rpe: event.setData.rpe || 7,
-                    setType: event.setData.setType || 'normal',
+                    reps: event.setData?.reps || 0,
+                    weight: event.setData?.weight || 0,
+                    rpe: event.setData?.rpe || 7,
+                    setType: event.setData?.setType || 'normal',
                     completedAt: Date.now()
                   };
                   
@@ -450,10 +451,11 @@ export const activeWorkoutMachine = setup({
               })
             },
             
-            UNCOMPLETE_SPECIFIC_SET: {
+            // NEW: UNCOMPLETE_SET handler for simplified uncomplete functionality
+            UNCOMPLETE_SET: {
               actions: assign({
                 workoutData: ({ context, event }) => {
-                  console.log(`[ActiveWorkoutMachine] ❌ UNCOMPLETE_SPECIFIC_SET: ${event.exerciseRef} set ${event.setNumber}`);
+                  console.log(`[ActiveWorkoutMachine] ❌ UNCOMPLETE_SET: ${event.exerciseRef} set ${event.setNumber}`);
                   
                   return {
                     ...context.workoutData,
@@ -487,12 +489,22 @@ export const activeWorkoutMachine = setup({
             SELECT_SET: {
               actions: assign({
                 exerciseProgression: ({ context, event }) => {
-                  console.log(`[ActiveWorkoutMachine] 🎯 SELECT_SET: Exercise ${event.exerciseIndex}, Set ${event.setIndex}`);
+                  // Find the exercise index by exerciseRef
+                  const exerciseIndex = context.workoutData.template?.exercises?.findIndex(
+                    (ex: { exerciseRef: string }) => ex.exerciseRef === event.exerciseRef
+                  );
+                  
+                  if (exerciseIndex === -1 || exerciseIndex === undefined) {
+                    console.warn(`[ActiveWorkoutMachine] SELECT_SET: Exercise ${event.exerciseRef} not found in template`);
+                    return context.exerciseProgression;
+                  }
+                  
+                  console.log(`[ActiveWorkoutMachine] 🎯 SELECT_SET: Exercise ${event.exerciseRef} (index ${exerciseIndex}), Set ${event.setNumber}`);
                   
                   return {
                     ...context.exerciseProgression,
-                    currentExerciseIndex: event.exerciseIndex,  // Exercise follows selection
-                    currentSetNumber: event.setIndex + 1        // Set follows selection (convert to 1-based)
+                    currentExerciseIndex: exerciseIndex,  // Exercise follows selection
+                    currentSetNumber: event.setNumber     // Set follows selection (already 1-based)
                   };
                 },
                 lastActivityAt: Date.now()
