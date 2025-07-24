@@ -358,6 +358,9 @@ export class DataParsingService {
   /**
    * Parse workout template event (Kind 33402)
    * Extracted from dependencyResolution.ts resolveTemplateDependencies()
+   * 
+   * FIXED: Correct NIP-101e exercise tag parsing with proper indexing
+   * Format: ["exercise", "33401:pubkey:d-tag", "relay-url", "weight", "reps", "rpe", "set_type"]
    */
   parseWorkoutTemplate(event: NDKEvent): WorkoutTemplate | null {
     console.log(`[DataParsingService] Parsing workout template: ${event.id}`);
@@ -371,15 +374,47 @@ export class DataParsingService {
       const difficulty = tagMap.get('difficulty')?.[1] as 'beginner' | 'intermediate' | 'advanced' | undefined;
       const estimatedDuration = tagMap.get('duration')?.[1] ? parseInt(tagMap.get('duration')![1]) : undefined;
       
-      // Extract exercise references
+      // Extract exercise references with CORRECT NIP-101e indexing
       const exerciseTags = event.tags.filter(tag => tag[0] === 'exercise');
-      const exercises: TemplateExercise[] = exerciseTags.map(tag => ({
-        exerciseRef: tag[1],
-        sets: parseInt(tag[2]) || 3,
-        reps: parseInt(tag[3]) || 10,
-        weight: tag[4] ? parseInt(tag[4]) : undefined,
-        restTime: 60
-      }));
+      
+      // Group exercise tags by exerciseRef to count sets per exercise
+      const exerciseGroups = new Map<string, string[][]>();
+      exerciseTags.forEach(tag => {
+        const [, exerciseRef] = tag;
+        if (!exerciseGroups.has(exerciseRef)) {
+          exerciseGroups.set(exerciseRef, []);
+        }
+        exerciseGroups.get(exerciseRef)!.push(tag);
+      });
+      
+      const exercises: TemplateExercise[] = Array.from(exerciseGroups.entries()).map(([exerciseRef, tags]) => {
+        // Use the first tag for the exercise parameters (they should all be the same for a template)
+        const [, , , weight, reps, rpe, setType] = tags[0];
+        
+        console.log(`[DataParsingService] 🔍 TEMPLATE EXERCISE DEBUG: ${exerciseRef}`, {
+          exerciseRef,
+          tagCount: tags.length,
+          weight,
+          reps,
+          rpe,
+          setType
+        });
+        
+        return {
+          exerciseRef,
+          sets: tags.length, // Count of exercise tags = number of sets planned
+          reps: parseInt(reps) || 10,
+          weight: weight ? parseInt(weight) : undefined,
+          restTime: 60,
+          // Store raw parameters for parameter interpretation service
+          parameters: {
+            param1: weight || '',
+            param2: reps || '',
+            param3: rpe || '',
+            param4: setType || ''
+          }
+        };
+      });
       
       const parsed: WorkoutTemplate = {
         id,

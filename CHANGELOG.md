@@ -30,6 +30,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Workout Template Set Count Parsing Fix COMPLETE (July 24, 2025) ✅**
+  
+  **User Impact**: Workout templates now display correct set counts based on actual template data. If a template has only 1 exercise tag for pushups, it correctly shows 1 set instead of being hardcoded to 3 sets. Users get authentic template-driven workouts that match the author's intended prescription.
+  
+  **Developer Notes**: Fixed critical parsing bug in DataParsingService.parseWorkoutTemplate() where all exercises were hardcoded to `sets: 3` regardless of actual template structure. Implemented proper NIP-101e parsing that groups exercise tags by exerciseRef and counts occurrences (`tags.length`) to determine real set count. Enhanced TypeScript typing from `Map<string, any[]>` to `Map<string, string[][]>` for proper type safety.
+  
+  **Architecture Changes**: Established correct NIP-101e template parsing where each exercise tag represents one planned set. Template-driven workout execution now uses authentic prescription data instead of arbitrary hardcoded values. Foundation ready for accurate workout template browsing and execution.
+
 ### Removed
 - **Legacy workout-events.ts File Cleanup COMPLETE (July 24, 2025) ✅**
   

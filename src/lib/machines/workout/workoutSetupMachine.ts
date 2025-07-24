@@ -72,15 +72,20 @@ export const loadTemplatesActor = fromPromise(async ({ input }: {
       : undefined;
     const estimatedDuration = tagMap.get('duration')?.[1] ? parseInt(tagMap.get('duration')![1]) : undefined;
     
-    // Extract exercise references
+    // Extract exercise references with CORRECT NIP-101e indexing
     const exerciseTags = event.tags.filter(tag => tag[0] === 'exercise');
-    const exercises = exerciseTags.map(tag => ({
-      exerciseRef: tag[1],
-      sets: parseInt(tag[2]) || 3,
-      reps: parseInt(tag[3]) || 10,
-      weight: tag[4] ? parseInt(tag[4]) : undefined,
-      restTime: 60
-    }));
+    const exercises = exerciseTags.map(tag => {
+      // Correct NIP-101e format: ["exercise", "exerciseRef", "relay-url", "weight", "reps", "rpe", "set_type"]
+      const [, exerciseRef, , weight, reps] = tag;
+      
+      return {
+        exerciseRef,
+        sets: 3, // Default sets - templates don't specify sets, this is determined during workout
+        reps: parseInt(reps) || 10,
+        weight: weight ? parseInt(weight) : undefined,
+        restTime: 60
+      };
+    });
     
     return {
       id,
@@ -195,15 +200,21 @@ export const workoutSetupMachine = setup({
         templateExercise.exerciseRef.includes(ex.id)
       );
       
+      console.log('[WorkoutSetupMachine] 🔍 EXERCISE DEBUG: Processing template exercise:', {
+        exerciseRef: templateExercise.exerciseRef,
+        templateSets: templateExercise.sets,
+        templateReps: templateExercise.reps,
+        templateWeight: templateExercise.weight,
+        exerciseDetails: exerciseDetails ? { id: exerciseDetails.id, name: exerciseDetails.name } : 'NOT FOUND'
+      });
+      
       return {
         // Display fields for modal:
         name: exerciseDetails?.name || 'Unknown Exercise',
-        sets: templateExercise.sets,        // From template (could be undefined)
-        reps: templateExercise.reps,        // From template (could be undefined)  
-        weight: templateExercise.weight,    // From template (could be undefined)
-        description: templateExercise.sets && templateExercise.reps 
-          ? `${templateExercise.sets} sets × ${templateExercise.reps} reps`
-          : 'Sets and reps to be determined',
+        sets: templateExercise.sets || 1,        // Use template sets or default to 1
+        reps: templateExercise.reps || 10,       // Use template reps or default to 10  
+        weight: templateExercise.weight || 0,    // Use template weight or default to 0
+        description: `${templateExercise.sets || 1} sets × ${templateExercise.reps || 10} reps`,
         
         // Technical fields for business logic:
         exerciseRef: templateExercise.exerciseRef,
