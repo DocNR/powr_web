@@ -1,48 +1,24 @@
 /**
- * NIP-101e Workout Event Utilities
+ * Workout Test Data Generation Utilities
  * 
  * Test utilities for generating valid workout events following NIP-101e specification.
- * These are for NDK cache validation only - not production-ready.
+ * These are for NDK cache validation and testing only - not production-ready.
  * 
- * ✅ UPDATED: Now uses DataParsingService for parsing operations
+ * Extracted from workout-events.ts to focus solely on test data generation.
+ * All parsing and validation logic has been moved to DataParsingService.
  */
 
 import { v4 as uuidv4 } from 'uuid';
-import { WORKOUT_EVENT_KINDS } from './ndk';
-import { dataParsingService } from './services/dataParsingService';
-import type { ValidationResult } from '@/lib/machines/workout/types/workoutTypes';
-import type { NDKEvent } from '@nostr-dev-kit/ndk';
+import { WORKOUT_EVENT_KINDS } from '../ndk';
 
-// Type definitions for workout events (test utilities only)
-export interface WorkoutEvent {
+// Type definitions for test workout events
+export interface TestWorkoutEvent {
   kind: number;
   content: string;
   tags: string[][];
   created_at: number;
   pubkey: string;
   id?: string;
-}
-
-export interface ParsedWorkoutEvent {
-  id: string;
-  title: string;
-  type: string;
-  startTime: number;
-  endTime: number;
-  duration: number;
-  completed: boolean;
-  exercises: ParsedExercise[];
-  content: string;
-  eventId?: string;
-  pubkey: string;
-}
-
-export interface ParsedExercise {
-  reference: string;
-  weight: string;
-  reps: string;
-  rpe: string;
-  setType: string;
 }
 
 // Test exercise references for validation
@@ -55,7 +31,7 @@ const TEST_EXERCISE_REFS = {
 /**
  * Generate a test workout record (kind 1301) for NDK cache validation
  */
-export function generateTestWorkoutRecord(userPubkey: string) {
+export function generateTestWorkoutRecord(userPubkey: string): TestWorkoutEvent {
   const workoutId = uuidv4();
   const startTime = Math.floor(Date.now() / 1000) - 1800; // 30 minutes ago
   const endTime = Math.floor(Date.now() / 1000); // now
@@ -92,7 +68,7 @@ export function generateTestWorkoutRecord(userPubkey: string) {
 /**
  * Generate a more complex test workout with weighted exercises
  */
-export function generateTestStrengthWorkout(userPubkey: string) {
+export function generateTestStrengthWorkout(userPubkey: string): TestWorkoutEvent {
   const workoutId = uuidv4();
   const startTime = Math.floor(Date.now() / 1000) - 2700; // 45 minutes ago
   const endTime = Math.floor(Date.now() / 1000); // now
@@ -134,7 +110,7 @@ export function generateTestStrengthWorkout(userPubkey: string) {
 /**
  * Generate a failed/incomplete workout for testing edge cases
  */
-export function generateTestFailedWorkout(userPubkey: string) {
+export function generateTestFailedWorkout(userPubkey: string): TestWorkoutEvent {
   const workoutId = uuidv4();
   const startTime = Math.floor(Date.now() / 1000) - 900; // 15 minutes ago
   const endTime = Math.floor(Date.now() / 1000); // now
@@ -168,77 +144,6 @@ export function generateTestFailedWorkout(userPubkey: string) {
   };
 }
 
-
-/**
- * Parse workout event data for display
- * ✅ UPDATED: Now uses DataParsingService for consistent parsing
- */
-export function parseWorkoutEvent(event: WorkoutEvent): ParsedWorkoutEvent {
-  console.log('[workout-events] Parsing workout event via DataParsingService:', event.id);
-  
-  // Convert WorkoutEvent to NDKEvent-like structure for DataParsingService
-  const ndkEventLike = {
-    id: event.id || 'unknown',
-    kind: event.kind,
-    content: event.content,
-    tags: event.tags,
-    created_at: event.created_at,
-    pubkey: event.pubkey
-  };
-  
-  // Use DataParsingService for consistent parsing
-  const parsed = dataParsingService.parseWorkoutEvent(ndkEventLike as NDKEvent);
-  if (!parsed) {
-    console.warn('[workout-events] Failed to parse workout event, using fallback:', event.id);
-    
-    // Fallback parsing for test utilities
-    const tagMap = new Map(event.tags.map((tag: string[]) => [tag[0], tag]));
-    
-    return {
-      id: tagMap.get('d')?.[1] || 'unknown',
-      title: tagMap.get('title')?.[1] || 'Untitled Workout',
-      type: tagMap.get('type')?.[1] || 'unknown',
-      startTime: parseInt(tagMap.get('start')?.[1] || '0'),
-      endTime: parseInt(tagMap.get('end')?.[1] || '0'),
-      duration: parseInt(tagMap.get('end')?.[1] || '0') - parseInt(tagMap.get('start')?.[1] || '0'),
-      completed: tagMap.get('completed')?.[1] === 'true',
-      exercises: event.tags.filter((tag: string[]) => tag[0] === 'exercise').map((tag: string[]) => ({
-        reference: tag[1],
-        weight: tag[3] || '0',
-        reps: tag[4] || '0',
-        rpe: tag[5] || '0',
-        setType: tag[6] || 'normal',
-      })),
-      content: event.content,
-      eventId: event.id,
-      pubkey: event.pubkey,
-    };
-  }
-  
-  // Convert DataParsingService result to workout-events format
-  const exercises = parsed.exercises.map(exercise => ({
-    reference: exercise.exerciseRef,
-    weight: exercise.weight.toString(),
-    reps: exercise.reps.toString(),
-    rpe: exercise.rpe?.toString() || '0',
-    setType: exercise.setType,
-  }));
-  
-  return {
-    id: parsed.id,
-    title: parsed.title,
-    type: parsed.workoutType,
-    startTime: Math.floor(parsed.startTime / 1000), // Convert ms to seconds
-    endTime: Math.floor(parsed.endTime / 1000), // Convert ms to seconds
-    duration: Math.floor(parsed.duration / 1000), // Convert ms to seconds
-    completed: parsed.completed,
-    exercises,
-    content: parsed.description,
-    eventId: parsed.eventId,
-    pubkey: parsed.authorPubkey,
-  };
-}
-
 /**
  * Get test exercise references for validation
  */
@@ -249,7 +154,7 @@ export function getTestExerciseRefs() {
 /**
  * Generate multiple test workouts for bulk testing
  */
-export function generateBulkTestWorkouts(userPubkey: string, count: number = 10) {
+export function generateBulkTestWorkouts(userPubkey: string, count: number = 10): TestWorkoutEvent[] {
   const workouts = [];
   
   for (let i = 0; i < count; i++) {
@@ -303,7 +208,7 @@ export function generateExerciseTemplate(userPubkey: string, exerciseData: {
   difficulty: string;
   muscleGroups: string[];
   imageUrl?: string;
-}) {
+}): TestWorkoutEvent {
   return {
     kind: WORKOUT_EVENT_KINDS.EXERCISE_TEMPLATE,
     content: exerciseData.instructions,
@@ -327,7 +232,7 @@ export function generateExerciseTemplate(userPubkey: string, exerciseData: {
 /**
  * Generate all 12 bodyweight exercises for Phase 1
  */
-export function generateAllBodyweightExercises(userPubkey: string) {
+export function generateAllBodyweightExercises(userPubkey: string): TestWorkoutEvent[] {
   const exercises = [
     // Push Category (4 exercises)
     {
@@ -464,7 +369,7 @@ export function generateWorkoutTemplate(userPubkey: string, workoutData: {
   }>;
   estimatedDuration: number;
   difficulty?: string;
-}) {
+}): TestWorkoutEvent {
   return {
     kind: WORKOUT_EVENT_KINDS.WORKOUT_TEMPLATE,
     content: workoutData.description,
@@ -491,7 +396,7 @@ export function generateWorkoutTemplate(userPubkey: string, workoutData: {
 /**
  * Generate all 3 test workout templates for Phase 1
  */
-export function generateAllWorkoutTemplates(userPubkey: string) {
+export function generateAllWorkoutTemplates(userPubkey: string): TestWorkoutEvent[] {
   return [
     // Push Workout
     generateWorkoutTemplate(userPubkey, {
@@ -554,7 +459,7 @@ export function generateCollection(userPubkey: string, collectionData: {
     pubkey: string;
     dTag: string;
   }>;
-}) {
+}): TestWorkoutEvent {
   return {
     kind: 30003, // NIP-51 collection kind
     content: collectionData.description,
@@ -574,142 +479,45 @@ export function generateCollection(userPubkey: string, collectionData: {
 }
 
 /**
- * Validate NIP-101e workout event format
- * ✅ UPDATED: Now uses DataParsingService for consistent validation
+ * Generate exercise library collection
  */
-export function validateWorkoutEvent(event: WorkoutEvent): ValidationResult {
-  console.log('[workout-events] Validating workout event via DataParsingService:', event.id);
-  
-  // Convert WorkoutEvent to NDKEvent-like structure for DataParsingService
-  const ndkEventLike = {
-    id: event.id || 'unknown',
-    kind: event.kind,
-    content: event.content,
-    tags: event.tags,
-    created_at: event.created_at,
-    pubkey: event.pubkey
-  };
-  
-  // Use DataParsingService for consistent validation
-  const validation = dataParsingService.validateNIP101eEvent(ndkEventLike as NDKEvent);
-  
-  return { 
-    valid: validation.isValid, 
-    error: validation.errors.length > 0 ? validation.errors.join('; ') : undefined 
-  };
-}
-/**
- * Validate exercise template event
- * ✅ UPDATED: Now uses DataParsingService for consistent validation
- */
-export function validateExerciseEvent(event: WorkoutEvent): ValidationResult {
-  console.log('[workout-events] Validating exercise event via DataParsingService:', event.id);
-  
-  // Convert WorkoutEvent to NDKEvent-like structure for DataParsingService
-  const ndkEventLike = {
-    id: event.id || 'unknown',
-    kind: event.kind,
-    content: event.content,
-    tags: event.tags,
-    created_at: event.created_at,
-    pubkey: event.pubkey
-  };
-  
-  // Use DataParsingService for consistent validation
-  const validation = dataParsingService.validateExerciseTemplate(ndkEventLike as NDKEvent);
-  
-  return { 
-    valid: validation.isValid, 
-    error: validation.errors.length > 0 ? validation.errors.join('; ') : undefined 
-  };
+export function generateExerciseCollection(userPubkey: string): TestWorkoutEvent {
+  return generateCollection(userPubkey, {
+    id: 'exercise-library',
+    name: 'POWR Exercise Library',
+    description: 'Complete collection of bodyweight exercises for strength training',
+    contentRefs: [
+      // Push exercises
+      { kind: 33401, pubkey: userPubkey, dTag: 'pushup-standard' },
+      { kind: 33401, pubkey: userPubkey, dTag: 'pike-pushup' },
+      { kind: 33401, pubkey: userPubkey, dTag: 'tricep-dips' },
+      { kind: 33401, pubkey: userPubkey, dTag: 'wall-handstand' },
+      // Pull exercises
+      { kind: 33401, pubkey: userPubkey, dTag: 'pullups' },
+      { kind: 33401, pubkey: userPubkey, dTag: 'chinups' },
+      { kind: 33401, pubkey: userPubkey, dTag: 'inverted-rows' },
+      { kind: 33401, pubkey: userPubkey, dTag: 'door-pulls' },
+      // Leg exercises
+      { kind: 33401, pubkey: userPubkey, dTag: 'bodyweight-squats' },
+      { kind: 33401, pubkey: userPubkey, dTag: 'lunges' },
+      { kind: 33401, pubkey: userPubkey, dTag: 'single-leg-squats' },
+      { kind: 33401, pubkey: userPubkey, dTag: 'calf-raises' }
+    ]
+  });
 }
 
 /**
- * Validate workout template event
+ * Generate workout template collection
  */
-export function validateWorkoutTemplateEvent(event: WorkoutEvent): ValidationResult {
-  const errors: string[] = [];
-  
-  if (event.kind !== WORKOUT_EVENT_KINDS.WORKOUT_TEMPLATE) {
-    errors.push('Invalid kind for workout template (must be 33402)');
-  }
-  
-  const exerciseTags = event.tags.filter((tag: string[]) => tag[0] === 'exercise');
-  if (exerciseTags.length === 0) {
-    errors.push('Workout template must include at least one exercise');
-  }
-  
-  for (const exerciseTag of exerciseTags) {
-    if (exerciseTag.length < 5) {
-      errors.push(`Invalid exercise tag format: ${exerciseTag.join(',')}`);
-    }
-    
-    const exerciseRef = exerciseTag[1];
-    if (!exerciseRef.match(/^33401:[a-zA-Z0-9-]+:[a-zA-Z0-9-]+$/)) {
-      errors.push(`Invalid exercise reference format: ${exerciseRef}`);
-    }
-  }
-  
-  return { 
-    valid: errors.length === 0, 
-    error: errors.length > 0 ? errors.join('; ') : undefined 
-  };
-}
-
-/**
- * Validate collection event
- */
-export function validateCollectionEvent(event: WorkoutEvent): ValidationResult {
-  const errors: string[] = [];
-  
-  if (event.kind !== 30003) {
-    errors.push('Invalid kind for collection (must be 30003)');
-  }
-  
-  const contentTags = event.tags.filter((tag: string[]) => tag[0] === 'a');
-  if (contentTags.length === 0) {
-    errors.push('Collection must include at least one content reference');
-  }
-  
-  for (const contentTag of contentTags) {
-    if (contentTag.length < 2) {
-      errors.push(`Invalid content reference format: ${contentTag.join(',')}`);
-    }
-    
-    const contentRef = contentTag[1];
-    if (!contentRef.match(/^\d+:[a-zA-Z0-9-]+:[a-zA-Z0-9-]+$/)) {
-      errors.push(`Invalid content reference format: ${contentRef}`);
-    }
-  }
-  
-  return { 
-    valid: errors.length === 0, 
-    error: errors.length > 0 ? errors.join('; ') : undefined 
-  };
-}
-
-/**
- * Universal event validator
- * ✅ UPDATED: Now uses DataParsingService for consistent validation
- */
-export function validateEvent(event: WorkoutEvent): ValidationResult {
-  console.log('[workout-events] Validating event via DataParsingService:', event.id, 'kind:', event.kind);
-  
-  // Convert WorkoutEvent to NDKEvent-like structure for DataParsingService
-  const ndkEventLike = {
-    id: event.id || 'unknown',
-    kind: event.kind,
-    content: event.content,
-    tags: event.tags,
-    created_at: event.created_at,
-    pubkey: event.pubkey
-  };
-  
-  // Use DataParsingService for consistent validation
-  const validation = dataParsingService.validateNIP101eEvent(ndkEventLike as NDKEvent);
-  
-  return { 
-    valid: validation.isValid, 
-    error: validation.errors.length > 0 ? validation.errors.join('; ') : undefined 
-  };
+export function generateWorkoutCollection(userPubkey: string): TestWorkoutEvent {
+  return generateCollection(userPubkey, {
+    id: 'workout-templates',
+    name: 'POWR Workout Templates',
+    description: 'Curated workout templates for different training goals',
+    contentRefs: [
+      { kind: 33402, pubkey: userPubkey, dTag: 'push-workout-bodyweight' },
+      { kind: 33402, pubkey: userPubkey, dTag: 'pull-workout-bodyweight' },
+      { kind: 33402, pubkey: userPubkey, dTag: 'legs-workout-bodyweight' }
+    ]
+  });
 }

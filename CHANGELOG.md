@@ -30,6 +30,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+- **Legacy workout-events.ts File Cleanup COMPLETE (July 24, 2025) ✅**
+  
+  **User Impact**: Cleaner codebase with no legacy files or unused test components cluttering the project structure.
+  
+  **Developer Notes**: Removed src/lib/workout-events.ts and associated test files (WorkoutPublisher.tsx, WorkoutReader.tsx) that were no longer referenced. All functionality has been properly consolidated into dataParsingService.ts and workoutAnalytics.ts.
+  
+  **Architecture Changes**: Completed consolidation effort - all parsing logic now flows through centralized DataParsingService with no legacy code paths remaining.
+
 ### Added
 - **DataParsingService Consolidation COMPLETE (July 24, 2025) ✅**
   
