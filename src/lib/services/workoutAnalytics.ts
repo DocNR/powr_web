@@ -8,7 +8,7 @@
 
 import { v4 as uuidv4 } from 'uuid';
 import { WORKOUT_EVENT_KINDS } from '@/lib/ndk';
-import type { ValidationResult } from '@/lib/workout-events';
+import type { ValidationResult } from '@/lib/machines/workout/types/workoutTypes';
 
 // Business logic types
 export interface CompletedWorkout {
@@ -294,7 +294,7 @@ export class WorkoutAnalyticsService {
     
     return {
       valid: errors.length === 0,
-      errors
+      error: errors.length > 0 ? errors.join('; ') : undefined
     };
   }
   

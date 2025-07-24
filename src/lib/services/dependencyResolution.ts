@@ -13,6 +13,7 @@
 import { getNDKInstance, WORKOUT_EVENT_KINDS } from '@/lib/ndk';
 import type { NDKEvent, NDKFilter } from '@nostr-dev-kit/ndk';
 import { NDKSubscriptionCacheUsage } from '@nostr-dev-kit/ndk';
+import { dataParsingService } from './dataParsingService';
 
 // Types for dependency resolution
 export interface WorkoutTemplate {
@@ -335,39 +336,8 @@ export class DependencyResolutionService {
 
     const templateEvents = await this.fetchEventsOptimized(filter);
 
-    // Parse templates from events
-    const templates: WorkoutTemplate[] = Array.from(templateEvents).map(event => {
-      const tagMap = new Map(event.tags.map(tag => [tag[0], tag]));
-      
-      const id = tagMap.get('d')?.[1] || 'unknown';
-      const name = tagMap.get('title')?.[1] || tagMap.get('name')?.[1] || 'Untitled Template';
-      const description = event.content || 'No description';
-      const difficulty = tagMap.get('difficulty')?.[1] as 'beginner' | 'intermediate' | 'advanced' | undefined;
-      const estimatedDuration = tagMap.get('duration')?.[1] ? parseInt(tagMap.get('duration')![1]) : undefined;
-      
-      // Extract exercise references
-      const exerciseTags = event.tags.filter(tag => tag[0] === 'exercise');
-      const exercises: TemplateExercise[] = exerciseTags.map(tag => ({
-        exerciseRef: tag[1],
-        sets: parseInt(tag[2]) || 3,
-        reps: parseInt(tag[3]) || 10,
-        weight: tag[4] ? parseInt(tag[4]) : undefined,
-        restTime: 60
-      }));
-      
-      return {
-        id,
-        name,
-        description,
-        exercises,
-        estimatedDuration,
-        difficulty,
-        authorPubkey: event.pubkey,
-        createdAt: event.created_at || Math.floor(Date.now() / 1000),
-        eventId: event.id,
-        tags: event.tags
-      };
-    });
+    // Use DataParsingService for template parsing
+    const templates = dataParsingService.parseWorkoutTemplatesBatch(Array.from(templateEvents));
 
     const resolveTime = Date.now() - startTime;
     console.log(`[DependencyResolutionService] ✅ Resolved ${templates.length} templates in ${resolveTime}ms`);
@@ -387,30 +357,18 @@ export class DependencyResolutionService {
     const startTime = Date.now();
     console.log('[DependencyResolutionService] Resolving exercise references:', exerciseRefs.length);
 
-    const exercises: Exercise[] = [];
-    const errors: string[] = [];
-
-    // Stage 1: Validate exercise reference format
+    // Stage 1: Validate exercise reference format using DataParsingService
     const validRefs = exerciseRefs.filter(ref => {
-      const validation = this.validateExerciseReference(ref);
-      if (!validation.isValid) {
-        errors.push(`❌ ${validation.reason}`);
-        return false;
-      }
-      return true;
+      const validation = dataParsingService.validateExerciseReference(ref);
+      return validation.isValid;
     });
 
     if (validRefs.length === 0) {
       console.warn('[DependencyResolutionService] No valid exercise references found');
-      if (errors.length > 0) {
-        console.group('[DependencyResolutionService] ❌ NIP-101e Validation Failures');
-        errors.forEach(error => console.error(error));
-        console.groupEnd();
-      }
       return [];
     }
 
-    // Stage 2: Fetch and validate events (existing batched logic)
+    // Stage 2: Fetch events (existing batched logic)
     const uniqueRefs = [...new Set(validRefs)];
     const exerciseAuthors = new Set<string>();
     const exerciseDTags: string[] = [];
@@ -429,23 +387,8 @@ export class DependencyResolutionService {
 
     const exerciseEvents = await this.fetchEventsOptimized(filter);
 
-    // Stage 3: Parse and validate events
-    for (const event of exerciseEvents) {
-      const validation = this.validateExerciseTemplate(event);
-      if (validation.isValid) {
-        exercises.push(this.parseValidExerciseTemplate(event));
-      } else {
-        errors.push(`❌ ${validation.eventRef}: ${validation.reason}`);
-      }
-    }
-
-    // Enhanced error logging
-    if (errors.length > 0) {
-      console.group('[DependencyResolutionService] ❌ NIP-101e Validation Failures');
-      console.warn(`${errors.length} exercises skipped, ${exercises.length} loaded successfully`);
-      errors.forEach(error => console.error(error));
-      console.groupEnd();
-    }
+    // Stage 3: Use DataParsingService for batch parsing with validation
+    const exercises = dataParsingService.parseExerciseTemplatesBatch(Array.from(exerciseEvents));
 
     const resolveTime = Date.now() - startTime;
     console.log(`[DependencyResolutionService] ✅ Resolved ${exercises.length} exercises in ${resolveTime}ms`);

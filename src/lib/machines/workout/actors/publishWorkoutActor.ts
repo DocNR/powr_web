@@ -40,8 +40,8 @@ export const publishWorkoutActor = fromPromise(async ({ input }: {
     // Validate workout data using service
     const validation = workoutAnalyticsService.validateWorkoutData(input.workoutData);
     if (!validation.valid) {
-      const errorMessage = `Workout validation failed: ${validation.errors.join(', ')}`;
-      console.error('[PublishWorkoutActor] Validation failed:', validation.errors);
+      const errorMessage = `Workout validation failed: ${validation.error || 'Unknown validation error'}`;
+      console.error('[PublishWorkoutActor] Validation failed:', validation.error);
       throw new Error(errorMessage);
     }
     

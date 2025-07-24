@@ -2,8 +2,8 @@
 
 import React, { createContext, useContext, useState, useCallback, ReactNode, useMemo, useEffect, useRef } from 'react';
 import { getNDKInstance, WORKOUT_EVENT_KINDS } from '@/lib/ndk';
-import { parseWorkoutEvent } from '@/lib/workout-events';
 import { useIsAuthenticated } from '@/lib/auth/hooks';
+import { dataParsingService } from '@/lib/services/dataParsingService';
 import type { NDKEvent, NDKFilter, NDKSubscription } from '@nostr-dev-kit/ndk';
 
 // Updated SocialWorkout interface - now template-focused with social proof
@@ -277,141 +277,155 @@ export function WorkoutDataProvider({ children }: WorkoutDataProviderProps) {
     };
   }, [isAuthenticated, socialLimit, discoveryLimit, setupSocialSubscription, setupDiscoverySubscription]);
 
-  // ✅ NEW: Transform social events to template-focused format with social proof
+  // ✅ OPTIMIZED: Use stable event IDs to prevent unnecessary re-parsing
   const socialWorkouts = useMemo(() => {
-    const processedWorkouts: SocialWorkout[] = [];
+    // Create stable key from event IDs to prevent unnecessary re-computation
+    const eventIds = socialEvents.map(e => e.id).sort().join(',');
+    const templateKeys = Array.from(templateCache.keys()).sort().join(',');
+    const stableKey = `social_${eventIds}_${templateKeys}`;
     
-    for (const event of socialEvents) {
-      try {
-        // Extract template reference from 1301 event
-        const templateTag = event.tags.find(tag => tag[0] === 'template');
-        const templateReference = templateTag?.[1];
-        
-        if (!templateReference) {
-          console.warn('[WorkoutDataProvider] No template reference in workout record:', event.id);
-          continue;
+    return dataParsingService.getCachedParse(stableKey, () => {
+      console.log('[WorkoutDataProvider] 🔄 Computing social workouts (cache miss)');
+      const processedWorkouts: SocialWorkout[] = [];
+      
+      for (const event of socialEvents) {
+        try {
+          // Extract template reference from 1301 event
+          const templateTag = event.tags.find(tag => tag[0] === 'template');
+          const templateReference = templateTag?.[1];
+          
+          if (!templateReference) {
+            console.warn('[WorkoutDataProvider] No template reference in workout record:', event.id);
+            continue;
+          }
+
+          // Check if we have the template cached
+          const templateEvent = templateCache.get(templateReference);
+          if (!templateEvent) {
+            // Template not cached yet, fetch it
+            fetchTemplateForSocialWorkout(templateReference);
+            continue; // Skip this workout for now, will be processed when template is fetched
+          }
+
+          // Use DataParsingService with caching for social workout parsing
+          const socialWorkout = dataParsingService.getCachedParse(`social_${event.id}`, () => 
+            dataParsingService.parseSocialWorkout(event, templateEvent)
+          );
+          if (!socialWorkout) {
+            console.warn('[WorkoutDataProvider] Failed to parse social workout:', event.id);
+            continue;
+          }
+
+          // Convert to WorkoutDataProvider format (maintaining backward compatibility)
+          const providerSocialWorkout: SocialWorkout = {
+            id: socialWorkout.id,
+            title: socialWorkout.title,
+            description: socialWorkout.description,
+            exercises: [], // Will be populated from template parsing
+            estimatedDuration: Math.round(socialWorkout.duration / 60000) || 30, // Convert ms to minutes
+            difficulty: undefined, // Will be set from template
+            author: {
+              pubkey: socialWorkout.authorPubkey,
+              name: socialWorkout.authorPubkey.slice(0, 8) + '...',
+            },
+            socialProof: {
+              triedBy: socialWorkout.authorPubkey.slice(0, 8) + '...',
+              triedByPubkey: socialWorkout.authorPubkey,
+              completedAt: new Date(socialWorkout.createdAt),
+              workoutRecordId: socialWorkout.eventId
+            },
+            templateId: socialWorkout.templateId || 'unknown-template',
+            templateReference,
+            eventId: socialWorkout.eventId
+          };
+
+          // Parse template for additional details
+          const parsedTemplate = dataParsingService.getCachedParse(`template_${templateEvent.id}`, () =>
+            dataParsingService.parseWorkoutTemplate(templateEvent)
+          );
+          if (parsedTemplate) {
+            providerSocialWorkout.difficulty = parsedTemplate.difficulty;
+            providerSocialWorkout.estimatedDuration = parsedTemplate.estimatedDuration ? 
+              Math.round(parsedTemplate.estimatedDuration / 60) : 30;
+            
+            // Convert template exercises to provider format
+            providerSocialWorkout.exercises = parsedTemplate.exercises.map(exercise => ({
+              name: exercise.exerciseRef?.split(':')[2]?.replace(/-/g, ' ') || 'Unknown Exercise',
+              sets: exercise.sets || 3,
+              reps: exercise.reps || 10,
+              weight: exercise.weight || 0
+            }));
+            
+            // Update author to template author
+            providerSocialWorkout.author = {
+              pubkey: parsedTemplate.authorPubkey,
+              name: parsedTemplate.authorPubkey.slice(0, 8) + '...',
+            };
+          }
+
+          processedWorkouts.push(providerSocialWorkout);
+
+        } catch (error) {
+          console.warn('[WorkoutDataProvider] Failed to process social workout:', error);
         }
-
-        // Check if we have the template cached
-        const templateEvent = templateCache.get(templateReference);
-        if (!templateEvent) {
-          // Template not cached yet, fetch it
-          fetchTemplateForSocialWorkout(templateReference);
-          continue; // Skip this workout for now, will be processed when template is fetched
-        }
-
-        console.log('[WorkoutDataProvider] 🔄 Processing social workout with template:', {
-          workoutId: event.id,
-          templateReference,
-          templateCached: !!templateEvent
-        });
-
-        // Parse the workout record for social proof info
-        const workoutRecord = parseWorkoutEvent({
-          kind: event.kind!,
-          content: event.content || '',
-          tags: event.tags,
-          created_at: event.created_at!,
-          pubkey: event.pubkey,
-          id: event.id
-        });
-
-        // Parse the template event
-        const templateTagMap = new Map(templateEvent.tags.map(tag => [tag[0], tag]));
-        const templateId = templateTagMap.get('d')?.[1] || 'unknown-template';
-        const templateName = templateTagMap.get('title')?.[1] || templateTagMap.get('name')?.[1] || 'Untitled Template';
-        const templateDescription = templateEvent.content || 'No description available';
-        const templateDifficulty = templateTagMap.get('difficulty')?.[1] as 'beginner' | 'intermediate' | 'advanced' | undefined;
-        const templateDuration = templateTagMap.get('duration')?.[1] ? parseInt(templateTagMap.get('duration')![1]) : undefined;
-
-        // Extract template exercises (what the user will actually do)
-        const templateExerciseTags = templateEvent.tags.filter(tag => tag[0] === 'exercise');
-        const templateExercises = templateExerciseTags.map(tag => ({
-          name: tag[1]?.split(':')[2]?.replace(/-/g, ' ') || 'Unknown Exercise',
-          sets: parseInt(tag[2]) || 3,
-          reps: parseInt(tag[3]) || 10,
-          weight: tag[4] ? parseInt(tag[4]) : 0
-        }));
-
-        // Create social workout showing template info with social proof
-        const socialWorkout: SocialWorkout = {
-          id: event.id, // Use workout record ID for selection
-          title: templateName, // Show template name
-          description: templateDescription, // Show template description
-          exercises: templateExercises, // Show template exercises (what user will do)
-          estimatedDuration: templateDuration ? Math.round(templateDuration / 60) : 30,
-          difficulty: templateDifficulty,
-          author: {
-            pubkey: templateEvent.pubkey, // Template author
-            name: templateEvent.pubkey.slice(0, 8) + '...', // Template author display
-          },
-          socialProof: {
-            triedBy: event.pubkey.slice(0, 8) + '...', // Person who completed it
-            triedByPubkey: event.pubkey,
-            completedAt: new Date(workoutRecord.endTime * 1000),
-            workoutRecordId: event.id
-          },
-          templateId,
-          templateReference,
-          eventId: event.id
-        };
-
-        processedWorkouts.push(socialWorkout);
-
-        console.log('[WorkoutDataProvider] ✅ Social workout processed:', {
-          templateName,
-          triedBy: socialWorkout.socialProof.triedBy,
-          exercises: templateExercises.length
-        });
-
-      } catch (error) {
-        console.warn('[WorkoutDataProvider] Failed to process social workout:', error);
       }
-    }
 
-    return processedWorkouts;
+      console.log('[WorkoutDataProvider] ✅ Social workouts computed:', processedWorkouts.length);
+      return processedWorkouts;
+    });
   }, [socialEvents, templateCache, fetchTemplateForSocialWorkout]);
 
-  // Transform discovery events to UI format (unchanged)
+  // ✅ OPTIMIZED: Use stable event IDs to prevent unnecessary re-parsing
   const discoveryTemplates = useMemo(() => {
-    return discoveryEvents.map((event: NDKEvent) => {
-      try {
-        const dTag = event.tags.find(tag => tag[0] === 'd')?.[1];
-        if (!dTag) return null;
+    // Create stable key from event IDs to prevent unnecessary re-computation
+    const eventIds = discoveryEvents.map(e => e.id).sort().join(',');
+    const stableKey = `discovery_${eventIds}`;
+    
+    return dataParsingService.getCachedParse(stableKey, () => {
+      console.log('[WorkoutDataProvider] 🔄 Computing discovery templates (cache miss)');
+      
+      return discoveryEvents.map((event: NDKEvent) => {
+        try {
+          // Use DataParsingService for discovery template parsing
+          const discoveryWorkout = dataParsingService.getCachedParse(`discovery_${event.id}`, () =>
+            dataParsingService.parseDiscoveryTemplate(event)
+          );
+          if (!discoveryWorkout) {
+            console.warn('[WorkoutDataProvider] Failed to parse discovery template:', event.id);
+            return null;
+          }
 
-        const tagMap = new Map(event.tags.map(tag => [tag[0], tag]));
-        const name = tagMap.get('title')?.[1] || tagMap.get('name')?.[1] || 'Untitled Template';
-        const difficulty = tagMap.get('difficulty')?.[1] as 'beginner' | 'intermediate' | 'advanced' | undefined;
-        const estimatedDuration = tagMap.get('duration')?.[1] ? parseInt(tagMap.get('duration')![1]) : undefined;
-        
-        // Extract exercise references
-        const exerciseTags = event.tags.filter(tag => tag[0] === 'exercise');
-        const exercises = exerciseTags.map(tag => ({
-          name: tag[1]?.split(':')[2]?.replace(/-/g, ' ') || 'Unknown Exercise',
-          sets: parseInt(tag[2]) || 3,
-          reps: parseInt(tag[3]) || 10,
-          weight: tag[4] ? parseInt(tag[4]) : 0
-        }));
+          // Convert to WorkoutDataProvider format (maintaining backward compatibility)
+          const parsedTemplate = dataParsingService.getCachedParse(`template_${event.id}`, () =>
+            dataParsingService.parseWorkoutTemplate(event)
+          );
+          const exercises = parsedTemplate ? parsedTemplate.exercises.map(exercise => ({
+            name: exercise.exerciseRef?.split(':')[2]?.replace(/-/g, ' ') || 'Unknown Exercise',
+            sets: exercise.sets || 3,
+            reps: exercise.reps || 10,
+            weight: exercise.weight || 0
+          })) : [];
 
-        return {
-          id: dTag,
-          title: name,
-          exercises,
-          estimatedDuration: estimatedDuration ? Math.round(estimatedDuration / 60) : 30,
-          difficulty,
-          author: {
-            pubkey: event.pubkey,
-          },
-          eventId: event.id,
-          eventTags: event.tags,
-          eventKind: event.kind,
-          templateRef: `33402:${event.pubkey}:${dTag}`
-        };
-      } catch (error) {
-        console.warn('[WorkoutDataProvider] Failed to parse discovery template:', error);
-        return null;
-      }
-    }).filter(Boolean) as DiscoveryWorkout[];
+          return {
+            id: discoveryWorkout.id,
+            title: discoveryWorkout.title,
+            exercises,
+            estimatedDuration: discoveryWorkout.estimatedDuration || 30,
+            difficulty: discoveryWorkout.difficulty,
+            author: {
+              pubkey: discoveryWorkout.authorPubkey,
+            },
+            eventId: discoveryWorkout.eventId,
+            eventTags: discoveryWorkout.tags,
+            eventKind: event.kind,
+            templateRef: `33402:${discoveryWorkout.authorPubkey}:${discoveryWorkout.id}`
+          };
+        } catch (error) {
+          console.warn('[WorkoutDataProvider] Failed to parse discovery template:', error);
+          return null;
+        }
+      }).filter(Boolean) as DiscoveryWorkout[];
+    });
   }, [discoveryEvents]);
 
   // Generate workout indicators from social workouts (now based on template completion)

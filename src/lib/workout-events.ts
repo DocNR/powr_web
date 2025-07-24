@@ -3,12 +3,17 @@
  * 
  * Test utilities for generating valid workout events following NIP-101e specification.
  * These are for NDK cache validation only - not production-ready.
+ * 
+ * ✅ UPDATED: Now uses DataParsingService for parsing operations
  */
 
 import { v4 as uuidv4 } from 'uuid';
 import { WORKOUT_EVENT_KINDS } from './ndk';
+import { dataParsingService } from './services/dataParsingService';
+import type { ValidationResult } from '@/lib/machines/workout/types/workoutTypes';
+import type { NDKEvent } from '@nostr-dev-kit/ndk';
 
-// Type definitions for workout events
+// Type definitions for workout events (test utilities only)
 export interface WorkoutEvent {
   kind: number;
   content: string;
@@ -38,11 +43,6 @@ export interface ParsedExercise {
   reps: string;
   rpe: string;
   setType: string;
-}
-
-export interface ValidationResult {
-  valid: boolean;
-  errors: string[];
 }
 
 // Test exercise references for validation
@@ -168,104 +168,74 @@ export function generateTestFailedWorkout(userPubkey: string) {
   };
 }
 
-/**
- * Validate NIP-101e workout event format
- */
-export function validateWorkoutEvent(event: WorkoutEvent): ValidationResult {
-  const errors: string[] = [];
-  
-  // Check required fields
-  if (!event.kind || event.kind !== WORKOUT_EVENT_KINDS.WORKOUT_RECORD) {
-    errors.push('Invalid or missing kind (must be 1301)');
-  }
-  
-  if (!event.pubkey || typeof event.pubkey !== 'string') {
-    errors.push('Missing or invalid pubkey');
-  }
-  
-  if (!event.created_at || typeof event.created_at !== 'number') {
-    errors.push('Missing or invalid created_at timestamp');
-  }
-  
-  if (!event.content || typeof event.content !== 'string') {
-    errors.push('Missing content field');
-  }
-  
-  if (!Array.isArray(event.tags)) {
-    errors.push('Missing or invalid tags array');
-    return { valid: false, errors };
-  }
-  
-  // Check required tags
-  const tagMap = new Map(event.tags.map((tag: string[]) => [tag[0], tag]));
-  
-  const requiredTags = ['d', 'title', 'type', 'start', 'end', 'completed'];
-  for (const requiredTag of requiredTags) {
-    if (!tagMap.has(requiredTag)) {
-      errors.push(`Missing required tag: ${requiredTag}`);
-    }
-  }
-  
-  // Validate exercise tags format
-  const exerciseTags = event.tags.filter((tag: string[]) => tag[0] === 'exercise');
-  if (exerciseTags.length === 0) {
-    errors.push('Workout must include at least one exercise tag');
-  }
-  
-  for (const exerciseTag of exerciseTags) {
-    if (exerciseTag.length < 7) {
-      errors.push(`Invalid exercise tag format: ${exerciseTag.join(',')}`);
-    }
-    
-    // Validate exercise reference format (kind:pubkey:d-tag)
-    const exerciseRef = exerciseTag[1];
-    if (!exerciseRef.match(/^\d+:[a-zA-Z0-9-]+:[a-zA-Z0-9-]+$/)) {
-      errors.push(`Invalid exercise reference format: ${exerciseRef}`);
-    }
-  }
-  
-  return { valid: errors.length === 0, errors };
-}
 
 /**
  * Parse workout event data for display
+ * ✅ UPDATED: Now uses DataParsingService for consistent parsing
  */
 export function parseWorkoutEvent(event: WorkoutEvent): ParsedWorkoutEvent {
-  const tagMap = new Map(event.tags.map((tag: string[]) => [tag[0], tag]));
+  console.log('[workout-events] Parsing workout event via DataParsingService:', event.id);
   
-  // Extract basic info
-  const id = tagMap.get('d')?.[1] || 'unknown';
-  const title = tagMap.get('title')?.[1] || 'Untitled Workout';
-  const type = tagMap.get('type')?.[1] || 'unknown';
-  const startTime = parseInt(tagMap.get('start')?.[1] || '0');
-  const endTime = parseInt(tagMap.get('end')?.[1] || '0');
-  const completed = tagMap.get('completed')?.[1] === 'true';
+  // Convert WorkoutEvent to NDKEvent-like structure for DataParsingService
+  const ndkEventLike = {
+    id: event.id || 'unknown',
+    kind: event.kind,
+    content: event.content,
+    tags: event.tags,
+    created_at: event.created_at,
+    pubkey: event.pubkey
+  };
   
-  // Extract exercises
-  const exerciseTags = event.tags.filter((tag: string[]) => tag[0] === 'exercise');
-  const exercises = exerciseTags.map((tag: string[]) => ({
-    reference: tag[1],
-    weight: tag[3] || '0',
-    reps: tag[4] || '0',
-    rpe: tag[5] || '0',
-    setType: tag[6] || 'normal',
+  // Use DataParsingService for consistent parsing
+  const parsed = dataParsingService.parseWorkoutEvent(ndkEventLike as NDKEvent);
+  if (!parsed) {
+    console.warn('[workout-events] Failed to parse workout event, using fallback:', event.id);
+    
+    // Fallback parsing for test utilities
+    const tagMap = new Map(event.tags.map((tag: string[]) => [tag[0], tag]));
+    
+    return {
+      id: tagMap.get('d')?.[1] || 'unknown',
+      title: tagMap.get('title')?.[1] || 'Untitled Workout',
+      type: tagMap.get('type')?.[1] || 'unknown',
+      startTime: parseInt(tagMap.get('start')?.[1] || '0'),
+      endTime: parseInt(tagMap.get('end')?.[1] || '0'),
+      duration: parseInt(tagMap.get('end')?.[1] || '0') - parseInt(tagMap.get('start')?.[1] || '0'),
+      completed: tagMap.get('completed')?.[1] === 'true',
+      exercises: event.tags.filter((tag: string[]) => tag[0] === 'exercise').map((tag: string[]) => ({
+        reference: tag[1],
+        weight: tag[3] || '0',
+        reps: tag[4] || '0',
+        rpe: tag[5] || '0',
+        setType: tag[6] || 'normal',
+      })),
+      content: event.content,
+      eventId: event.id,
+      pubkey: event.pubkey,
+    };
+  }
+  
+  // Convert DataParsingService result to workout-events format
+  const exercises = parsed.exercises.map(exercise => ({
+    reference: exercise.exerciseRef,
+    weight: exercise.weight.toString(),
+    reps: exercise.reps.toString(),
+    rpe: exercise.rpe?.toString() || '0',
+    setType: exercise.setType,
   }));
   
-  // Calculate duration
-  const duration = endTime - startTime;
-  
   return {
-    id,
-    title,
-    type,
-    startTime,
-    endTime,
-    duration,
-    completed,
+    id: parsed.id,
+    title: parsed.title,
+    type: parsed.workoutType,
+    startTime: Math.floor(parsed.startTime / 1000), // Convert ms to seconds
+    endTime: Math.floor(parsed.endTime / 1000), // Convert ms to seconds
+    duration: Math.floor(parsed.duration / 1000), // Convert ms to seconds
+    completed: parsed.completed,
     exercises,
-    content: event.content,
-    eventId: event.id,
-    pubkey: event.pubkey,
+    content: parsed.description,
+    eventId: parsed.eventId,
+    pubkey: parsed.authorPubkey,
   };
 }
 
@@ -604,69 +574,54 @@ export function generateCollection(userPubkey: string, collectionData: {
 }
 
 /**
- * Generate exercise library collection
+ * Validate NIP-101e workout event format
+ * ✅ UPDATED: Now uses DataParsingService for consistent validation
  */
-export function generateExerciseLibraryCollection(userPubkey: string) {
-  const exerciseIds = [
-    'pushup-standard', 'pike-pushup', 'tricep-dips', 'wall-handstand',
-    'pullups', 'chinups', 'inverted-rows', 'door-pulls',
-    'bodyweight-squats', 'lunges', 'single-leg-squats', 'calf-raises'
-  ];
-
-  return generateCollection(userPubkey, {
-    id: 'exercise-library',
-    name: 'POWR Test Exercise Library',
-    description: 'Complete bodyweight exercise library for strength training',
-    contentRefs: exerciseIds.map(id => ({
-      kind: 33401,
-      pubkey: userPubkey,
-      dTag: id
-    }))
-  });
+export function validateWorkoutEvent(event: WorkoutEvent): ValidationResult {
+  console.log('[workout-events] Validating workout event via DataParsingService:', event.id);
+  
+  // Convert WorkoutEvent to NDKEvent-like structure for DataParsingService
+  const ndkEventLike = {
+    id: event.id || 'unknown',
+    kind: event.kind,
+    content: event.content,
+    tags: event.tags,
+    created_at: event.created_at,
+    pubkey: event.pubkey
+  };
+  
+  // Use DataParsingService for consistent validation
+  const validation = dataParsingService.validateNIP101eEvent(ndkEventLike as NDKEvent);
+  
+  return { 
+    valid: validation.isValid, 
+    error: validation.errors.length > 0 ? validation.errors.join('; ') : undefined 
+  };
 }
-
-/**
- * Generate workout collection
- */
-export function generateWorkoutCollection(userPubkey: string) {
-  return generateCollection(userPubkey, {
-    id: 'strength-bodyweight',
-    name: 'POWR Test Strength Bodyweight Collection',
-    description: 'Complete bodyweight strength training workouts',
-    contentRefs: [
-      { kind: 33402, pubkey: userPubkey, dTag: 'push-workout-bodyweight' },
-      { kind: 33402, pubkey: userPubkey, dTag: 'pull-workout-bodyweight' },
-      { kind: 33402, pubkey: userPubkey, dTag: 'legs-workout-bodyweight' }
-    ]
-  });
-}
-
-// ===== VALIDATION FUNCTIONS =====
-
 /**
  * Validate exercise template event
+ * ✅ UPDATED: Now uses DataParsingService for consistent validation
  */
 export function validateExerciseEvent(event: WorkoutEvent): ValidationResult {
-  const errors: string[] = [];
+  console.log('[workout-events] Validating exercise event via DataParsingService:', event.id);
   
-  if (event.kind !== WORKOUT_EVENT_KINDS.EXERCISE_TEMPLATE) {
-    errors.push('Invalid kind for exercise template (must be 33401)');
-  }
+  // Convert WorkoutEvent to NDKEvent-like structure for DataParsingService
+  const ndkEventLike = {
+    id: event.id || 'unknown',
+    kind: event.kind,
+    content: event.content,
+    tags: event.tags,
+    created_at: event.created_at,
+    pubkey: event.pubkey
+  };
   
-  if (!event.content || typeof event.content !== 'string') {
-    errors.push('Missing exercise instructions in content');
-  }
+  // Use DataParsingService for consistent validation
+  const validation = dataParsingService.validateExerciseTemplate(ndkEventLike as NDKEvent);
   
-  const tagMap = new Map(event.tags.map((tag: string[]) => [tag[0], tag]));
-  
-  const requiredTags = ['d', 'title', 'equipment', 'difficulty'];
-  for (const requiredTag of requiredTags) {
-    if (!tagMap.has(requiredTag)) {
-      errors.push(`Missing required tag: ${requiredTag}`);
-    }
-  }
-  
-  return { valid: errors.length === 0, errors };
+  return { 
+    valid: validation.isValid, 
+    error: validation.errors.length > 0 ? validation.errors.join('; ') : undefined 
+  };
 }
 
 /**
@@ -695,7 +650,10 @@ export function validateWorkoutTemplateEvent(event: WorkoutEvent): ValidationRes
     }
   }
   
-  return { valid: errors.length === 0, errors };
+  return { 
+    valid: errors.length === 0, 
+    error: errors.length > 0 ? errors.join('; ') : undefined 
+  };
 }
 
 /**
@@ -724,37 +682,34 @@ export function validateCollectionEvent(event: WorkoutEvent): ValidationResult {
     }
   }
   
-  return { valid: errors.length === 0, errors };
+  return { 
+    valid: errors.length === 0, 
+    error: errors.length > 0 ? errors.join('; ') : undefined 
+  };
 }
 
 /**
  * Universal event validator
+ * ✅ UPDATED: Now uses DataParsingService for consistent validation
  */
 export function validateEvent(event: WorkoutEvent): ValidationResult {
-  // Basic validation
-  if (!event.pubkey || typeof event.pubkey !== 'string') {
-    return { valid: false, errors: ['Missing or invalid pubkey'] };
-  }
+  console.log('[workout-events] Validating event via DataParsingService:', event.id, 'kind:', event.kind);
   
-  if (!event.created_at || typeof event.created_at !== 'number') {
-    return { valid: false, errors: ['Missing or invalid created_at timestamp'] };
-  }
+  // Convert WorkoutEvent to NDKEvent-like structure for DataParsingService
+  const ndkEventLike = {
+    id: event.id || 'unknown',
+    kind: event.kind,
+    content: event.content,
+    tags: event.tags,
+    created_at: event.created_at,
+    pubkey: event.pubkey
+  };
   
-  if (!Array.isArray(event.tags)) {
-    return { valid: false, errors: ['Missing or invalid tags array'] };
-  }
+  // Use DataParsingService for consistent validation
+  const validation = dataParsingService.validateNIP101eEvent(ndkEventLike as NDKEvent);
   
-  // Kind-specific validation
-  switch (event.kind) {
-    case WORKOUT_EVENT_KINDS.EXERCISE_TEMPLATE:
-      return validateExerciseEvent(event);
-    case WORKOUT_EVENT_KINDS.WORKOUT_TEMPLATE:
-      return validateWorkoutTemplateEvent(event);
-    case WORKOUT_EVENT_KINDS.WORKOUT_RECORD:
-      return validateWorkoutEvent(event);
-    case 30003:
-      return validateCollectionEvent(event);
-    default:
-      return { valid: false, errors: [`Unknown event kind: ${event.kind}`] };
-  }
+  return { 
+    valid: validation.isValid, 
+    error: validation.errors.length > 0 ? validation.errors.join('; ') : undefined 
+  };
 }

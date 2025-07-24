@@ -3,9 +3,10 @@
 import React from 'react';
 import { WorkoutListManager } from '@/components/test/WorkoutListManager';
 import { GlobalWorkoutStatePersistenceValidationTest } from '@/components/test/GlobalWorkoutStatePersistenceValidationTest';
+import DataParsingServiceTest from '@/components/test/DataParsingServiceTest';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { TestTube, Target, List } from 'lucide-react';
+import { TestTube, Target, List, Database } from 'lucide-react';
 
 /**
  * Test Tab - Essential Testing
@@ -80,6 +81,24 @@ export default function TestTab() {
             </CardHeader>
             <CardContent>
               <GlobalWorkoutStatePersistenceValidationTest />
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* 🔧 SERVICE: Data Parsing Service Test */}
+        <div className="w-full">
+          <Card className="border-purple-200 bg-purple-50">
+            <CardHeader>
+              <CardTitle className="text-purple-800 flex items-center gap-2">
+                <Database className="h-5 w-5" />
+                🔧 SERVICE: Data Parsing Service Test
+              </CardTitle>
+              <CardDescription className="text-purple-700">
+                Test the centralized DataParsingService for all workout data parsing operations.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <DataParsingServiceTest />
             </CardContent>
           </Card>
         </div>

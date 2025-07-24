@@ -59,14 +59,22 @@ export const SetRow: React.FC<SetRowProps> = ({
     defaultData?.rpe?.toString() || previousSetData?.rpe?.toString() || '7'
   );
 
-  // Update inputs when defaultData changes (from machine context)
+  // Track if user has modified values to prevent overriding their input
+  const [lastInitializedSetNumber, setLastInitializedSetNumber] = useState(setNumber);
+
+  // Only update inputs when switching to a different set, not when user is actively editing
   useEffect(() => {
-    if (defaultData && !isCompleted) {
-      setWeight(defaultData.weight?.toString() || '');
-      setReps(defaultData.reps?.toString() || '');
-      setRpe(defaultData.rpe?.toString() || '7');
+    // Only initialize values if:
+    // 1. We're switching to a different set number (user navigated to different set)
+    // 2. The set is not completed (completed sets have their own editing logic)
+    if (setNumber !== lastInitializedSetNumber && !isCompleted) {
+      // Reset for new set
+      setWeight(defaultData?.weight?.toString() || previousSetData?.weight?.toString() || '');
+      setReps(defaultData?.reps?.toString() || previousSetData?.reps?.toString() || '');
+      setRpe(defaultData?.rpe?.toString() || previousSetData?.rpe?.toString() || '7');
+      setLastInitializedSetNumber(setNumber);
     }
-  }, [defaultData, isCompleted]);
+  }, [setNumber, lastInitializedSetNumber, defaultData, previousSetData, isCompleted]);
 
   // NEW: Flexible set interaction handlers
   const handleComplete = () => {

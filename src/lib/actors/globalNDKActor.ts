@@ -7,7 +7,7 @@
  */
 
 import { getNDKInstance } from '@/lib/ndk';
-import { validateEvent, type WorkoutEvent } from '@/lib/workout-events';
+import { type WorkoutEventData } from '@/lib/services/workoutAnalytics';
 import { NDKEvent } from '@nostr-dev-kit/ndk';
 
 // NDK Event Monitoring - Phase 1: Analysis
@@ -109,7 +109,7 @@ export interface NDKConnectionStatus {
  * - Optimistic publishing for real-time updates (progress tracking)
  */
 export const publishEvent = async (
-  eventData: WorkoutEvent, 
+  eventData: WorkoutEventData, 
   requestId: string, 
   options: PublishOptions = {}
 ): Promise<PublishResult> => {
@@ -120,14 +120,13 @@ export const publishEvent = async (
       optimistic: options.optimistic 
     });
     
-    // Validate event format using universal validator (WorkoutPublisher pattern)
-    const validation = validateEvent(eventData);
-    if (!validation.valid) {
-      console.error('[GlobalNDKActor] Validation failed:', validation.errors);
+    // Basic validation - event structure should be validated by the service layer
+    if (!eventData.kind || !eventData.pubkey || !eventData.created_at || !Array.isArray(eventData.tags)) {
+      console.error('[GlobalNDKActor] Invalid event structure');
       return {
         success: false,
-        error: 'Event validation failed',
-        validationErrors: validation.errors,
+        error: 'Invalid event structure',
+        validationErrors: ['Missing required event fields'],
         requestId
       };
     }
