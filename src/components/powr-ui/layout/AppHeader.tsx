@@ -13,6 +13,7 @@ import {
   SheetTrigger 
 } from '../primitives/Sheet';
 import { useAccount } from '@/lib/auth/hooks';
+import { useProfile, getDisplayName, getAvatarUrl } from '@/hooks/useProfile';
 
 interface AppHeaderProps {
   title?: string;
@@ -24,7 +25,16 @@ export function AppHeader({
   const { theme, setTheme } = useTheme();
   const account = useAccount();
   
-  const userInitials = account?.npub
+  // Get user profile data using NDK
+  const { profile } = useProfile(account?.pubkey);
+  
+  // Get display name and avatar using our helper functions
+  const displayName = getDisplayName(profile, account?.pubkey);
+  const avatarUrl = getAvatarUrl(profile, account?.pubkey);
+  
+  const userInitials = displayName
+    ? displayName.slice(0, 2).toUpperCase()
+    : account?.npub
     ? account.npub.slice(4, 6).toUpperCase()
     : "?";
 
@@ -39,7 +49,7 @@ export function AppHeader({
       <Sheet>
         <SheetTrigger asChild>
           <Avatar className="h-10 w-10 ring-2 ring-[color:var(--workout-primary)] cursor-pointer hover:ring-[color:var(--workout-active)] transition-colors">
-            <AvatarImage src={undefined} alt="User" />
+            <AvatarImage src={avatarUrl} alt={displayName} />
             <AvatarFallback className="bg-[color:var(--workout-primary)] text-white text-sm font-medium">
               {userInitials}
             </AvatarFallback>
@@ -55,17 +65,17 @@ export function AppHeader({
             <div className="p-4 rounded-lg bg-[color:var(--workout-surface)]">
               <div className="flex items-center gap-3 mb-3">
                 <Avatar className="h-12 w-12">
-                  <AvatarImage src={undefined} alt="User" />
+                  <AvatarImage src={avatarUrl} alt={displayName} />
                   <AvatarFallback className="bg-[color:var(--workout-primary)] text-white">
                     {userInitials}
                   </AvatarFallback>
                 </Avatar>
                 <div className="min-w-0 flex-1">
                   <p className="font-medium text-[color:var(--workout-text)] text-sm">
-                    {account?.npub ? formatNpub(account.npub) : "Not signed in"}
+                    {displayName}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {account ? "Nostr Account" : "Authentication required"}
+                    {account?.npub ? formatNpub(account.npub) : "Not signed in"}
                   </p>
                 </div>
               </div>

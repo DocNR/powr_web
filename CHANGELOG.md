@@ -30,6 +30,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **NDK Profile Integration for User Avatars and Display Names COMPLETE (July 25, 2025) ✅**
+  
+  **User Impact**: Users now see their actual Nostr profile pictures and display names in the top left header and settings drawer instead of generic initials. Profile pictures automatically load from the Nostr network with Robohash fallbacks for users without profile images. Display names replace truncated npubs for better user experience and personal connection to the app.
+  
+  **Developer Notes**: Implemented useProfile hook using official NDK useProfile from @nostr-dev-kit/ndk-react with helper functions getDisplayName() and getAvatarUrl(). Enhanced AppHeader component to display real profile data in both header avatar and settings drawer. Uses Robohash.org for consistent fallback avatars when no profile picture is set. Seamless integration with existing authentication system requiring zero additional setup.
+  
+  **Architecture Changes**: Demonstrated power of NDK-first architecture where complex features like profile integration become trivial. Official NDK hooks handle all complexity including caching, network requests, and reactive updates. Foundation established for social features and cross-device profile synchronization through Nostr network.
+
 - **Active Workout Machine Service Refactoring COMPLETE (July 24, 2025) ✅**
   
   **User Impact**: Workout experience remains identical while underlying architecture becomes significantly more maintainable and performant. All existing functionality preserved including set tracking, exercise navigation, pause/resume, and workout completion with real Nostr publishing.
