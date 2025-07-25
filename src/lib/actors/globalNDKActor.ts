@@ -7,7 +7,7 @@
  */
 
 import { getNDKInstance } from '@/lib/ndk';
-import { type WorkoutEventData } from '@/lib/services/workoutAnalytics';
+import { type WorkoutEventData } from '@/lib/services/workoutEventGeneration';
 import { NDKEvent } from '@nostr-dev-kit/ndk';
 
 // NDK Event Monitoring - Phase 1: Analysis

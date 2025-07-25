@@ -7,7 +7,8 @@
 
 import { fromPromise } from 'xstate';
 import { publishEvent } from '@/lib/actors/globalNDKActor';
-import { workoutAnalyticsService, type CompletedWorkout } from '@/lib/services/workoutAnalytics';
+import { workoutValidationService } from '@/lib/services/workoutValidation';
+import { workoutEventGenerationService, type CompletedWorkout } from '@/lib/services/workoutEventGeneration';
 
 export interface PublishWorkoutInput {
   workoutData: CompletedWorkout;
@@ -38,15 +39,15 @@ export const publishWorkoutActor = fromPromise(async ({ input }: {
   
   try {
     // Validate workout data using service
-    const validation = workoutAnalyticsService.validateWorkoutData(input.workoutData);
+    const validation = workoutValidationService.validateWorkoutData(input.workoutData);
     if (!validation.valid) {
       const errorMessage = `Workout validation failed: ${validation.error || 'Unknown validation error'}`;
       console.error('[PublishWorkoutActor] Validation failed:', validation.error);
       throw new Error(errorMessage);
     }
     
-    // Generate NIP-101e event using service
-    const eventData = workoutAnalyticsService.generateNIP101eEvent(
+    // Generate workout record event using service
+    const eventData = workoutEventGenerationService.generateWorkoutRecord(
       input.workoutData,
       input.userPubkey
     );
