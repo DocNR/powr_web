@@ -30,6 +30,8 @@ import type {
   ErrorInfo 
 } from './types/workoutTypes';
 import type { LoadTemplateOutput, WorkoutTemplate } from './actors/loadTemplateActor';
+import { dataParsingService } from '@/lib/services/dataParsingService';
+import { workoutTimingService } from '@/lib/services/workoutTiming';
 
 /**
  * Helper function to create error info
@@ -67,60 +69,30 @@ export const activeWorkoutMachine = setup({
   
   // Inline actors following XState v5 patterns
   actors: {
-    // Load template data with fallback strategy (like Noga's loadCourseData)
+    // Load template data using DataParsingService (clean service integration)
     loadTemplateData: fromPromise<WorkoutTemplate, { templateReference: string }>(async ({ input }) => {
-      // Get the raw template reference from input
-      const rawTemplateReference = input.templateReference;
+      const templateReference = input.templateReference;
       
       try {
-        console.log('[ActiveWorkoutMachine] 🔍 DEBUG: Raw input templateReference:', rawTemplateReference);
-        console.log('[ActiveWorkoutMachine] 🔍 DEBUG: templateReference type:', typeof rawTemplateReference);
-        console.log('[ActiveWorkoutMachine] 🔍 DEBUG: templateReference length:', rawTemplateReference?.length);
+        console.log('[ActiveWorkoutMachine] 🔍 Loading template via DataParsingService:', templateReference);
         
-        // Use the raw template reference directly since corruption is fixed at source
-        const templateReference = rawTemplateReference;
-        console.log('[ActiveWorkoutMachine] ✅ Using template reference directly (corruption fixed at source):', templateReference);
-        
-        // Basic validation after normalization
-        if (!templateReference || templateReference.trim() === '') {
-          throw new Error('Template reference is empty or undefined after normalization');
+        // Validate template reference using DataParsingService
+        const refValidation = dataParsingService.parseTemplateReference(templateReference);
+        if (!refValidation.isValid) {
+          throw new Error(`Invalid template reference: ${refValidation.error}`);
         }
         
-        // Check for corruption pattern and FAIL if normalization didn't fix it
-        const parts = templateReference.split(':');
-        if (parts.length !== 3) {
-          console.error('[ActiveWorkoutMachine] ❌ CORRUPTION DETECTED AFTER NORMALIZATION:', {
-            originalReference: rawTemplateReference,
-            normalizedReference: templateReference,
-            parts,
-            partsLength: parts.length,
-            expectedFormat: 'kind:pubkey:d-tag'
-          });
-          throw new Error(`Template reference corruption detected: ${templateReference}. Expected format: kind:pubkey:d-tag but got ${parts.length} parts`);
-        }
-        
-        console.log('[ActiveWorkoutMachine] ✅ Template reference format is valid:', templateReference);
-        console.log('[ActiveWorkoutMachine] Loading template data for:', templateReference);
-        
-        // Import required modules
+        // Use existing loadTemplateActor but with cleaner error handling
         const { loadTemplateActor } = await import('./actors/loadTemplateActor');
         const { createActor } = await import('xstate');
         
-        // Check if we have a valid template reference
-        if (!templateReference || templateReference.trim() === '' || templateReference === 'default-template') {
-          console.error('[ActiveWorkoutMachine] ❌ No template selected - user must choose template');
-          throw new Error('No template selected. Please select a workout template to continue.');
-        }
-        
-        // Use the loadTemplateActor with the normalized template reference
         const templateResult = await new Promise<LoadTemplateOutput>((resolve, reject) => {
-          // Set timeout to prevent infinite hangs
           const timeoutId = setTimeout(() => {
             reject(new Error(`Template loading timeout after 10 seconds for: ${templateReference}`));
           }, 10000);
           
           const actor = createActor(loadTemplateActor, {
-            input: { templateReference: templateReference }
+            input: { templateReference }
           });
           
           actor.subscribe((snapshot) => {
@@ -137,7 +109,7 @@ export const activeWorkoutMachine = setup({
         });
         
         const loadedTemplate = templateResult.template;
-        console.log('[ActiveWorkoutMachine] ✅ Loaded template:', loadedTemplate.name, 'with', loadedTemplate.exercises.length, 'exercises');
+        console.log('[ActiveWorkoutMachine] ✅ Template loaded via service:', loadedTemplate.name, 'with', loadedTemplate.exercises.length, 'exercises');
         return loadedTemplate;
         
       } catch (error) {
@@ -150,16 +122,21 @@ export const activeWorkoutMachine = setup({
     // Track individual sets (like Noga's processPendingScores)
     trackCompletedSet: setTrackingActor,
     
-    // Rest timer (new for workout domain)
-    restTimer: fromPromise<void, { duration: number }>(async ({ input }) => {
-      const { duration } = input;
-      console.log(`[ActiveWorkoutMachine] Starting rest timer for ${duration}ms`);
+    // Rest timer using WorkoutTimingService
+    restTimer: fromPromise<void, { exerciseRef: string; rpe?: number; setType?: 'warmup' | 'normal' | 'drop' | 'failure' }>(async ({ input }) => {
+      const { exerciseRef, rpe, setType = 'normal' } = input;
+      
+      // Calculate optimal rest time using service
+      const restResult = workoutTimingService.getRestTime(exerciseRef, rpe, setType);
+      const restDurationMs = restResult.restTime * 1000; // Convert seconds to milliseconds
+      
+      console.log(`[ActiveWorkoutMachine] Starting rest timer for ${restDurationMs}ms (${exerciseRef}, RPE: ${rpe}, type: ${setType})`);
       
       return new Promise((resolve) => {
         setTimeout(() => {
           console.log('[ActiveWorkoutMachine] Rest period completed');
           resolve();
-        }, duration);
+        }, restDurationMs);
       });
     })
   }
@@ -516,7 +493,16 @@ export const activeWorkoutMachine = setup({
         restPeriod: {
           invoke: {
             src: 'restTimer',
-            input: { duration: 60000 }, // 1 minute rest
+            input: ({ context }) => {
+              const currentExercise = context.workoutData.template?.exercises?.[context.exerciseProgression.currentExerciseIndex];
+              const lastCompletedSet = context.workoutData.completedSets[context.workoutData.completedSets.length - 1];
+              
+              return {
+                exerciseRef: currentExercise?.exerciseRef || 'unknown',
+                rpe: lastCompletedSet?.rpe,
+                setType: lastCompletedSet?.setType || 'normal'
+              };
+            },
             onDone: {
               target: 'performingSet'
             }

@@ -30,6 +30,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Active Workout Machine Service Refactoring COMPLETE (July 24, 2025) ✅**
+  
+  **User Impact**: Workout experience remains identical while underlying architecture becomes significantly more maintainable and performant. All existing functionality preserved including set tracking, exercise navigation, pause/resume, and workout completion with real Nostr publishing.
+  
+  **Developer Notes**: Completed major architectural refactoring extracting 680+ lines of scattered parsing logic into centralized DataParsingService. Created WorkoutTimingService for timing calculations. Reduced activeWorkoutMachine complexity from 800+ to ~400 lines while maintaining all functionality. Implemented clean service + actor publishing pattern (WorkoutAnalyticsService → Global NDK Actor). Added LRU caching and batch operations for performance optimization. Preserved critical per-exercise set counters for NIP-101e compliance and superset support.
+  
+  **Architecture Changes**: Established service-first architecture patterns ready for future feature development. DataParsingService consolidates all event parsing with comprehensive validation and caching. Clean separation between state coordination (machines) and business logic (services). Validates NDK-first architecture for golf app migration. Foundation ready for rapid development of History Tab and Workout Library features.
+
 ### Fixed
 - **Workout Template Set Count Parsing Fix COMPLETE (July 24, 2025) ✅**
   
