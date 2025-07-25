@@ -29,7 +29,7 @@ import { defaultActiveWorkoutContext } from './types/activeWorkoutTypes';
 import type { 
   ErrorInfo 
 } from './types/workoutTypes';
-import type { LoadTemplateOutput, WorkoutTemplate } from './actors/loadTemplateActor';
+import type { WorkoutTemplate } from './actors/loadTemplateActor';
 import { dataParsingService } from '@/lib/services/dataParsingService';
 import { workoutTimingService } from '@/lib/services/workoutTiming';
 
@@ -69,12 +69,12 @@ export const activeWorkoutMachine = setup({
   
   // Inline actors following XState v5 patterns
   actors: {
-    // Load template data using DataParsingService (clean service integration)
+    // Load template data using DependencyResolutionService directly (simplified)
     loadTemplateData: fromPromise<WorkoutTemplate, { templateReference: string }>(async ({ input }) => {
       const templateReference = input.templateReference;
       
       try {
-        console.log('[ActiveWorkoutMachine] 🔍 Loading template via DataParsingService:', templateReference);
+        console.log('[ActiveWorkoutMachine] 🔍 Loading template via DependencyResolutionService:', templateReference);
         
         // Validate template reference using DataParsingService
         const refValidation = dataParsingService.parseTemplateReference(templateReference);
@@ -82,31 +82,9 @@ export const activeWorkoutMachine = setup({
           throw new Error(`Invalid template reference: ${refValidation.error}`);
         }
         
-        // Use existing loadTemplateActor but with cleaner error handling
-        const { loadTemplateActor } = await import('./actors/loadTemplateActor');
-        const { createActor } = await import('xstate');
-        
-        const templateResult = await new Promise<LoadTemplateOutput>((resolve, reject) => {
-          const timeoutId = setTimeout(() => {
-            reject(new Error(`Template loading timeout after 10 seconds for: ${templateReference}`));
-          }, 10000);
-          
-          const actor = createActor(loadTemplateActor, {
-            input: { templateReference }
-          });
-          
-          actor.subscribe((snapshot) => {
-            if (snapshot.status === 'done') {
-              clearTimeout(timeoutId);
-              resolve(snapshot.output);
-            } else if (snapshot.status === 'error') {
-              clearTimeout(timeoutId);
-              reject(snapshot.error);
-            }
-          });
-          
-          actor.start();
-        });
+        // Use DependencyResolutionService directly (no dynamic imports needed)
+        const { dependencyResolutionService } = await import('@/lib/services/dependencyResolution');
+        const templateResult = await dependencyResolutionService.resolveSingleTemplate(templateReference);
         
         const loadedTemplate = templateResult.template;
         console.log('[ActiveWorkoutMachine] ✅ Template loaded via service:', loadedTemplate.name, 'with', loadedTemplate.exercises.length, 'exercises');
