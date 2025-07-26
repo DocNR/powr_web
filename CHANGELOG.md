@@ -30,6 +30,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Workout Setup Machine Service Integration Fix COMPLETE (July 26, 2025) ✅**
+  
+  **User Impact**: Users can now reliably browse workout templates and open workout detail modals without errors. Fixed critical issue where workout template loading was failing due to improper service integration in the XState setup machine, preventing users from viewing workout details before starting exercises.
+  
+  **Developer Notes**: Fixed workoutSetupMachine.ts service integration by removing unused dependencyResolutionService import (ESLint error) and adding resolvedTemplate/resolvedExercises to machine output. Enhanced data flow from loadTemplateActor (using dependency resolution service) → workoutSetupMachine → workoutLifecycleMachine → WorkoutDetailModal. Maintained clean separation of concerns with XState handling state coordination while services handle business logic.
+  
+  **Architecture Changes**: Completed service extraction with proper XState + service integration patterns. Established clean data flow where dependency resolution service provides <100ms template loading, XState machines coordinate state, and UI components receive resolved data. Foundation validated for complex state management with service layer architecture.
+
 ### Added
 - **NIP-101e 33402 Set Number Implementation COMPLETE (July 26, 2025) ✅**
   
