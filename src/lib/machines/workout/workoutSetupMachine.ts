@@ -72,17 +72,20 @@ export const loadTemplatesActor = fromPromise(async ({ input }: {
       : undefined;
     const estimatedDuration = tagMap.get('duration')?.[1] ? parseInt(tagMap.get('duration')![1]) : undefined;
     
-    // Extract exercise references with CORRECT NIP-101e indexing
+    // Extract exercise references with NEW 5-parameter format including set_number
     const exerciseTags = event.tags.filter(tag => tag[0] === 'exercise');
     const exercises = exerciseTags.map(tag => {
-      // Correct NIP-101e format: ["exercise", "exerciseRef", "relay-url", "weight", "reps", "rpe", "set_type"]
-      const [, exerciseRef, , weight, reps] = tag;
+      // NEW NIP-101e format: ["exercise", "exerciseRef", "relay-url", "weight", "reps", "rpe", "set_type", "set_number"]
+      const [, exerciseRef, , weight, reps, rpe, setType, setNumber] = tag;
       
       return {
         exerciseRef,
-        sets: 3, // Default sets - templates don't specify sets, this is determined during workout
+        sets: 1, // Each exercise tag represents one set now (with set_number)
         reps: parseInt(reps) || 10,
         weight: weight ? parseInt(weight) : undefined,
+        rpe: rpe ? parseFloat(rpe) : undefined,
+        setType: setType || 'normal',
+        setNumber: setNumber ? parseInt(setNumber) : 1,
         restTime: 60
       };
     });

@@ -340,12 +340,10 @@ export const WorkoutCard = memo(function WorkoutCard({
             <div className="flex items-center gap-3 text-sm text-muted-foreground mb-2">
               <span>{exerciseCount} exercises</span>
               <span>•</span>
-                <span>{/* Calculate total sets */}
-                {workout.exercises.reduce((total, ex) => {
-                  const setCount = Array.isArray(ex.sets) ? ex.sets.length : (ex.sets || 0);
-                  return total + setCount;
-                }, 0)} sets
-              </span>
+              <span>{workout.exercises.reduce((total, ex) => {
+                const setCount = Array.isArray(ex.sets) ? ex.sets.length : (ex.sets || 0);
+                return total + setCount;
+              }, 0)} sets</span>
               <span>•</span>
               <span>{duration} min</span>
             </div>
@@ -406,16 +404,25 @@ export const WorkoutCard = memo(function WorkoutCard({
 
           {showStats && (
             <div className="flex justify-between text-sm text-gray-600 mb-3">
-              <span>{exerciseCount} exercises</span>
-              <span>{duration}m</span>
-              {isTemplate && (
-                <span className={cn(
-                  "px-2 py-1 rounded text-xs font-medium",
-                  getDifficultyColor(workout.difficulty)
-                )}>
-                  {workout.difficulty || 'intermediate'}
-                </span>
-              )}
+              <div className="flex items-center gap-2">
+                <span>{exerciseCount} exercises</span>
+                <span>•</span>
+                <span>{workout.exercises.reduce((total, ex) => {
+                  const setCount = Array.isArray(ex.sets) ? ex.sets.length : (ex.sets || 0);
+                  return total + setCount;
+                }, 0)} sets</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span>{duration}m</span>
+                {isTemplate && (
+                  <span className={cn(
+                    "px-2 py-1 rounded text-xs font-medium",
+                    getDifficultyColor(workout.difficulty)
+                  )}>
+                    {workout.difficulty || 'intermediate'}
+                  </span>
+                )}
+              </div>
             </div>
           )}
 
@@ -484,9 +491,12 @@ export const WorkoutCard = memo(function WorkoutCard({
                 <div className="flex items-center gap-3 text-sm text-gray-600 mb-1">
                   <span>{exerciseCount} exercises</span>
                   <span>•</span>
-                  <span>{duration} min</span>
+                  <span>{workout.exercises.reduce((total, ex) => {
+                    const setCount = Array.isArray(ex.sets) ? ex.sets.length : (ex.sets || 0);
+                    return total + setCount;
+                  }, 0)} sets</span>
                   <span>•</span>
-                  <span>{Math.round(duration * 8)} cal</span>
+                  <span>{duration} min</span>
                 </div>
               )}
 
@@ -571,6 +581,11 @@ export const WorkoutCard = memo(function WorkoutCard({
               {showStats && (
                 <div className="flex items-center gap-2 text-xs text-gray-500">
                   <span>{exerciseCount} exercises</span>
+                  <span>•</span>
+                  <span>{workout.exercises.reduce((total, ex) => {
+                    const setCount = Array.isArray(ex.sets) ? ex.sets.length : (ex.sets || 0);
+                    return total + setCount;
+                  }, 0)} sets</span>
                   <span>•</span>
                   <span>{duration}m</span>
                   {isTemplate && (
@@ -660,7 +675,10 @@ export const WorkoutCard = memo(function WorkoutCard({
                     {workout.title}
                   </h3>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    {exerciseCount} exercises • {formatDuration(duration)}
+                    {exerciseCount} exercises • {workout.exercises.reduce((total, ex) => {
+                      const setCount = Array.isArray(ex.sets) ? ex.sets.length : (ex.sets || 0);
+                      return total + setCount;
+                    }, 0)} sets • {formatDuration(duration)}
                   </p>
                 </div>
 

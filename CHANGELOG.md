@@ -30,6 +30,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **NIP-101e 33402 Set Number Implementation COMPLETE (July 26, 2025) ✅**
+  
+  **User Impact**: Workout templates now preserve all exercise sets without data loss. Users can create and use templates with multiple identical sets (e.g., "3 sets of 10 push-ups") and all sets are maintained correctly. Enables complex training methodologies like supersets, circuit training, and progressive overload with complete data integrity.
+  
+  **Developer Notes**: Implemented set_number as 5th parameter in 33402 workout template exercise tags to prevent NDK deduplication. Updated workoutEventGeneration.ts to generate 5-parameter format, enhanced dataParsingService.ts to parse both 4 and 5 parameter formats for backward compatibility, and updated all UI components to handle new parameter structure. NDK Deduplication Test validates fix with 100% success rate.
+  
+  **Architecture Changes**: Established backward-compatible NIP-101e extension that prevents unintended deduplication while preserving intended deduplication behavior. Consistent 5-parameter format across both 33402 templates and 1301 records. Foundation ready for advanced workout analytics and set-by-set performance tracking.
+
 ### Fixed
 - **Workout Publishing Authentication Fix COMPLETE (July 26, 2025) ✅**
   
