@@ -4,6 +4,8 @@ import React from 'react';
 import { WorkoutListManager } from '@/components/test/WorkoutListManager';
 import { GlobalWorkoutStatePersistenceValidationTest } from '@/components/test/GlobalWorkoutStatePersistenceValidationTest';
 import DataParsingServiceTest from '@/components/test/DataParsingServiceTest';
+import WorkoutDetailModalDataTest from '@/components/test/WorkoutDetailModalDataTest';
+import NDKDeduplicationTest from '@/components/test/NDKDeduplicationTest';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { TestTube, Target, List, Database } from 'lucide-react';
@@ -99,6 +101,42 @@ export default function TestTab() {
             </CardHeader>
             <CardContent>
               <DataParsingServiceTest />
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* 🧪 MODAL: Workout Detail Modal Data Test */}
+        <div className="w-full">
+          <Card className="border-orange-200 bg-orange-50">
+            <CardHeader>
+              <CardTitle className="text-orange-800 flex items-center gap-2">
+                <TestTube className="h-5 w-5" />
+                🧪 MODAL: Workout Detail Modal Data Test
+              </CardTitle>
+              <CardDescription className="text-orange-700">
+                Test the WorkoutDetailModal with proper resolved template and exercise data to verify content and equipment display.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <WorkoutDetailModalDataTest />
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* 🔬 NDK: Deduplication Test */}
+        <div className="w-full">
+          <Card className="border-red-200 bg-red-50">
+            <CardHeader>
+              <CardTitle className="text-red-800 flex items-center gap-2">
+                <TestTube className="h-5 w-5" />
+                🔬 NDK: Deduplication Test
+              </CardTitle>
+              <CardDescription className="text-red-700">
+                Test whether NDK deduplicates identical exercise tags in 33402 workout templates vs 1301 workout records with set_number parameters.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <NDKDeduplicationTest />
             </CardContent>
           </Card>
         </div>
