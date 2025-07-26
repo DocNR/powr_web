@@ -14,15 +14,11 @@ import { getSubNavigation } from '@/config/subNavigation';
 import { WorkoutDataProvider } from '@/providers/WorkoutDataProvider';
 import { WorkoutUIProvider } from '@/providers/WorkoutUIProvider';
 import { WorkoutContext } from '@/contexts/WorkoutContext';
-import { usePubkey } from '@/lib/auth/hooks';
 
 export function AppLayout() {
   const isMobile = useMediaQuery('(max-width: 640px)');
   const { activeTab, setActiveTab } = useNavigation();
   const { getActiveSubTab, setActiveSubTab } = useSubNavigation();
-  
-  // Get user info for workout context
-  const userPubkey = usePubkey();
   
   const subNavItems = getSubNavigation(activeTab);
   const activeSubTab = getActiveSubTab(activeTab);
@@ -79,16 +75,7 @@ export function AppLayout() {
           } : {}}
         >
           <div className="flex-1">
-            <WorkoutContext.Provider 
-              options={{
-                input: {
-                  userInfo: {
-                    pubkey: userPubkey || '',
-                    displayName: userPubkey ? userPubkey.slice(0, 8) + '...' : 'Unknown User'
-                  }
-                }
-              }}
-            >
+            <WorkoutContext.Provider >
               <WorkoutDataProvider>
                 <WorkoutUIProvider>
                   <TabRouter />

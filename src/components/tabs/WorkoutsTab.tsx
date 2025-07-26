@@ -43,27 +43,8 @@ export default function WorkoutsTab() {
 
   // Machine state-based UI updates - modal state now derived from global state
   useEffect(() => {
-    console.log('🔄 Workout machine state changed:', workoutState.value);
-    
-    if (workoutState.matches('setup')) {
-      // Setup state - machine is resolving template, don't open modal yet
-      console.log('📋 Machine in setup state - waiting for template resolution...');
-      
-    } else if (workoutState.matches('setupComplete')) {
-      // Setup complete - template is resolved, modal will show resolved data
-      console.log('✅ Setup complete - template resolved:', workoutState.context.templateSelection);
-      
-    } else if (workoutState.matches('active')) {
-      // Active state - activeWorkoutMachine is running
-      console.log('🏃‍♂️ Machine in active state - workout is running');
-      
-    } else if (workoutState.matches('completed')) {
-      // Completed state - show completion UI or navigate back
-      console.log('✅ Machine in completed state - workout finished');
-    } else if (workoutState.matches('idle')) {
-      // Idle state - machine is ready for new workout
-      console.log('💤 Machine in idle state - ready for new workout');
-    }
+    // Handle machine state changes for UI updates
+    // Modal opens/closes based on machine state
   }, [workoutState]);
 
   // ✅ REMOVED: Aggressive cleanup on component unmount
@@ -125,31 +106,6 @@ export default function WorkoutsTab() {
       return; // Exit early, user can click again after reset
     }
 
-    // Only log in development mode to avoid production performance impact
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🏋️ Selected workout:', workoutId);
-      
-      // Log detailed event information for this specific workout
-      const eventData = rawEventData.get(workoutId);
-      if (eventData) {
-        console.group(`📊 Detailed Event Info: ${workoutId}`);
-        console.log('Event Type:', eventData.type);
-        console.log('Hex ID:', eventData.hexId);
-        
-        if (eventData.type === '1301_workout_record') {
-          console.log('Nevent:', eventData.nevent);
-        } else if (eventData.type === '33402_workout_template') {
-          console.log('Naddr:', eventData.naddr);
-        }
-        
-        console.log('Pubkey:', eventData.pubkey);
-        console.log('Created At:', new Date((eventData.created_at as number) * 1000).toLocaleString());
-        console.log('Tags:', eventData.tags);
-        console.groupEnd();
-      } else {
-        console.warn('No event data found for workout:', workoutId);
-      }
-    }
 
     // ✅ SIMPLIFIED: Use template reference directly from data structures
     let templateReference: string | undefined;
@@ -488,49 +444,56 @@ export default function WorkoutsTab() {
         )}
       </section>
 
-      {/* ✅ UPDATED: Real Nostr Integration Status */}
-      <div className="p-4 bg-blue-50 rounded border border-blue-200">
-        <h3 className="font-medium mb-2 text-blue-900">🌐 Template-Focused Social Feed</h3>
-        <div className="text-sm text-blue-700 space-y-1">
-          <p>✅ Phase 1: Calendar Bar - COMPLETE</p>
-          <p>✅ Phase 2: POWR WOD Hero Card - COMPLETE</p>
-          <p>✅ Phase 3: Social Feed Gallery with Beautiful Cards - COMPLETE</p>
-          <p>✅ Phase 4: Discovery Section - COMPLETE</p>
-          <p>✅ Phase 5: Mockup-Perfect Social Feed Design - COMPLETE</p>
-          <p>✅ Phase 6: Real Nostr Integration - COMPLETE</p>
-          <p>✅ Phase 7: Cached Data Provider - COMPLETE</p>
-          <p>✅ Phase 8: Real-Time Subscriptions & Infinite Scroll - COMPLETE</p>
-          <p>✅ Phase 9: Template-Focused Social Feed - COMPLETE</p>
-          <div className="mt-2 pt-2 border-t border-blue-200">
-            <p className="font-medium">Live Data Sources:</p>
-            <p>• Social Feed: Templates tried by your network ({socialWorkouts.length} loaded)</p>
-            <p>• Discovery: Available workout templates ({discoveryTemplates.length} loaded)</p>
-            <p>• Calendar: Workout completion indicators ({workoutIndicators.length} loaded)</p>
-            <p>• Real-Time: {isLoading ? '🔄 Loading...' : '📡 Live WebSocket subscriptions active'}</p>
-            <p>• Template Focus: {hasMoreWorkouts || hasMoreTemplates ? '📥 More templates available' : '✅ All templates loaded'}</p>
-          </div>
-        </div>
-      </div>
-
       {/* Workout Detail Modal */}
       <WorkoutDetailModal
-        isOpen={workoutState.matches('setupComplete')}
+        isOpen={workoutState.matches('setup') || workoutState.matches('setupComplete')}
         isLoading={workoutState.matches('setup')}
-        templateData={workoutState.context.workoutData ? {
-          title: workoutState.context.workoutData.title,
-          description: `Template: ${workoutState.context.templateSelection?.templateId || 'Unknown'}`,
-          content: JSON.stringify(workoutState.context.workoutData),
-          exercises: (workoutState.context.workoutData.exercises || []).map((exercise: { exerciseRef?: string; sets?: number; reps?: number }) => ({
-            name: exercise.exerciseRef?.split(':')[2]?.replace(/-/g, ' ') || 'Exercise',
-            sets: exercise.sets || 3,
-            reps: exercise.reps || 12,
-            description: `${exercise.sets || 3} sets of ${exercise.reps || 12} reps`
-          })),
-          equipment: ['Various'],
+        templateData={{
+          // ✅ IMPROVED UX: Better loading states with immediate feedback
+          title: (workoutState.context.resolvedTemplate as any)?.name || 
+                 (workoutState.context.workoutData as any)?.title || 
+                 (workoutState.matches('setup') ? 'Loading workout...' : 'Untitled Workout'),
+          description: (workoutState.context.resolvedTemplate as any)?.description || 
+                       (workoutState.matches('setup') ? 'Resolving workout details from Nostr network...' : 'Loading workout description...'),
+          content: (workoutState.context.resolvedTemplate as any)?.description || 
+                   (workoutState.matches('setup') ? 'Resolving workout details from Nostr network...' : 'Loading workout description...'),
+          
+          // ✅ CRITICAL FIX: Pass resolved data directly from machine context
+          resolvedTemplate: workoutState.context.resolvedTemplate as any,
+          resolvedExercises: workoutState.context.resolvedExercises as any,
+          
+          // Also pass as loadedTemplate/loadedExercises for backward compatibility
+          loadedTemplate: workoutState.context.resolvedTemplate as {
+            name: string;
+            description: string;
+            exercises: Array<{
+              exerciseRef: string;
+              sets?: number;
+              reps?: number;
+              weight?: number;
+            }>;
+          } | undefined,
+          loadedExercises: workoutState.context.resolvedExercises as Array<{
+            id: string;
+            name: string;
+            equipment: string;
+            description: string;
+            muscleGroups: string[];
+          }> | undefined,
+          
+          // ✅ DEBUG: Add debug logging to see what's actually in the context
+          ...(process.env.NODE_ENV === 'development' && {
+            _debugContext: workoutState.context,
+            _debugTemplateSelection: workoutState.context.templateSelection,
+            _debugResolvedTemplate: workoutState.context.resolvedTemplate,
+            _debugResolvedExercises: workoutState.context.resolvedExercises
+          }),
+          
+          // Additional metadata
           tags: [['t', 'fitness']],
           eventKind: 33402,
           templateRef: workoutState.context.templateSelection?.templateReference
-        } : undefined}
+        }}
         error={modalError}
         onClose={handleCloseModal}
         onStartWorkout={handleStartWorkout}

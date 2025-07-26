@@ -22,6 +22,66 @@ interface TemplateData {
   tags?: string[][];
   eventKind?: number;
   templateRef?: string;
+  // NEW: Support for ResolvedTemplate structure from dependency resolution service
+  template?: {
+    name: string;
+    description: string;
+    exercises: Array<{
+      exerciseRef: string;
+      sets?: number;
+      reps?: number;
+      weight?: number;
+    }>;
+  };
+  // This is the resolved exercises from dependency resolution service
+  resolvedExercises?: Array<{
+    id: string;
+    name: string;
+    equipment: string;
+    description: string;
+    muscleGroups: string[];
+  }>;
+  // NEW: Support for workout machine context data
+  workoutData?: {
+    title: string;
+    exercises: Array<{
+      name: string;
+      sets?: number;
+      reps?: number;
+      weight?: number;
+      description?: string;
+      exerciseRef?: string;
+    }>;
+  };
+  // NEW: Support for loaded template and exercises from setup machine
+  loadedTemplate?: {
+    name: string;
+    description: string;
+    exercises: Array<{
+      exerciseRef: string;
+      sets?: number;
+      reps?: number;
+      weight?: number;
+    }>;
+  };
+  loadedExercises?: Array<{
+    id: string;
+    name: string;
+    equipment: string;
+    description: string;
+    muscleGroups: string[];
+  }>;
+  // NEW: Direct resolved template and exercises access
+  resolvedTemplate?: {
+    name: string;
+    description: string;
+    exercises: Array<{
+      exerciseRef: string;
+      sets?: number;
+      reps?: number;
+      weight?: number;
+    }>;
+  };
 }
 
 interface WorkoutDetailModalProps {
@@ -107,11 +167,37 @@ export const WorkoutDetailModal = ({
     );
   }
 
-  // Extract data from existing template structure
-  const title = templateData.title || templateData.name || 'Untitled Workout';
-  const description = templateData.description || templateData.content || '';
-  const exercises = templateData.exercises || [];
-  const equipment = templateData.equipment || [];
+
+  // Extract data with priority: resolved template > machine context > fallback
+  const title = templateData.resolvedTemplate?.name || 
+                templateData.loadedTemplate?.name || 
+                templateData.workoutData?.title || 
+                templateData.template?.name || 
+                templateData.title || 
+                templateData.name || 
+                'Untitled Workout';
+                
+  const description = templateData.resolvedTemplate?.description || 
+                     templateData.loadedTemplate?.description || 
+                     templateData.template?.description || 
+                     templateData.description || 
+                     templateData.content || 
+                     '';
+  
+  // Use exercises from resolved exercises first, then machine context, then fallback
+  const exercises = templateData.resolvedExercises || 
+                   templateData.loadedExercises ||
+                   templateData.workoutData?.exercises || 
+                   templateData.exercises || 
+                   [];
+  
+  // Aggregate equipment from resolved exercises first, then loaded exercises
+  const equipment = templateData.resolvedExercises 
+    ? [...new Set(templateData.resolvedExercises.map(ex => ex.equipment).filter(Boolean))]
+    : templateData.loadedExercises 
+      ? [...new Set(templateData.loadedExercises.map(ex => ex.equipment).filter(Boolean))]
+      : templateData.equipment || [];
+
 
 
   return (
@@ -177,86 +263,94 @@ export const WorkoutDetailModal = ({
           </div>
 
           {/* Content Below Image - Tabs and Content */}
-          <div className="flex-1 bg-background p-6">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full h-full flex flex-col">
-              <TabsList className="grid w-full grid-cols-3 bg-transparent h-12 p-0 mb-6 border-b border-border">
-                <TabsTrigger 
-                  value="overview" 
-                  className="text-muted-foreground data-[state=active]:text-primary data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:border-b-offset-[-1px] rounded-none font-medium py-3 px-4 transition-colors hover:text-foreground"
-                >
-                  Overview
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="exercises"
-                  className="text-muted-foreground data-[state=active]:text-primary data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:border-b-offset-[-1px] rounded-none font-medium py-3 px-4 transition-colors hover:text-foreground"
-                >
-                  Exercises
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="equipment"
-                  className="text-muted-foreground data-[state=active]:text-primary data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:border-b-offset-[-1px] rounded-none font-medium py-3 px-4 transition-colors hover:text-foreground"
-                >
-                  Equipment
-                </TabsTrigger>
-              </TabsList>
+          <div className="flex-1 bg-background flex flex-col min-h-0">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
+              <div className="px-6 pt-6">
+                <TabsList className="grid w-full grid-cols-3 bg-transparent h-12 p-0 mb-6 border-b border-border">
+                  <TabsTrigger 
+                    value="overview" 
+                    className="text-muted-foreground data-[state=active]:text-primary data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:border-b-offset-[-1px] rounded-none font-medium py-3 px-4 transition-colors hover:text-foreground"
+                  >
+                    Overview
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="exercises"
+                    className="text-muted-foreground data-[state=active]:text-primary data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:border-b-offset-[-1px] rounded-none font-medium py-3 px-4 transition-colors hover:text-foreground"
+                  >
+                    Exercises
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="equipment"
+                    className="text-muted-foreground data-[state=active]:text-primary data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:border-b-offset-[-1px] rounded-none font-medium py-3 px-4 transition-colors hover:text-foreground"
+                  >
+                    Equipment
+                  </TabsTrigger>
+                </TabsList>
+              </div>
 
-              {/* Tab Content - Scrollable area */}
-              <div className="flex-1 overflow-hidden">
-                <div className="h-full overflow-y-auto">
-                  <TabsContent value="overview" className="mt-0 h-full">
-                    <div className="space-y-4 pb-6">
+              {/* Tab Content - Properly scrollable area */}
+              <div className="flex-1 overflow-y-auto px-6 pb-6">
+                <TabsContent value="overview" className="mt-0">
+                  <div className="space-y-4">
+                    {description ? (
                       <p className="text-foreground text-base leading-relaxed">
-                        {description || "Mike Mentzer's Chest and Back routine focuses on high-intensity, low-volume training to target the major muscles of the chest and back."}
+                        {description}
                       </p>
-                      <p className="text-foreground text-base leading-relaxed">
-                        Using compound exercises like bench presses and pull-ups, the workout emphasizes heavy sets performed to failure for maximum muscle stimulation and growth.
-                      </p>
-                      <p className="text-foreground text-base leading-relaxed">
-                        This efficient approach ensures strength and size gains while minimizing workout time.
-                      </p>
-                    </div>
-                  </TabsContent>
+                    ) : (
+                      <>
+                        <p className="text-foreground text-base leading-relaxed">
+                          Mike Mentzer&apos;s Chest and Back routine focuses on high-intensity, low-volume training to target the major muscles of the chest and back.
+                        </p>
+                        <p className="text-foreground text-base leading-relaxed">
+                          Using compound exercises like bench presses and pull-ups, the workout emphasizes heavy sets performed to failure for maximum muscle stimulation and growth.
+                        </p>
+                        <p className="text-foreground text-base leading-relaxed">
+                          This efficient approach ensures strength and size gains while minimizing workout time.
+                        </p>
+                      </>
+                    )}
+                  </div>
+                </TabsContent>
 
-                  <TabsContent value="exercises" className="mt-0 h-full">
-                    <div className="space-y-3 pb-6">
-                      {exercises.length > 0 ? (
-                        exercises.map((exercise: Exercise, index: number) => (
-                          <div key={index} className="bg-muted/50 backdrop-blur-sm rounded-lg p-4">
-                            <div className="flex items-start justify-between mb-2">
-                              <h4 className="font-semibold text-foreground">{exercise.name || `Exercise ${index + 1}`}</h4>
-                              <span className="text-orange-500 text-sm font-medium">
-                                {exercise.sets || 3} × {exercise.reps || 12}
-                              </span>
-                            </div>
-                            <p className="text-muted-foreground text-sm">
-                              {exercise.description || 'No description available'}
-                            </p>
+                <TabsContent value="exercises" className="mt-0">
+                  <div className="space-y-3">
+                    {exercises.length > 0 ? (
+                      exercises.map((exercise: Exercise, index: number) => (
+                        <div key={index} className="bg-muted/50 backdrop-blur-sm rounded-lg p-4">
+                          <div className="flex items-start justify-between mb-2">
+                            <h4 className="font-semibold text-foreground">{exercise.name || `Exercise ${index + 1}`}</h4>
+                            <span className="text-orange-500 text-sm font-medium">
+                              {exercise.sets || 3} × {exercise.reps || 12}
+                            </span>
                           </div>
-                        ))
-                      ) : (
-                        <div className="text-center py-8">
-                          <p className="text-muted-foreground">Exercise details will be loaded when you start the workout</p>
+                          <p className="text-muted-foreground text-sm">
+                            {exercise.description || 'No description available'}
+                          </p>
                         </div>
-                      )}
-                    </div>
-                  </TabsContent>
+                      ))
+                    ) : (
+                      <div className="text-center py-8">
+                        <p className="text-muted-foreground">Exercise details will be loaded when you start the workout</p>
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
 
-                  <TabsContent value="equipment" className="mt-0 h-full">
-                    <div className="space-y-3 pb-6">
-                      {equipment.length > 0 ? (
-                        equipment.map((item: string, index: number) => (
-                          <div key={index} className="bg-muted/50 backdrop-blur-sm rounded-lg p-3">
-                            <span className="text-foreground font-medium capitalize">{item}</span>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="text-center py-8">
-                          <p className="text-muted-foreground">Equipment information will be loaded with exercise details</p>
+                <TabsContent value="equipment" className="mt-0">
+                  <div className="space-y-3">
+                    {equipment.length > 0 ? (
+                      equipment.map((item: string, index: number) => (
+                        <div key={index} className="bg-muted/50 backdrop-blur-sm rounded-lg p-3">
+                          <span className="text-foreground font-medium capitalize">{item}</span>
                         </div>
-                      )}
-                    </div>
-                  </TabsContent>
-                </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-8">
+                        <p className="text-muted-foreground">Equipment information will be loaded with exercise details</p>
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
               </div>
             </Tabs>
           </div>

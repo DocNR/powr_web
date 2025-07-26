@@ -36,6 +36,10 @@ export interface WorkoutLifecycleContext extends BaseMachineContext {
   
   // Template reference from START_SETUP event
   templateReference?: string;
+  
+  // NEW: Resolved template and exercises from dependency resolution
+  resolvedTemplate?: unknown; // WorkoutTemplate from dependency resolution
+  resolvedExercises?: unknown[]; // Exercise[] from dependency resolution
 }
 
 // Active state context - guarantees workoutData is present
@@ -71,6 +75,9 @@ export interface SetupMachineInput {
 export interface SetupMachineOutput {
   templateSelection: TemplateSelection;
   workoutData: WorkoutData;
+  // NEW: Resolved template and exercises from dependency resolution
+  resolvedTemplate?: unknown; // WorkoutTemplate from dependency resolution
+  resolvedExercises?: unknown[]; // Exercise[] from dependency resolution
 }
 
 // Active workout machine input (for spawned active machine)

@@ -315,6 +315,29 @@ export const workoutLifecycleMachine = setup({
                 }
                 
                 return output.workoutData;
+              },
+              // ✅ CRITICAL FIX: Store resolved template and exercises from setup machine output
+              resolvedTemplate: ({ event }) => {
+                const output = event.output as SetupMachineOutput;
+                console.log('[WorkoutLifecycle] ASSIGN ACTION - resolvedTemplate:', output?.resolvedTemplate);
+                
+                if (!output?.resolvedTemplate) {
+                  console.warn('[WorkoutLifecycle] ASSIGN ACTION - No resolvedTemplate in output!');
+                  return undefined;
+                }
+                
+                return output.resolvedTemplate;
+              },
+              resolvedExercises: ({ event }) => {
+                const output = event.output as SetupMachineOutput;
+                console.log('[WorkoutLifecycle] ASSIGN ACTION - resolvedExercises:', output?.resolvedExercises);
+                
+                if (!output?.resolvedExercises) {
+                  console.warn('[WorkoutLifecycle] ASSIGN ACTION - No resolvedExercises in output!');
+                  return undefined;
+                }
+                
+                return output.resolvedExercises;
               }
             }),
             'logTransition'
