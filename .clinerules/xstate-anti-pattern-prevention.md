@@ -81,6 +81,30 @@ useEffect(() => {
 ```
 **Solution**: Let XState handle orchestration
 
+#### Dynamic Imports in XState Machines (NEW - Prevents Module Context Issues)
+```typescript
+// 🚨 RED FLAG: Dynamic imports in XState actors
+const someActor = fromPromise(async () => {
+  const { dependencyResolution } = await import('@/lib/services/dependencyResolution');
+  return dependencyResolution.resolve();
+});
+```
+**Why This Creates Problems**:
+- **Module Context Conflicts**: Creates separate module instances when the same service is also statically imported elsewhere
+- **Race Conditions**: Module loading timing can affect service resolution
+- **Unpredictable Behavior**: Same service might behave differently depending on how it was loaded
+- **Hard to Debug**: Issues manifest as mysterious "undefined" or "fallback data" problems
+
+**Solution**: Use static imports to ensure consistent module resolution
+```typescript
+// ✅ CORRECT: Static imports ensure consistent module resolution
+import { dependencyResolution } from '@/lib/services/dependencyResolution';
+
+const someActor = fromPromise(async () => {
+  return dependencyResolution.resolve();
+});
+```
+
 #### "Hack" Comments
 ```typescript
 // 🚨 RED FLAG: Any comment like these
@@ -351,6 +375,6 @@ The goal is to work WITH XState's strengths, not around its perceived limitation
 
 ---
 
-**Last Updated**: 2025-06-21
+**Last Updated**: 2025-07-26
 **Project**: POWR Workout PWA
 **Environment**: Web Browser
