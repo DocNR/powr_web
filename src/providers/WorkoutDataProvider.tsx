@@ -356,11 +356,13 @@ export function WorkoutDataProvider({ children }: WorkoutDataProviderProps) {
               weight: exercise.weight || 0
             }));
             
-            // Update author to template author
-            providerSocialWorkout.author = {
-              pubkey: parsedTemplate.authorPubkey,
-              name: parsedTemplate.authorPubkey.slice(0, 8) + '...',
-            };
+            // Update author to template author (with null checks)
+            if (parsedTemplate.authorPubkey) {
+              providerSocialWorkout.author = {
+                pubkey: parsedTemplate.authorPubkey,
+                name: parsedTemplate.authorPubkey.slice(0, 8) + '...',
+              };
+            }
           }
 
           processedWorkouts.push(providerSocialWorkout);

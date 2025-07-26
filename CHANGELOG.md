@@ -30,6 +30,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Workout Publishing Authentication Fix COMPLETE (July 26, 2025) ✅**
+  
+  **User Impact**: Users can now reliably complete workouts and publish them to the Nostr network without authentication errors. Fixed critical issue where workout completion was failing due to missing user authentication context in the XState machine, preventing workout records from being published to Nostr.
+  
+  **Developer Notes**: Fixed authentication context passing in workoutLifecycleMachine by ensuring userPubkey is properly extracted from NDK session and passed to publishWorkoutActor. Enhanced error handling in publishWorkoutActor to provide clear feedback when authentication is missing. Updated workoutLifecycleMachine to use authenticated NDK instance from useNDK() hook instead of relying on context-passed credentials.
+  
+  **Architecture Changes**: Established proper authentication flow for XState workout publishing with NDK integration. Validated that Global NDK Actor pattern works correctly with authenticated sessions. Foundation ready for reliable workout completion and Nostr event publishing across all workout types.
+
+[v0.4.0] - 2025-07-26
+🚨 BREAKING CHANGES
+
+NIP-101e Specification: Added required set_number parameter to 33402 workout templates
+Event Format: 33402 templates now use 5 parameters instead of 4 to prevent NDK deduplication
+
+✅ Added
+
+NDK Deduplication Test Component: Comprehensive test suite validating event deduplication behavior
+Set Number Support: 33402 templates now include set_number parameter for unique set identification
+Enhanced Workout Types: Added superset and metcon to supported workout types
+Deduplication Prevention: Complete solution for preserving multiple identical sets in templates
+
+🔧 Fixed
+
+Critical Data Loss Bug: NDK was deduplicating identical exercise tags in 33402 templates
+Workout Structure Loss: "3 sets of 10 reps" no longer becomes "1 set of 10 reps"
+Template Parsing: Consistent 5-parameter format across both 33402 and 1301 events
+Set Tracking: Proper preservation of workout volume and structure
+
+📋 Changed
+
+NIP-101e Specification: Updated to include set_number in 33402 templates
+NAK Publishing Rule: Updated all examples to use 5-parameter format with set numbers
+Parameter Validation: Extended validation to support set_number parameter
+Implementation Guidelines: Added deduplication prevention requirements
+
+🧪 Testing
+
+Deduplication Test: Proven that NDK deduplicates identical tags without set_number
+Fix Validation: Confirmed that set_number prevents deduplication in both 33402 and 1301
+Cross-Event Testing: Validated consistency across all NIP-101e event types
+
+💡 Enhanced Features
+
+Superset Detection: Set numbers enable automatic superset/circuit pattern recognition
+Advanced Analytics: Set-by-set performance tracking now possible
+Workout Intelligence: Foundation for AI coaching and adaptive programming
+Training Complexity: Support for advanced methodologies (drop sets, pyramids, etc.)
+
+📖 Documentation
+
+Updated NIP-101e Spec: Comprehensive deduplication prevention documentation
+NAK Publishing Guide: Updated with corrected multi-set examples
+Implementation Examples: Added superset, circuit, and strength training patterns
+Migration Guide: Clear path for updating existing template generation
+
 ### Added
 - **NDK Profile Integration for User Avatars and Display Names COMPLETE (July 25, 2025) ✅**
   

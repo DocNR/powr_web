@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { MobileBottomTabs } from '@/components/navigation/MobileBottomTabs';
 import { DesktopSidebar } from '@/components/navigation/DesktopSidebar';
@@ -14,11 +14,17 @@ import { getSubNavigation } from '@/config/subNavigation';
 import { WorkoutDataProvider } from '@/providers/WorkoutDataProvider';
 import { WorkoutUIProvider } from '@/providers/WorkoutUIProvider';
 import { WorkoutContext } from '@/contexts/WorkoutContext';
+import { workoutLifecycleMachine } from '@/lib/machines/workout/workoutLifecycleMachine';
+import { usePubkey, useIsAuthenticated } from '@/lib/auth/hooks';
 
 export function AppLayout() {
   const isMobile = useMediaQuery('(max-width: 640px)');
   const { activeTab, setActiveTab } = useNavigation();
   const { getActiveSubTab, setActiveSubTab } = useSubNavigation();
+  
+  // Authentication hooks
+  const pubkey = usePubkey();
+  const isAuthenticated = useIsAuthenticated();
   
   const subNavItems = getSubNavigation(activeTab);
   const activeSubTab = getActiveSubTab(activeTab);
@@ -26,6 +32,21 @@ export function AppLayout() {
   const handleSubTabChange = (subTabId: string) => {
     setActiveSubTab(activeTab, subTabId);
   };
+
+  // Create userInfo for the workout machine
+  const userInfo = useMemo(() => {
+    if (!pubkey || !isAuthenticated) {
+      return { 
+        pubkey: '', 
+        displayName: 'Unknown User' 
+      };
+    }
+    
+    return {
+      pubkey,
+      displayName: pubkey.slice(0, 8) + '...'
+    };
+  }, [pubkey, isAuthenticated]);
 
   // Calculate header heights for proper spacing
   const headerHeight = 64; // AppHeader height in pixels
@@ -75,7 +96,10 @@ export function AppLayout() {
           } : {}}
         >
           <div className="flex-1">
-            <WorkoutContext.Provider >
+            <WorkoutContext.Provider 
+              logic={workoutLifecycleMachine}
+              options={{ input: { userInfo } }}
+            >
               <WorkoutDataProvider>
                 <WorkoutUIProvider>
                   <TabRouter />

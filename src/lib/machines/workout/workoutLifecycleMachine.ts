@@ -157,52 +157,12 @@ export const workoutLifecycleMachine = setup({
             
             // When the activeWorkout reaches final state, complete the lifecycle
             if (snapshot.status === 'done') {
-              console.log('[WorkoutLifecycleMachine] ✅ Active workout completed, processing output...');
+              console.log('[WorkoutLifecycleMachine] ✅ Active workout completed successfully');
               
-              // ✅ CRITICAL FIX: For spawned actors, we need to get the final snapshot to access output
-              const finalSnapshot = activeWorkoutActor.getSnapshot();
-              console.log('[WorkoutLifecycleMachine] 📊 Final snapshot status:', finalSnapshot.status);
-              console.log('[WorkoutLifecycleMachine] 📊 Final snapshot output:', finalSnapshot.output);
-              
-              const output = finalSnapshot.output as { workoutData?: WorkoutData; totalDuration?: number; completed?: boolean };
-              
-              console.log('[WorkoutLifecycleMachine] 📊 Active workout output analysis:', {
-                hasOutput: !!output,
-                hasWorkoutData: !!output?.workoutData,
-                completedSetsCount: output?.workoutData?.completedSets?.length || 0,
-                extraSetsCount: Object.keys(output?.workoutData?.extraSetsRequested || {}).length,
-                workoutId: output?.workoutData?.workoutId,
-                completed: output?.completed
-              });
-              
-              if (output?.workoutData) {
-                console.log('[WorkoutLifecycleMachine] ✅ Sending WORKOUT_COMPLETED with real data');
-                self.send({ 
-                  type: 'WORKOUT_COMPLETED', 
-                  workoutData: output.workoutData 
-                });
-              } else {
-                console.error('[WorkoutLifecycleMachine] ❌ No workout data in activeWorkout output!');
-                console.error('[WorkoutLifecycleMachine] 📊 Full output:', output);
-                
-                // Create emergency fallback data
-                const fallbackData = {
-                  workoutId: `fallback_${Date.now()}`,
-                  title: 'Emergency Fallback Workout',
-                  startTime: Date.now() - 1800000, // 30 minutes ago
-                  endTime: Date.now(),
-                  completedSets: [],
-                  workoutType: 'strength' as const,
-                  exercises: [],
-                  extraSetsRequested: {}
-                };
-                
-                console.warn('[WorkoutLifecycleMachine] ⚠️ Using emergency fallback data');
-                self.send({ 
-                  type: 'WORKOUT_COMPLETED', 
-                  workoutData: fallbackData
-                });
-              }
+              // Note: The activeWorkoutMachine sends workout data via sendParent mechanism
+              // We don't need to access output here - the WORKOUT_COMPLETED event 
+              // will be sent automatically by the activeWorkoutMachine with the real data
+              console.log('[WorkoutLifecycleMachine] 📤 Waiting for WORKOUT_COMPLETED event from activeWorkoutMachine...');
             }
           });
           
@@ -408,7 +368,7 @@ export const workoutLifecycleMachine = setup({
           target: 'completed',
           actions: [
             assign({
-              // ✅ CRITICAL FIX: Properly store the complete workout data from activeWorkoutMachine
+              // Store the complete workout data from activeWorkoutMachine
               workoutData: ({ event, context }) => {
                 console.log('[WorkoutLifecycle] 🔄 WORKOUT_COMPLETED event received via sendParent');
                 console.log('[WorkoutLifecycle] 🔍 Event workoutData:', {
@@ -451,11 +411,11 @@ export const workoutLifecycleMachine = setup({
                   };
                 }
                 
-                // Emergency fallback - should never happen
-                console.error('[WorkoutLifecycle] ❌ No workout data available - creating emergency fallback');
+                // This should never happen in normal operation
+                console.warn('[WorkoutLifecycle] ⚠️ No workout data available - using minimal fallback');
                 return {
-                  workoutId: `emergency_${Date.now()}`,
-                  title: 'Emergency Workout Record',
+                  workoutId: `fallback_${Date.now()}`,
+                  title: 'Fallback Workout Record',
                   startTime: Date.now() - 1800000, // 30 minutes ago
                   endTime: Date.now(),
                   completedSets: [],
@@ -490,7 +450,7 @@ export const workoutLifecycleMachine = setup({
         src: 'publishWorkoutActor',
         input: ({ context }) => {
           console.log('[WorkoutLifecycle] 📤 PUBLISHING PHASE: Preparing workout data for publishing');
-          console.log('[WorkoutLifecycle] 📊 Context workout data analysis:', {
+          console.log('[WorkoutLifecycle] � Context workout data analysis:', {
             hasWorkoutData: !!context.workoutData,
             workoutId: context.workoutData?.workoutId,
             completedSetsCount: context.workoutData?.completedSets?.length || 0,

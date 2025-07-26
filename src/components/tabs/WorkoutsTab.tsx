@@ -340,7 +340,7 @@ export default function WorkoutsTab() {
                       difficulty: workout.difficulty as 'beginner' | 'intermediate' | 'advanced' | undefined,
                       author: {
                         pubkey: workout.author.pubkey, // Template author
-                        name: workout.author.name || workout.author.pubkey.slice(0, 8) + '...',
+                        name: workout.author.name || (workout.author.pubkey ? workout.author.pubkey.slice(0, 8) + '...' : 'Unknown User'),
                         picture: workout.author.picture || '/assets/workout-template-fallback.jpg'
                       },
                       // Add social proof info
