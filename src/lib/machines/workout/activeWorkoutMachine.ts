@@ -32,6 +32,7 @@ import type {
 import type { WorkoutTemplate } from './actors/loadTemplateActor';
 import { dataParsingService } from '@/lib/services/dataParsingService';
 import { workoutTimingService } from '@/lib/services/workoutTiming';
+import { dependencyResolutionService } from '@/lib/services/dependencyResolution';
 
 /**
  * Helper function to create error info
@@ -83,7 +84,6 @@ export const activeWorkoutMachine = setup({
         }
         
         // Use DependencyResolutionService directly (no dynamic imports needed)
-        const { dependencyResolutionService } = await import('@/lib/services/dependencyResolution');
         const templateResult = await dependencyResolutionService.resolveSingleTemplate(templateReference);
         
         const loadedTemplate = templateResult.template;
