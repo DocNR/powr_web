@@ -267,6 +267,36 @@
   }
 }
 
+/* Modal scrolling overrides - Allow scrolling within modals while preventing PWA bounce */
+@layer utilities {
+  /* Dialog/Modal content scrolling fixes */
+  [data-radix-dialog-content] {
+    /* Allow scrolling within modal, but contain it */
+    overscroll-behavior: contain !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Sheet content scrolling fixes */
+  [data-radix-sheet-content] {
+    /* Allow scrolling within sheet, but contain it */
+    overscroll-behavior: contain !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Modal scrollable content areas */
+  .modal-scrollable-content {
+    overscroll-behavior-y: contain;
+    overscroll-behavior-x: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Tab content scrolling within modals */
+  [data-radix-tabs-content] {
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
 /* Standalone PWA mode detection */
 @media (display-mode: standalone) {
   /* Styles when app is installed as PWA */

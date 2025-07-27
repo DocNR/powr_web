@@ -30,6 +30,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Workout Detail Modal Scrollable Content & Styling Improvements COMPLETE (July 27, 2025) ✅**
+  
+  **User Impact**: Users can now smoothly scroll through workout content in the detail modal while keeping tab headers (Overview, Exercises, Equipment) fixed at the top. All content areas use consistent muted styling with backdrop blur effects for a professional, cohesive appearance. Modal now properly handles long exercise lists and detailed content without layout issues.
+  
+  **Developer Notes**: Implemented proper scrollable container structure with fixed tab headers using flex layout patterns. Updated WorkoutDetailModal with `overflow-hidden` on tabs container and `overflow-y-auto` on tab content areas. Enhanced ExpandableExerciseCard with consistent `bg-muted/50 backdrop-blur-sm rounded-lg p-4` styling to match other content cards. Removed Mike Mentzer fallback content explanation - this is placeholder text shown when no actual workout description is available from Nostr events.
+  
+  **Architecture Changes**: Established consistent muted styling patterns across all modal content areas. Fixed scrolling architecture ensures tab headers remain accessible while content scrolls independently. Foundation ready for complex workout content display with proper mobile touch scrolling behavior.
+
 ### Fixed
 - **XState Parent-Child Data Flow Architecture Fix COMPLETE (July 26, 2025) ✅**
   

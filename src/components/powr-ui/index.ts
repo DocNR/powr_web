@@ -21,6 +21,7 @@ export {
 export { Progress } from './primitives/Progress';
 export { Input } from './primitives/Input';
 export { Label } from './primitives/Label';
+export { Tabs, TabsContent, TabsList, TabsTrigger } from './primitives/Tabs';
 
 // Layout Components
 export { AppHeader } from './layout/AppHeader';

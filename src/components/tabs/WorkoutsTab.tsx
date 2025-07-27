@@ -54,40 +54,32 @@ export default function WorkoutsTab() {
 
   // POWR WOD - keep as featured content for now
   const powrWOD = useMemo(() => ({
-    id: 'powr-wod-today',
-    title: 'Upper Body Power',
-    description: 'Build explosive upper body strength with this compound movement focused workout.',
+    id: '100-pushups-challenge',
+    title: '100 Pushups Challenge',
+    description: 'Complete 100 push-ups in as few sets as possible. Great for building upper body endurance and strength.',
     exercises: [
-      { name: 'Push-ups', sets: 3, reps: 12, weight: 0 },
-      { name: 'Pull-ups', sets: 3, reps: 8, weight: 0 },
-      { name: 'Dips', sets: 3, reps: 10, weight: 0 },
-      { name: 'Pike Push-ups', sets: 3, reps: 8, weight: 0 },
-      { name: 'Plank', sets: 3, reps: 60, weight: 0 }
+      { name: 'Push-ups', sets: 1, reps: 100, weight: 0 }
     ],
-    estimatedDuration: 35,
+    estimatedDuration: 20,
     difficulty: 'intermediate' as const,
-    tags: ['strength', 'upper-body', 'bodyweight'],
+    tags: ['strength', 'upper-body', 'bodyweight', 'challenge'],
     author: {
-      pubkey: 'powr-coach',
+      pubkey: '55127fc9e1c03c6b459a3bab72fdb99def1644c5f239bdd09f3e5fb401ed9b21',
       name: 'POWR Coach',
       picture: '/assets/logos/powr-logo.svg'
     },
-    eventId: 'powr-wod-event-id',
+    eventId: '100-pushups-challenge-event-id',
     eventTags: [
-      ['d', 'upper-body-power'],
-      ['title', 'Upper Body Power'],
+      ['d', '100-pushups-challenge'],
+      ['title', '100 Pushups Challenge'],
       ['difficulty', 'intermediate'],
-      ['duration', '35'],
+      ['duration', '20'],
       ['t', 'fitness']
     ],
     eventContent: JSON.stringify({
-      description: 'Build explosive upper body strength with this compound movement focused workout.',
+      description: 'Complete 100 push-ups in as few sets as possible. Great for building upper body endurance and strength.',
       exercises: [
-        { name: 'Push-ups', sets: 3, reps: 12 },
-        { name: 'Pull-ups', sets: 3, reps: 8 },
-        { name: 'Dips', sets: 3, reps: 10 },
-        { name: 'Pike Push-ups', sets: 3, reps: 8 },
-        { name: 'Plank', sets: 3, reps: 60 }
+        { name: 'Push-ups', sets: 1, reps: 100 }
       ]
     }),
     eventKind: 33402
@@ -112,7 +104,7 @@ export default function WorkoutsTab() {
 
     // Check if it's the POWR WOD
     if (workoutId === powrWOD.id) {
-      templateReference = `33402:powr-coach:${powrWOD.id}`;
+      templateReference = `33402:55127fc9e1c03c6b459a3bab72fdb99def1644c5f239bdd09f3e5fb401ed9b21:100-pushups-challenge`;
       console.log('🔍 Using POWR WOD template reference:', templateReference);
     } else {
       // Check social workouts first (now template-focused)
