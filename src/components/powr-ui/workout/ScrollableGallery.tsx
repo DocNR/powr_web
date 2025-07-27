@@ -54,12 +54,34 @@ export function ScrollableGallery({
     setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 1);
   };
 
-  // Scroll functions
+  // Calculate card-based scroll amount for proper snap alignment
+  const getCardScrollAmount = () => {
+    const container = scrollContainerRef.current;
+    if (!container) return 0;
+
+    // Get the first child element to determine card width
+    const firstChild = container.firstElementChild as HTMLElement;
+    if (!firstChild) return container.clientWidth * 0.8; // Fallback
+
+    // Get the actual rendered width of the card including margins
+    const cardRect = firstChild.getBoundingClientRect();
+    const cardWidth = cardRect.width;
+
+    // Get gap size from computed styles
+    const containerStyles = window.getComputedStyle(container);
+    const gapValue = containerStyles.gap || '0px';
+    const gapSize = parseFloat(gapValue);
+
+    // Return card width + gap for perfect snap alignment
+    return cardWidth + gapSize;
+  };
+
+  // Scroll functions with card-based alignment
   const scrollLeft = () => {
     const container = scrollContainerRef.current;
     if (!container) return;
 
-    const scrollAmount = container.clientWidth * 0.8;
+    const scrollAmount = getCardScrollAmount();
     container.scrollBy({
       left: -scrollAmount,
       behavior: 'smooth'
@@ -70,7 +92,7 @@ export function ScrollableGallery({
     const container = scrollContainerRef.current;
     if (!container) return;
 
-    const scrollAmount = container.clientWidth * 0.8;
+    const scrollAmount = getCardScrollAmount();
     container.scrollBy({
       left: scrollAmount,
       behavior: 'smooth'
