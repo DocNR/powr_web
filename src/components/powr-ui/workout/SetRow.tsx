@@ -76,6 +76,32 @@ export const SetRow: React.FC<SetRowProps> = ({
     }
   }, [setNumber, lastInitializedSetNumber, defaultData, previousSetData, isCompleted]);
 
+  // Enhanced input handlers to prevent invalid characters and improve UX
+  const handleWeightChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    // Allow empty, numbers, decimal points, and negative sign at start
+    // This regex allows: empty string, negative numbers, decimals
+    if (value === '' || /^-?\d*\.?\d*$/.test(value)) {
+      setWeight(value);
+    }
+  };
+
+  const handleRepsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    // Only allow positive integers for reps (no decimals, no negatives)
+    if (value === '' || /^\d+$/.test(value)) {
+      setReps(value);
+    }
+  };
+
+  const handleRpeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    // Allow RPE values with decimals (like 7.5)
+    if (value === '' || /^\d*\.?\d*$/.test(value)) {
+      setRpe(value);
+    }
+  };
+
   // NEW: Flexible set interaction handlers
   const handleComplete = () => {
     const setData: SetData = {
@@ -93,7 +119,6 @@ export const SetRow: React.FC<SetRowProps> = ({
       onComplete(setData);
     }
   };
-
 
   // NEW: Handle clicking on the set row to select it
   const handleSetClick = () => {
@@ -116,7 +141,30 @@ export const SetRow: React.FC<SetRowProps> = ({
     }
   };
 
-  const isValid = weight !== '' && reps !== '' && parseFloat(weight) >= 0 && parseInt(reps) > 0;
+  // IMPROVED: More forgiving validation logic
+  const isWeightValid = () => {
+    // Allow empty string (user is typing) or valid numbers (including negative)
+    if (weight === '') return true; // Allow empty while typing
+    const weightNum = parseFloat(weight);
+    return !isNaN(weightNum); // Any valid number including negative
+  };
+
+  const isRepsValid = () => {
+    // Require at least 1 rep for completion
+    if (reps === '') return false; // Must have reps to complete
+    const repsNum = parseInt(reps);
+    return !isNaN(repsNum) && repsNum > 0;
+  };
+
+  const isRpeValid = () => {
+    // RPE is optional, but if provided must be valid
+    if (rpe === '') return true; // Empty RPE is okay
+    const rpeNum = parseFloat(rpe);
+    return !isNaN(rpeNum) && rpeNum >= 1 && rpeNum <= 10;
+  };
+
+  // FIXED: Complete validation - for completion, we need actual values (not just valid)
+  const canComplete = reps !== '' && parseInt(reps) > 0 && isWeightValid() && isRpeValid();
 
   // Display mode for completed sets - Compact mobile-optimized layout
   if (isCompleted) {
@@ -150,7 +198,7 @@ export const SetRow: React.FC<SetRowProps> = ({
             inputMode="decimal"
             value={weight}
             onChange={(e) => {
-              setWeight(e.target.value);
+              handleWeightChange(e);
               if (onEditCompleted && exerciseRef) {
                 handleFieldEdit('weight', parseFloat(e.target.value) || 0);
               }
@@ -168,7 +216,7 @@ export const SetRow: React.FC<SetRowProps> = ({
             inputMode="numeric"
             value={reps}
             onChange={(e) => {
-              setReps(e.target.value);
+              handleRepsChange(e);
               if (onEditCompleted && exerciseRef) {
                 handleFieldEdit('reps', parseInt(e.target.value) || 0);
               }
@@ -186,7 +234,7 @@ export const SetRow: React.FC<SetRowProps> = ({
             inputMode="decimal"
             value={rpe}
             onChange={(e) => {
-              setRpe(e.target.value);
+              handleRpeChange(e);
               if (onEditCompleted && exerciseRef) {
                 handleFieldEdit('rpe', parseFloat(e.target.value) || 7);
               }
@@ -247,9 +295,12 @@ export const SetRow: React.FC<SetRowProps> = ({
           inputMode="decimal"
           placeholder="0"
           value={weight}
-          onChange={(e) => setWeight(e.target.value)}
+          onChange={handleWeightChange}  // Use enhanced handler
           onFocus={handleSetClick}
-          className="h-10 text-base font-medium text-center bg-transparent border-0 focus:ring-1 focus:ring-ring rounded"
+          className={cn(
+            "h-10 text-base font-medium text-center bg-transparent border-0 focus:ring-1 focus:ring-ring rounded",
+            !isWeightValid() && "ring-1 ring-red-300" // Visual feedback for invalid weight
+          )}
         />
       </div>
 
@@ -261,9 +312,12 @@ export const SetRow: React.FC<SetRowProps> = ({
           inputMode="numeric"
           placeholder="0"
           value={reps}
-          onChange={(e) => setReps(e.target.value)}
+          onChange={handleRepsChange}  // Use enhanced handler
           onFocus={handleSetClick}
-          className="h-10 text-base font-medium text-center bg-transparent border-0 focus:ring-1 focus:ring-ring rounded"
+          className={cn(
+            "h-10 text-base font-medium text-center bg-transparent border-0 focus:ring-1 focus:ring-ring rounded",
+            !isRepsValid() && reps !== '' && "ring-1 ring-red-300" // Visual feedback for invalid reps
+          )}
         />
       </div>
 
@@ -275,27 +329,40 @@ export const SetRow: React.FC<SetRowProps> = ({
           inputMode="decimal"
           placeholder="7"
           value={rpe}
-          onChange={(e) => setRpe(e.target.value)}
+          onChange={handleRpeChange}  // Use enhanced handler
           onFocus={handleSetClick}
           min="1"
           max="10"
           step="0.5"
-          className="h-10 text-base font-medium text-center bg-transparent border-0 focus:ring-1 focus:ring-ring rounded"
+          className={cn(
+            "h-10 text-base font-medium text-center bg-transparent border-0 focus:ring-1 focus:ring-ring rounded",
+            !isRpeValid() && rpe !== '' && "ring-1 ring-red-300" // Visual feedback for invalid RPE
+          )}
         />
       </div>
 
       {/* Checkbox - Compact */}
       <div className="flex-shrink-0">
         <button
-          onClick={isValid ? handleComplete : undefined}
-          disabled={!isValid}
+          onClick={canComplete ? handleComplete : undefined}
+          disabled={!canComplete}
           className={cn(
             "h-10 w-10 flex items-center justify-center rounded border transition-all duration-200",
-            isValid 
+            canComplete 
               ? "border-ring bg-transparent text-ring hover:bg-ring/10 cursor-pointer" 
               : "border-border bg-transparent text-muted-foreground cursor-not-allowed opacity-50"
           )}
-          title={isValid ? "Complete set" : "Fill in weight and reps to complete"}
+          title={
+            canComplete 
+              ? "Complete set" 
+              : reps === '' 
+                ? "Enter reps to complete"
+                : !isWeightValid()
+                  ? "Enter valid weight"
+                  : !isRpeValid()
+                    ? "Enter valid RPE (1-10)"
+                    : "Complete the form to continue"
+          }
         >
           <Check className="h-4 w-4" />
         </button>
