@@ -29,10 +29,7 @@ import { defaultActiveWorkoutContext } from './types/activeWorkoutTypes';
 import type { 
   ErrorInfo 
 } from './types/workoutTypes';
-import type { WorkoutTemplate } from './actors/loadTemplateActor';
-import { dataParsingService } from '@/lib/services/dataParsingService';
 import { workoutTimingService } from '@/lib/services/workoutTiming';
-import { dependencyResolutionService } from '@/lib/services/dependencyResolution';
 
 /**
  * Helper function to create error info
@@ -70,31 +67,28 @@ export const activeWorkoutMachine = setup({
   
   // Inline actors following XState v5 patterns
   actors: {
-    // Load template data using DependencyResolutionService directly (simplified)
-    loadTemplateData: fromPromise<WorkoutTemplate, { templateReference: string }>(async ({ input }) => {
-      const templateReference = input.templateReference;
+    // ✅ SIMPLIFIED: Use resolved data from lifecycle machine instead of duplicate service call
+    initializeResolvedData: fromPromise<{ template: any; exercises: any[] }, ActiveWorkoutMachineInput>(async ({ input }) => {
+      console.log('[ActiveWorkoutMachine] 🔄 Using resolved data from lifecycle machine');
       
-      try {
-        console.log('[ActiveWorkoutMachine] 🔍 Loading template via DependencyResolutionService:', templateReference);
-        
-        // Validate template reference using DataParsingService
-        const refValidation = dataParsingService.parseTemplateReference(templateReference);
-        if (!refValidation.isValid) {
-          throw new Error(`Invalid template reference: ${refValidation.error}`);
-        }
-        
-        // Use DependencyResolutionService directly (no dynamic imports needed)
-        const templateResult = await dependencyResolutionService.resolveSingleTemplate(templateReference);
-        
-        const loadedTemplate = templateResult.template;
-        console.log('[ActiveWorkoutMachine] ✅ Template loaded via service:', loadedTemplate.name, 'with', loadedTemplate.exercises.length, 'exercises');
-        return loadedTemplate;
-        
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        console.error('[ActiveWorkoutMachine] ❌ Template loading failed:', error);
-        throw new Error(`Failed to load template: ${errorMessage}`);
+      if (!input.resolvedTemplate || !input.resolvedExercises) {
+        console.error('[ActiveWorkoutMachine] ❌ Missing resolved data:', {
+          hasResolvedTemplate: !!input.resolvedTemplate,
+          hasResolvedExercises: !!input.resolvedExercises,
+          inputKeys: Object.keys(input)
+        });
+        throw new Error('Missing resolved template or exercises data from lifecycle machine');
       }
+      
+      console.log('[ActiveWorkoutMachine] ✅ Using pre-resolved data:', {
+        templateName: input.resolvedTemplate.name,
+        exerciseCount: input.resolvedExercises.length
+      });
+      
+      return {
+        template: input.resolvedTemplate,
+        exercises: input.resolvedExercises
+      };
     }),
 
     // Track individual sets (like Noga's processPendingScores)
@@ -128,7 +122,9 @@ export const activeWorkoutMachine = setup({
       templateReference: input.templateSelection.templateReference,
       templateReferenceType: typeof input.templateSelection.templateReference,
       templateReferenceLength: input.templateSelection.templateReference?.length,
-      fullTemplateSelection: input.templateSelection
+      fullTemplateSelection: input.templateSelection,
+      hasResolvedTemplate: !!input.resolvedTemplate,
+      hasResolvedExercises: !!input.resolvedExercises
     });
     
     return {
@@ -139,6 +135,10 @@ export const activeWorkoutMachine = setup({
       userInfo: input.userInfo,
       workoutData: input.workoutData,
       templateSelection: input.templateSelection, // Use original, unmodified
+      
+      // ✅ CRITICAL FIX: Store resolved data in context for actor access
+      resolvedTemplate: input.resolvedTemplate as any,
+      resolvedExercises: input.resolvedExercises as any,
       
       // Initialize exercise progression
       exerciseProgression: {
@@ -170,26 +170,69 @@ export const activeWorkoutMachine = setup({
      */
     loadingTemplate: {
       invoke: {
-        src: 'loadTemplateData',
-        input: ({ context }) => ({
-          templateReference: context.templateSelection.templateReference || 'default-template'
-        }),
+        src: 'initializeResolvedData',
+        input: ({ context }) => {
+          // ✅ FIX: Pass the complete ActiveWorkoutMachineInput as expected by the actor
+          console.log('[ActiveWorkoutMachine] 🔍 Passing complete input to initializeResolvedData:', {
+            hasResolvedTemplate: !!(context as any).resolvedTemplate,
+            hasResolvedExercises: !!(context as any).resolvedExercises,
+            contextKeys: Object.keys(context)
+          });
+          
+          return {
+            userInfo: context.userInfo,
+            workoutData: context.workoutData,
+            templateSelection: context.templateSelection,
+            resolvedTemplate: (context as any).resolvedTemplate,
+            resolvedExercises: (context as any).resolvedExercises
+          };
+        },
         onDone: {
           target: 'exercising',
           actions: assign({
             // Store loaded template data
-            workoutData: ({ context, event }) => ({
-              ...context.workoutData,
-              template: event.output
-            }),
+            workoutData: ({ context, event }) => {
+              const resolvedTemplate = event.output;
+              console.log('[ActiveWorkoutMachine] 🔧 MERGING RESOLVED EXERCISE NAMES:', {
+                template: resolvedTemplate.template.name,
+                resolvedExercises: resolvedTemplate.exercises.map(ex => ({ id: ex.id, name: ex.name }))
+              });
+              
+              // ✅ FIX: Merge resolved exercise names into workout exercises
+              const updatedExercises = (context.workoutData.exercises || []).map(workoutExercise => {
+                // Find the resolved exercise details by matching exerciseRef
+                const resolvedExercise = resolvedTemplate.exercises.find(ex => 
+                  workoutExercise.exerciseRef === `33401:${ex.authorPubkey}:${ex.id}`
+                );
+                
+                if (resolvedExercise) {
+                  console.log(`[ActiveWorkoutMachine] ✅ MERGED: ${workoutExercise.exerciseRef} -> ${resolvedExercise.name}`);
+                  return {
+                    ...workoutExercise,
+                    name: resolvedExercise.name, // ✅ THE FIX: Add the resolved name
+                    equipment: resolvedExercise.equipment,
+                    muscleGroups: resolvedExercise.muscleGroups
+                  };
+                } else {
+                  console.warn(`[ActiveWorkoutMachine] ⚠️ No resolved exercise found for: ${workoutExercise.exerciseRef}`);
+                  return workoutExercise;
+                }
+              });
+              
+              return {
+                ...context.workoutData,
+                template: resolvedTemplate.template,
+                exercises: updatedExercises // ✅ Use exercises with merged names
+              };
+            },
             // FIX: Update exercise progression with correct total from template
             exerciseProgression: ({ context, event }) => ({
               ...context.exerciseProgression,
-              totalExercises: event.output.exercises.length
+              totalExercises: event.output.template.exercises.length
             }),
             // NEW: Parse template exercises to extract prescribed parameters
             templateExercises: ({ event }) => {
-              const template = event.output;
+              const template = event.output.template;
               console.log('[ActiveWorkoutMachine] 📋 Parsing template exercises for prescribed parameters');
               
                 return template.exercises.map((exercise: { exerciseRef: string; weight?: number; reps?: number; sets?: number }, index: number) => {

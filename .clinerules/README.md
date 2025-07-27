@@ -66,8 +66,9 @@
 6. **[web-ndk-actor-integration.md](./web-ndk-actor-integration.md)** - Web NDK Actor patterns
 7. **[service-layer-architecture.md](./service-layer-architecture.md)** - Service extraction for web
 8. **[xstate-external-service-integration.md](./xstate-external-service-integration.md)** - External service patterns
-9. **[nip-101e-standards.md](./nip-101e-standards.md)** - Workout event standards
-10. **[radix-ui-component-library.md](./radix-ui-component-library.md)** - Enterprise UI component library standards
+9. **[xstate-parent-child-data-flow.md](./xstate-parent-child-data-flow.md)** - Parent-child machine data flow patterns
+10. **[nip-101e-standards.md](./nip-101e-standards.md)** - Workout event standards
+11. **[radix-ui-component-library.md](./radix-ui-component-library.md)** - Enterprise UI component library standards
 
 ### 📝 **Documentation & Workflow**
 11. **[documentation-maintenance.md](./documentation-maintenance.md)** - Doc standards
@@ -85,6 +86,8 @@
 | "XState is confusing" / "This feels complex" | xstate-anti-pattern-prevention.md |
 | "I need to integrate NDK" / "Authentication issues" | ndk-best-practices.md, web-private-key-security.md |
 | "NDK undefined in XState" / "Publishing from state machines" | web-ndk-actor-integration.md |
+| "Parent machine data not reaching child" / "Duplicate service calls" | xstate-parent-child-data-flow.md |
+| "Child machine re-resolving data" / "Machine hierarchy issues" | xstate-parent-child-data-flow.md |
 | "Starting a new feature" / "How do I plan this?" | task-creation-process.md |
 | "Imports keep getting removed" / "Auto-formatter issues" | auto-formatter-imports.md |
 | "How should I commit this?" / "What's the commit format?" | post-task-completion-workflow.md |
@@ -109,6 +112,9 @@
 | "NDK undefined", "publishing from state machines" | web-ndk-actor-integration.md |
 | "useEffect", "timing", "race condition" | xstate-anti-pattern-prevention.md |
 | "external service", "API integration" | xstate-external-service-integration.md |
+| "duplicate service calls", "re-resolving data" | xstate-parent-child-data-flow.md |
+| "parent machine", "child machine", "data flow" | xstate-parent-child-data-flow.md |
+| "dynamic import", "module context", "undefined service" | xstate-anti-pattern-prevention.md |
 | "workout events", "NIP-101e", "exercise data" | nip-101e-standards.md |
 | "imports removed", "auto-format" | auto-formatter-imports.md |
 | "useSubscribe", "loading states", "React Context" | ndk-best-practices.md |

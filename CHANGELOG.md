@@ -31,6 +31,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **XState Parent-Child Data Flow Architecture Fix COMPLETE (July 26, 2025) ✅**
+  
+  **User Impact**: Users can now reliably start and complete workouts with proper exercise names displayed. Fixed critical "Missing resolved data" errors that prevented active workout functionality from working. Exercise names now appear correctly in workout interface, set completion works properly, and workout publishing is restored.
+  
+  **Developer Notes**: Implemented proper XState parent-child data flow patterns following new `.clinerules/xstate-parent-child-data-flow.md` rule. Fixed activeWorkoutMachine to trust parent-provided resolved data instead of attempting duplicate resolution. Enhanced workoutLifecycleMachine data passing and updated activeWorkoutTypes for proper input validation. Eliminated duplicate service calls across machine hierarchy.
+  
+  **Architecture Changes**: Established XState parent-child data flow patterns preventing duplicate service calls. Parent machines resolve data once, child machines trust and validate input. Foundation ready for golf app React Native migration with proven complex state machine hierarchies.
+
+### Fixed
 - **Workout Setup Machine Service Integration Fix COMPLETE (July 26, 2025) ✅**
   
   **User Impact**: Users can now reliably browse workout templates and open workout detail modals without errors. Fixed critical issue where workout template loading was failing due to improper service integration in the XState setup machine, preventing users from viewing workout details before starting exercises.

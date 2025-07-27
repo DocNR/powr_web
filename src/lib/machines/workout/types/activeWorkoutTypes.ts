@@ -222,6 +222,24 @@ export interface ActiveWorkoutMachineInput {
   userInfo: UserInfo;
   workoutData: WorkoutData;
   templateSelection: TemplateSelection;
+  // ✅ ADD: Resolved data from setup machine to eliminate duplicate service calls
+  resolvedTemplate?: {
+    id: string;
+    name: string;
+    exercises: Array<{
+      exerciseRef: string;
+      weight?: number;
+      reps?: number;
+      sets?: number;
+    }>;
+  }; // Template data already resolved by setup machine
+  resolvedExercises?: Array<{
+    id: string;
+    name: string;
+    authorPubkey: string;
+    equipment?: string;
+    muscleGroups?: string[];
+  }>; // Exercise data already resolved by setup machine
 }
 
 // Output from active workout machine

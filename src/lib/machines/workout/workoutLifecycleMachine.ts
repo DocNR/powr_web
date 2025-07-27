@@ -133,7 +133,25 @@ export const workoutLifecycleMachine = setup({
         const input = {
           userInfo: context.userInfo,
           workoutData: context.workoutData as WorkoutData, // Safe assertion since we've already checked it exists
-          templateSelection: cleanTemplateSelection
+          templateSelection: cleanTemplateSelection,
+          // ✅ ADD: Pass resolved data from setup machine to eliminate duplicate service calls
+          resolvedTemplate: context.resolvedTemplate as {
+            id: string;
+            name: string;
+            exercises: Array<{
+              exerciseRef: string;
+              weight?: number;
+              reps?: number;
+              sets?: number;
+            }>;
+          } | undefined,
+          resolvedExercises: context.resolvedExercises as Array<{
+            id: string;
+            name: string;
+            authorPubkey: string;
+            equipment?: string;
+            muscleGroups?: string[];
+          }> | undefined
         };
         
         console.log('[WorkoutLifecycleMachine] 🚀 SPAWN DEBUG: Final spawn input:', JSON.stringify(input, null, 2));
