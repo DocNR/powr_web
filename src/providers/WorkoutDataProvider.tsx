@@ -319,18 +319,18 @@ export function WorkoutDataProvider({ children }: WorkoutDataProviderProps) {
           // Convert to WorkoutDataProvider format (maintaining backward compatibility)
           const providerSocialWorkout: SocialWorkout = {
             id: socialWorkout.id,
-            title: socialWorkout.title,
+            title: socialWorkout.templateName || socialWorkout.title, // Use template name if available
             description: socialWorkout.description,
             exercises: [], // Will be populated from template parsing
             estimatedDuration: Math.round(socialWorkout.duration / 60000) || 30, // Convert ms to minutes
             difficulty: undefined, // Will be set from template
             author: {
-              pubkey: socialWorkout.authorPubkey,
-              name: socialWorkout.authorPubkey.slice(0, 8) + '...',
+              pubkey: '', // Will be set from template author below
+              // Don't set name here - let useProfile hook handle it
             },
             socialProof: {
-              triedBy: socialWorkout.authorPubkey.slice(0, 8) + '...',
-              triedByPubkey: socialWorkout.authorPubkey,
+              triedBy: socialWorkout.authorPubkey.slice(0, 8) + '...', // Fallback display name
+              triedByPubkey: socialWorkout.authorPubkey, // Person who completed the workout (from 1301 event)
               completedAt: new Date(socialWorkout.createdAt),
               workoutRecordId: socialWorkout.eventId
             },
@@ -356,13 +356,11 @@ export function WorkoutDataProvider({ children }: WorkoutDataProviderProps) {
               weight: exercise.weight || 0
             }));
             
-            // Update author to template author (with null checks)
-            if (parsedTemplate.authorPubkey) {
-              providerSocialWorkout.author = {
-                pubkey: parsedTemplate.authorPubkey,
-                name: parsedTemplate.authorPubkey.slice(0, 8) + '...',
-              };
-            }
+            // ✅ FIXED: Set template author as the workout author (for "by" section)
+            providerSocialWorkout.author = {
+              pubkey: parsedTemplate.authorPubkey, // Template creator
+              // Don't set name here - let useProfile hook handle it
+            };
           }
 
           processedWorkouts.push(providerSocialWorkout);

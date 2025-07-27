@@ -501,7 +501,7 @@ export class DataParsingService {
         
         const social: SocialWorkout = {
           id: parsedWorkout.id,
-          title: parsedWorkout.title,
+          title: templateName || parsedWorkout.title, // Use template name if available, fallback to workout title
           description: parsedWorkout.description,
           authorPubkey: parsedWorkout.authorPubkey,
           createdAt: parsedWorkout.createdAt,

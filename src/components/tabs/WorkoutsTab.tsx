@@ -343,9 +343,10 @@ export default function WorkoutsTab() {
                         name: workout.author.name || (workout.author.pubkey ? workout.author.pubkey.slice(0, 8) + '...' : 'Unknown User'),
                         picture: workout.author.picture || '/assets/workout-template-fallback.jpg'
                       },
-                      // Add social proof info
+                      // Add social proof info with triedByPubkey for profile fetching
                       socialProof: {
                         triedBy: workout.socialProof.triedBy,
+                        triedByPubkey: workout.socialProof.triedByPubkey, // This is the key field that was missing!
                         completedAt: workout.socialProof.completedAt
                       },
                       eventId: workout.eventId

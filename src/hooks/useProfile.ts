@@ -7,6 +7,7 @@
 
 import { useState, useEffect } from 'react';
 import { getNDKInstance } from '@/lib/ndk';
+import { nip19 } from 'nostr-tools';
 
 interface ProfileData {
   name?: string;
@@ -88,8 +89,6 @@ export function useProfile(pubkey?: string): UseProfileResult {
         }
       } catch (err) {
         if (isCancelled) return;
-        
-        console.warn('[useProfile] Failed to fetch profile for', pubkey.slice(0, 16), err);
         setError(err instanceof Error ? err.message : 'Failed to fetch profile');
         // Set empty profile on error so we can still show fallback avatar
         setProfile({});
@@ -116,13 +115,20 @@ export function useProfile(pubkey?: string): UseProfileResult {
 export function getDisplayName(profile: ProfileData | null, pubkey?: string): string {
   if (!profile && !pubkey) return 'Anonymous';
   
-  // Try display_name first, then name, then truncated pubkey
+  // Try display_name first, then name, then npub format
   if (profile?.display_name) return profile.display_name;
   if (profile?.name) return profile.name;
   
   if (pubkey) {
-    // Return truncated pubkey as fallback
-    return `${pubkey.slice(0, 8)}...${pubkey.slice(-4)}`;
+    try {
+      // Convert to npub format for better readability
+      const npub = nip19.npubEncode(pubkey);
+      // Return truncated npub as fallback
+      return `${npub.slice(0, 12)}...${npub.slice(-4)}`;
+    } catch {
+      // Fallback to hex if npub conversion fails
+      return `${pubkey.slice(0, 8)}...${pubkey.slice(-4)}`;
+    }
   }
   
   return 'Anonymous';

@@ -169,11 +169,11 @@ export function WorkoutImageHandler({
   };
 
   return (
-    <div className={cn("relative overflow-hidden", className)}>
+    <div className={cn("relative overflow-hidden rounded-lg", className)}>
       {/* Loading placeholder */}
       {isLoading && (
         <div 
-          className="absolute inset-0 bg-muted animate-pulse flex items-center justify-center"
+          className="absolute inset-0 bg-muted animate-pulse flex items-center justify-center rounded-lg"
           style={{ width: finalWidth, height: finalHeight }}
         >
           <div className="text-muted-foreground text-sm">Loading...</div>
@@ -188,9 +188,8 @@ export function WorkoutImageHandler({
           fill
           priority={priority}
           className={cn(
-            'object-cover transition-opacity duration-300',
-            isLoading ? 'opacity-0' : 'opacity-100',
-            className
+            'object-cover transition-opacity duration-300 rounded-lg',
+            isLoading ? 'opacity-0' : 'opacity-100'
           )}
           onLoad={handleImageLoad}
           onError={handleImageError}
@@ -203,7 +202,7 @@ export function WorkoutImageHandler({
           width={finalWidth}
           height={finalHeight}
           className={cn(
-            "object-cover object-center transition-opacity duration-300",
+            "object-cover object-center transition-opacity duration-300 rounded-lg",
             "scale-105", // Slight zoom to ensure full coverage
             isLoading ? "opacity-0" : "opacity-100"
           )}
@@ -216,7 +215,7 @@ export function WorkoutImageHandler({
       )}
       
       {/* Image overlay for better text readability */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none rounded-lg" />
       
     </div>
   );

@@ -13,6 +13,7 @@ import { Card, CardContent } from '@/components/powr-ui/primitives/Card';
 import { Button } from '@/components/powr-ui/primitives/Button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/powr-ui/primitives/Avatar';
 import { WorkoutImageHandler } from './WorkoutImageHandler';
+import { useProfile, getDisplayName, getAvatarUrl } from '@/hooks/useProfile';
 import { cn } from '@/lib/utils';
 
 // Workout data types
@@ -111,6 +112,19 @@ export const WorkoutCard = memo(function WorkoutCard({
   const [showMenu, setShowMenu] = useState(false);
   const isRecord = isWorkoutRecord(workout);
   const isTemplate = isWorkoutTemplate(workout);
+
+  // Get author and social proof data
+  const author = isRecord ? workout.author : workout.author;
+  const socialProof = isTemplate ? workout.socialProof : null;
+  
+  // Profile hooks - must be called at top level
+  const { profile: socialProofProfile } = useProfile(socialProof?.triedByPubkey);
+  const socialProofDisplayName = getDisplayName(socialProofProfile, socialProof?.triedByPubkey);
+  const socialProofAvatar = getAvatarUrl(socialProofProfile, socialProof?.triedByPubkey);
+  
+  const { profile: authorProfile } = useProfile(author?.pubkey);
+  const authorDisplayName = getDisplayName(authorProfile, author?.pubkey);
+  const authorAvatar = getAvatarUrl(authorProfile, author?.pubkey);
 
   // Calculate stats
   const exerciseCount = isRecord 
@@ -262,13 +276,11 @@ export const WorkoutCard = memo(function WorkoutCard({
 
   // ✅ UPDATED: Social variant - now shows templates with social proof
   if (variant === 'social') {
-    const author = isRecord ? workout.author : workout.author;
-    const socialProof = isTemplate ? workout.socialProof : null;
-    
+
     return (
       <Card 
         className={cn(
-          "cursor-pointer transition-all duration-200",
+          "cursor-pointer transition-all duration-200 h-full flex flex-col",
           "hover:shadow-lg hover:ring-2 hover:ring-ring",
           "active:scale-[0.98] active:ring-2 active:ring-ring",
           "focus:ring-2 focus:ring-ring focus:outline-none",
@@ -286,58 +298,59 @@ export const WorkoutCard = memo(function WorkoutCard({
         
         {/* Image with overlays */}
         {showImage && (
-          <div className="relative h-48 w-full">
+          <div className="relative h-48 w-full flex-shrink-0">
             <WorkoutImageHandler
               tags={workout.eventTags}
               content={workout.eventContent}
               eventKind={workout.eventKind}
               alt={workout.title}
               fill={true}
-              className="w-full h-full rounded-t-lg"
+              className="w-full h-full object-cover rounded-t-lg"
             />
             
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-black/40" />
             
-            {/* ✅ NEW: Social Proof Badge - "Tried by Mike" */}
+            {/* ✅ UPDATED: Social Proof Badge with real user data and avatar */}
             {socialProof && (
               <div className="absolute top-3 left-3 z-10">
-                <div className="bg-orange-500/90 backdrop-blur-sm text-white px-3 py-1.5 rounded-full text-xs font-medium shadow-lg">
-                  <span className="text-white/90">Tried by</span>{' '}
-                  <span className="font-semibold">{socialProof.triedBy}</span>
+                <div className="flex items-center gap-2 bg-orange-500/90 backdrop-blur-sm text-white px-3 py-1.5 rounded-full text-xs font-medium shadow-lg">
+                  <Avatar className="h-5 w-5">
+                    <AvatarImage src={socialProofAvatar} alt={socialProofDisplayName} />
+                    <AvatarFallback className="bg-white/20 text-white text-xs">
+                      {socialProofDisplayName[0]?.toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="text-white/90">Tried by</span>
+                  <span className="font-semibold">{socialProofDisplayName}</span>
                 </div>
-              </div>
-            )}
-            
-            {/* Template Author Avatar - Top Right (template creator) */}
-            {showAuthor && author && (
-              <div className="absolute top-3 right-3 z-10">
-                <Avatar className="h-8 w-8 cursor-pointer border-2 border-white/80" onClick={handleAuthorClick}>
-                  <AvatarImage src={author.picture} alt={author.name || 'Creator'} />
-                  <AvatarFallback className="bg-white text-gray-800 font-semibold text-xs">
-                    {author.name?.[0] || 'C'}
-                  </AvatarFallback>
-                </Avatar>
               </div>
             )}
           </div>
         )}
 
-        {/* Content below image */}
-        <CardContent className="p-4">
-          <h3 className="font-bold text-xl mb-2 line-clamp-1">
+        {/* Content below image - flex-1 to fill remaining space with uniform height */}
+        <CardContent className="p-4 flex-1 flex flex-col min-h-[140px]">
+          {/* Title with wrapping - no fixed height to prevent gaps */}
+          <h3 className="font-bold text-xl mb-1 line-clamp-2 leading-tight">
             {workout.title}
           </h3>
 
-          {/* Author info - show template creator */}
-          {workout.author && (
-            <p className="text-sm text-muted-foreground mb-2">
-              by {workout.author.name || workout.author.pubkey.slice(0, 8) + '...'}
-            </p>
+          {/* Author info with avatar - show template creator with real profile data */}
+          {author && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1.5">
+              <Avatar className="h-4 w-4">
+                <AvatarImage src={authorAvatar} alt={authorDisplayName} />
+                <AvatarFallback className="bg-muted text-muted-foreground text-xs">
+                  {authorDisplayName[0]?.toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <span>by {authorDisplayName}</span>
+            </div>
           )}
 
           {/* Real metrics instead of hardcoded stats */}
           {showStats && (
-            <div className="flex items-center gap-3 text-sm text-muted-foreground mb-2">
+            <div className="flex items-center gap-3 text-sm text-muted-foreground mb-1.5">
               <span>{exerciseCount} exercises</span>
               <span>•</span>
               <span>{workout.exercises.reduce((total, ex) => {
@@ -349,16 +362,16 @@ export const WorkoutCard = memo(function WorkoutCard({
             </div>
           )}
 
-          {/* Keep the social proof completion date */}
+          {/* Keep the social proof completion date - push to bottom */}
           {socialProof && (
-            <div className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+            <div className="text-xs text-muted-foreground mt-auto flex items-center gap-1">
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               Completed {socialProof.completedAt.toLocaleDateString()}
             </div>
           )}
-        </CardContent>  
+        </CardContent>
       </Card>
     );
   }
@@ -695,15 +708,16 @@ export const WorkoutCard = memo(function WorkoutCard({
                 )}
               </div>
 
-              {/* Difficulty Badge and Rating */}
-              {showStats && isTemplate && (
+              {/* Author info with avatar - replacing difficulty badge */}
+              {showAuthor && author && (
                 <div className="flex items-center gap-2 mt-2">
-                  <span className={cn(
-                    "px-2 py-0.5 rounded-full text-xs font-medium",
-                    getDifficultyColor(workout.difficulty)
-                  )}>
-                    {workout.difficulty || 'intermediate'}
-                  </span>
+                  <Avatar className="h-4 w-4">
+                    <AvatarImage src={authorAvatar} alt={authorDisplayName} />
+                    <AvatarFallback className="bg-muted text-muted-foreground text-xs">
+                      {authorDisplayName[0]?.toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="text-xs text-muted-foreground">by {authorDisplayName}</span>
                 </div>
               )}
             </div>

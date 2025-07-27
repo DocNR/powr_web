@@ -179,8 +179,8 @@ export function ScrollableGallery({
             "flex overflow-x-auto scrollbar-hide",
             "scroll-smooth snap-x snap-mandatory",
             gapClasses[gap],
-            // Add padding to prevent clipping of shadows and rings
-            "py-2 px-1",
+            // Add padding to prevent clipping of shadows and rings - increased left padding even more
+            "py-2 pl-8 pr-1",
             // Hide scrollbar
             "[-webkit-overflow-scrolling:touch]",
             "[&::-webkit-scrollbar]:hidden",
@@ -197,6 +197,8 @@ export function ScrollableGallery({
                 key={index}
                 className={cn(
                   "flex-shrink-0 snap-start",
+                  // Add scroll snap margin to offset snap position from left edge
+                  "scroll-ml-4",
                   itemClassName
                 )}
               >
@@ -204,7 +206,7 @@ export function ScrollableGallery({
               </div>
             ))
           ) : (
-            <div className={cn("flex-shrink-0 snap-start", itemClassName)}>
+            <div className={cn("flex-shrink-0 snap-start scroll-ml-4", itemClassName)}>
               {children}
             </div>
           )}
