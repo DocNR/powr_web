@@ -49,6 +49,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   **Architecture Changes**: Completed service extraction with proper XState + service integration patterns. Established clean data flow where dependency resolution service provides <100ms template loading, XState machines coordinate state, and UI components receive resolved data. Foundation validated for complex state management with service layer architecture.
 
 ### Added
+- **Active Workout Machine Architecture Refactor COMPLETE (July 27, 2025) ✅**
+  
+  **User Impact**: Active workout interface now starts immediately without initialization delays. Exercise names display correctly and no more "Missing resolved data" errors during workouts.
+  
+  **Developer Notes**: Eliminated duplicate data resolution by implementing proper XState parent-child data flow patterns. Active machine now trusts resolved data from setup machine instead of re-resolving. Added `exerciseName` field to type definitions for consistency.
+  
+  **Architecture Changes**: Established XState parent-child data flow patterns that prevent duplicate service calls. These patterns will be crucial for golf app React Native migration and validate our NDK-first architecture approach.
+
 - **NIP-101e 33402 Set Number Implementation COMPLETE (July 26, 2025) ✅**
   
   **User Impact**: Workout templates now preserve all exercise sets without data loss. Users can create and use templates with multiple identical sets (e.g., "3 sets of 10 push-ups") and all sets are maintained correctly. Enables complex training methodologies like supersets, circuit training, and progressive overload with complete data integrity.

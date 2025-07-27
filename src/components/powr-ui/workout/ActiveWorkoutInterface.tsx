@@ -49,6 +49,7 @@ interface CompletedSet {
 interface WorkoutExercise {
   exerciseRef: string;
   name?: string;
+  exerciseName?: string; // ✅ ADD: Field added by active workout machine
   sets: number;
   reps: number;
   weight?: number;
@@ -150,7 +151,7 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
 
     return {
       id: exercise.exerciseRef || `exercise-${index}`,
-      name: exercise.name || `Exercise ${index + 1}`,
+      name: exercise.exerciseName || `Exercise ${index + 1}`, // ✅ FIXED: Use exerciseName from active workout machine
       equipment: exercise.equipment,
       notes: exercise.notes,
       sets: Array.from({ length: totalSets }, (_, setIndex) => {  // ✅ Use totalSets instead of exercise.sets

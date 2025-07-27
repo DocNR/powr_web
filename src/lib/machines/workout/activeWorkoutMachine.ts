@@ -1,15 +1,14 @@
 /**
- * Active Workout Machine
+ * Active Workout Machine - Refactored for Parent-Child Data Flow
  * 
- * This state machine handles the workout execution during an active workout,
- * including set tracking, exercise navigation, and persistence.
- * It's designed to be a child machine of the Workout Lifecycle Machine.
+ * This state machine handles workout execution during an active workout,
+ * following the XState parent-child data flow patterns from .clinerules/xstate-parent-child-data-flow.md
  * 
- * Following Noga's activeRoundMachine.ts patterns exactly,
- * adapted from golf domain (holes, scores) to workout domain (exercises, sets).
- * 
- * Uses XState v5 patterns with correct generic types, inline actors,
- * and compound state pattern for child actor compatibility.
+ * KEY CHANGES:
+ * - Removed duplicate data resolution (trusts parent-provided data)
+ * - Added comprehensive input validation with clear error messages
+ * - Simplified to focus only on workout execution logic
+ * - Follows "Parent Resolves, Child Trusts" pattern
  */
 
 import {
@@ -25,82 +24,73 @@ import type {
   ActiveWorkoutEvent, 
   ActiveWorkoutMachineInput
 } from './types/activeWorkoutTypes';
-import { defaultActiveWorkoutContext } from './types/activeWorkoutTypes';
-import type { 
-  ErrorInfo 
-} from './types/workoutTypes';
 import { workoutTimingService } from '@/lib/services/workoutTiming';
 
 /**
- * Helper function to create error info
- * Following Noga's error handling patterns
+ * Comprehensive input validation following parent-child data flow patterns
  */
-const createErrorInfo = (
-  code: string, 
-  message: string, 
-  retryable: boolean = true, 
-  originalError?: unknown
-): ErrorInfo => ({
-  code,
-  message,
-  retryable,
-  timestamp: Date.now(),
-  originalError
-});
-
+const validateActiveWorkoutInput = (input: ActiveWorkoutMachineInput): input is ActiveWorkoutMachineInput => {
+  console.log('[ActiveWorkoutMachine] 🔍 INPUT VALIDATION: Received input:', {
+    hasUserInfo: !!input.userInfo,
+    hasWorkoutData: !!input.workoutData,
+    hasTemplateSelection: !!input.templateSelection,
+    hasResolvedTemplate: !!input.resolvedTemplate,
+    hasResolvedExercises: !!input.resolvedExercises,
+    exerciseCount: input.workoutData?.exercises?.length || 0
+  });
+  
+  // Validate required input fields
+  const missingFields = [];
+  if (!input.userInfo) missingFields.push('userInfo');
+  if (!input.workoutData) missingFields.push('workoutData');
+  if (!input.templateSelection) missingFields.push('templateSelection');
+  if (!input.resolvedTemplate) missingFields.push('resolvedTemplate');
+  if (!input.resolvedExercises) missingFields.push('resolvedExercises');
+  
+  if (missingFields.length > 0) {
+    throw new Error(
+      `Active workout machine missing required input: ${missingFields.join(', ')}. ` +
+      `Parent lifecycle machine should resolve these before spawning active machine.`
+    );
+  }
+  
+  // Validate workout data structure
+  if (!input.workoutData.exercises || input.workoutData.exercises.length === 0) {
+    throw new Error('Workout data must include at least one exercise');
+  }
+  
+  // Validate resolved data consistency
+  if (!Array.isArray(input.resolvedExercises) || input.resolvedExercises.length === 0) {
+    throw new Error('resolvedExercises must be a non-empty array');
+  }
+  
+  console.log('[ActiveWorkoutMachine] ✅ INPUT VALIDATION: All required data present');
+  return true;
+};
 
 /**
- * Define the Active Workout Machine following Noga's structure
- * 
- * This follows the XState v5 pattern for invokable machines
+ * Active Workout Machine - Simplified for Parent-Child Data Flow
  */
 export const activeWorkoutMachine = setup({
-  // Type definitions
   types: {
     context: {} as ActiveWorkoutContext,
     events: {} as ActiveWorkoutEvent,
     input: {} as ActiveWorkoutMachineInput
   },
   
-  // Register guards
   guards: activeWorkoutGuards,
   
-  // Inline actors following XState v5 patterns
+  // ✅ SIMPLIFIED: Only workout execution actors, no data resolution
   actors: {
-    // ✅ SIMPLIFIED: Use resolved data from lifecycle machine instead of duplicate service call
-    initializeResolvedData: fromPromise<{ template: any; exercises: any[] }, ActiveWorkoutMachineInput>(async ({ input }) => {
-      console.log('[ActiveWorkoutMachine] 🔄 Using resolved data from lifecycle machine');
-      
-      if (!input.resolvedTemplate || !input.resolvedExercises) {
-        console.error('[ActiveWorkoutMachine] ❌ Missing resolved data:', {
-          hasResolvedTemplate: !!input.resolvedTemplate,
-          hasResolvedExercises: !!input.resolvedExercises,
-          inputKeys: Object.keys(input)
-        });
-        throw new Error('Missing resolved template or exercises data from lifecycle machine');
-      }
-      
-      console.log('[ActiveWorkoutMachine] ✅ Using pre-resolved data:', {
-        templateName: input.resolvedTemplate.name,
-        exerciseCount: input.resolvedExercises.length
-      });
-      
-      return {
-        template: input.resolvedTemplate,
-        exercises: input.resolvedExercises
-      };
-    }),
-
-    // Track individual sets (like Noga's processPendingScores)
+    // Track individual sets
     trackCompletedSet: setTrackingActor,
     
     // Rest timer using WorkoutTimingService
     restTimer: fromPromise<void, { exerciseRef: string; rpe?: number; setType?: 'warmup' | 'normal' | 'drop' | 'failure' }>(async ({ input }) => {
       const { exerciseRef, rpe, setType = 'normal' } = input;
       
-      // Calculate optimal rest time using service
       const restResult = workoutTimingService.getRestTime(exerciseRef, rpe, setType);
-      const restDurationMs = restResult.restTime * 1000; // Convert seconds to milliseconds
+      const restDurationMs = restResult.restTime * 1000;
       
       console.log(`[ActiveWorkoutMachine] Starting rest timer for ${restDurationMs}ms (${exerciseRef}, RPE: ${rpe}, type: ${setType})`);
       
@@ -115,30 +105,34 @@ export const activeWorkoutMachine = setup({
 }).createMachine({
   id: 'activeWorkout',
   
-  // Initial context from input
+  // ✅ CRITICAL: Validate input and trust parent-provided data
   context: ({ input }) => {
-    // 🔍 ROOT CAUSE INVESTIGATION: Log the exact input we receive
-    console.log('[ActiveWorkoutMachine] 🔍 CONTEXT INIT: Raw input received:', {
-      templateReference: input.templateSelection.templateReference,
-      templateReferenceType: typeof input.templateSelection.templateReference,
-      templateReferenceLength: input.templateSelection.templateReference?.length,
-      fullTemplateSelection: input.templateSelection,
-      hasResolvedTemplate: !!input.resolvedTemplate,
-      hasResolvedExercises: !!input.resolvedExercises
+    // Validate input immediately
+    validateActiveWorkoutInput(input);
+    
+    console.log('[ActiveWorkoutMachine] ✅ READY: Starting with resolved data from parent', {
+      templateName: input.resolvedTemplate!.name,
+      exerciseCount: input.resolvedExercises!.length,
+      workoutExerciseCount: input.workoutData.exercises!.length
     });
     
     return {
-      // Spread default context
-      ...defaultActiveWorkoutContext,
-      
-      // Override with input data - NO MODIFICATION, use exactly what we receive
+      // Use resolved data directly from parent
       userInfo: input.userInfo,
-      workoutData: input.workoutData,
-      templateSelection: input.templateSelection, // Use original, unmodified
-      
-      // ✅ CRITICAL FIX: Store resolved data in context for actor access
-      resolvedTemplate: input.resolvedTemplate as any,
-      resolvedExercises: input.resolvedExercises as any,
+      // ✅ CRITICAL FIX: Merge resolved exercise names into workout data
+      workoutData: {
+        ...input.workoutData,
+        exercises: input.workoutData.exercises?.map(workoutExercise => {
+          const resolvedExercise = input.resolvedExercises?.find(
+            re => workoutExercise.exerciseRef === `33401:${re.authorPubkey}:${re.id}`
+          );
+          return {
+            ...workoutExercise,
+            exerciseName: resolvedExercise?.name || 'Unknown Exercise' // Add human-readable name
+          };
+        }) || []
+      },
+      templateSelection: input.templateSelection,
       
       // Initialize exercise progression
       exerciseProgression: {
@@ -156,137 +150,71 @@ export const activeWorkoutMachine = setup({
       },
       
       // Initialize exercise set counters for NDK deduplication fix
-      exerciseSetCounters: new Map<string, number>()
+      exerciseSetCounters: new Map<string, number>(),
+      
+      // Initialize all required context fields
+      workoutSession: {
+        isActive: true,
+        isPaused: false,
+        totalPauseTime: 0,
+        lastActivityAt: Date.now()
+      },
+      
+      publishingStatus: {
+        isPublishing: false,
+        publishAttempts: 0
+      },
+      
+      // ✅ CRITICAL FIX: Use resolved exercises with merged names from parent
+      templateExercises: input.resolvedExercises?.map(exercise => {
+        // Find corresponding template exercise for prescribed values
+        const templateExercise = input.resolvedTemplate?.exercises?.find(
+          te => te.exerciseRef === `33401:${exercise.authorPubkey}:${exercise.id}`
+        );
+        
+        return {
+          exerciseRef: `33401:${exercise.authorPubkey}:${exercise.id}`,
+          exerciseName: exercise.name, // ✅ ADD: Human-readable exercise name
+          prescribedReps: templateExercise?.reps || 10,
+          prescribedWeight: templateExercise?.weight || 0,
+          prescribedRPE: 7, // Default RPE
+          prescribedSetType: 'normal' as const,
+          plannedSets: templateExercise?.sets || 3 // Required by ActiveWorkoutContext
+        };
+      }) || [],
+      
+      lastUpdated: Date.now(),
+      lastActivityAt: Date.now(),
+      currentSetData: undefined,
+      error: undefined
     };
   },
   
-  // Initial state
-  initial: 'loadingTemplate',
+  // ✅ SIMPLIFIED: Start exercising immediately, no initialization needed
+  initial: 'exercising',
   
   states: {
     /**
-     * Loading template state - initial state to load exercise data
-     * Like Noga's loadingCourseData
+     * Ready state - active workout ready to start
+     * ✅ SIMPLIFIED: No data resolution needed, trust parent data
      */
-    loadingTemplate: {
-      invoke: {
-        src: 'initializeResolvedData',
-        input: ({ context }) => {
-          // ✅ FIX: Pass the complete ActiveWorkoutMachineInput as expected by the actor
-          console.log('[ActiveWorkoutMachine] 🔍 Passing complete input to initializeResolvedData:', {
-            hasResolvedTemplate: !!(context as any).resolvedTemplate,
-            hasResolvedExercises: !!(context as any).resolvedExercises,
-            contextKeys: Object.keys(context)
-          });
-          
-          return {
-            userInfo: context.userInfo,
-            workoutData: context.workoutData,
-            templateSelection: context.templateSelection,
-            resolvedTemplate: (context as any).resolvedTemplate,
-            resolvedExercises: (context as any).resolvedExercises
-          };
-        },
-        onDone: {
-          target: 'exercising',
-          actions: assign({
-            // Store loaded template data
-            workoutData: ({ context, event }) => {
-              const resolvedTemplate = event.output;
-              console.log('[ActiveWorkoutMachine] 🔧 MERGING RESOLVED EXERCISE NAMES:', {
-                template: resolvedTemplate.template.name,
-                resolvedExercises: resolvedTemplate.exercises.map(ex => ({ id: ex.id, name: ex.name }))
-              });
-              
-              // ✅ FIX: Merge resolved exercise names into workout exercises
-              const updatedExercises = (context.workoutData.exercises || []).map(workoutExercise => {
-                // Find the resolved exercise details by matching exerciseRef
-                const resolvedExercise = resolvedTemplate.exercises.find(ex => 
-                  workoutExercise.exerciseRef === `33401:${ex.authorPubkey}:${ex.id}`
-                );
-                
-                if (resolvedExercise) {
-                  console.log(`[ActiveWorkoutMachine] ✅ MERGED: ${workoutExercise.exerciseRef} -> ${resolvedExercise.name}`);
-                  return {
-                    ...workoutExercise,
-                    name: resolvedExercise.name, // ✅ THE FIX: Add the resolved name
-                    equipment: resolvedExercise.equipment,
-                    muscleGroups: resolvedExercise.muscleGroups
-                  };
-                } else {
-                  console.warn(`[ActiveWorkoutMachine] ⚠️ No resolved exercise found for: ${workoutExercise.exerciseRef}`);
-                  return workoutExercise;
-                }
-              });
-              
-              return {
-                ...context.workoutData,
-                template: resolvedTemplate.template,
-                exercises: updatedExercises // ✅ Use exercises with merged names
-              };
-            },
-            // FIX: Update exercise progression with correct total from template
-            exerciseProgression: ({ context, event }) => ({
-              ...context.exerciseProgression,
-              totalExercises: event.output.template.exercises.length
-            }),
-            // NEW: Parse template exercises to extract prescribed parameters
-            templateExercises: ({ event }) => {
-              const template = event.output.template;
-              console.log('[ActiveWorkoutMachine] 📋 Parsing template exercises for prescribed parameters');
-              
-                return template.exercises.map((exercise: { exerciseRef: string; weight?: number; reps?: number; sets?: number }, index: number) => {
-                // Extract prescribed parameters from template exercise
-                const prescribedWeight = exercise.weight || 0;
-                const prescribedReps = exercise.reps || 10;
-                // Note: Current template structure doesn't have rpe/setType, use defaults
-                const prescribedRPE = 7; // Default RPE since not in current template structure
-                const prescribedSetType = 'normal' as const; // Default set type
-                const plannedSets = exercise.sets || 3; // Default to 3 sets
-                
-                console.log(`[ActiveWorkoutMachine] 📋 Exercise ${index + 1}: ${exercise.exerciseRef}`, {
-                  prescribedWeight,
-                  prescribedReps,
-                  prescribedRPE,
-                  prescribedSetType,
-                  plannedSets
-                });
-                
-                return {
-                  exerciseRef: exercise.exerciseRef,
-                  prescribedWeight,
-                  prescribedReps,
-                  prescribedRPE,
-                  prescribedSetType,
-                  plannedSets
-                };
-              });
-            }
-          })
-        },
-        onError: {
-          target: 'error',
-          actions: assign({
-            error: ({ event }) => createErrorInfo(
-              'TEMPLATE_DATA_ERROR',
-              `Error loading template data: ${event.error}`,
-              true,
-              event.error
-            )
-          })
-        }
+    ready: {
+      entry: ({ context }) => {
+        console.log('[ActiveWorkoutMachine] 🏃 READY: Starting workout execution', {
+          exerciseCount: context.workoutData.exercises?.length || 0,
+          templateName: context.templateSelection?.templateId || 'Unknown',
+          hasExerciseNames: context.workoutData.exercises?.every(ex => !!ex.exerciseRef) || false
+        });
       },
+      
       on: {
-        // Allow retry if loading fails
-        RETRY_OPERATION: {
-          target: 'loadingTemplate'
-        }
+        START_WORKOUT: 'exercising'
       }
     },
     
     /**
      * Exercising state - active workout execution
-     * Like Noga's playing state
+     * ✅ SIMPLIFIED: Focus only on workout execution logic
      */
     exercising: {
       initial: 'performingSet',
@@ -834,19 +762,11 @@ export const activeWorkoutMachine = setup({
      */
     error: {
       on: {
-        RETRY_OPERATION: [
-          {
-            // Retry template data loading
-            guard: 'isTemplateDataError',
-            target: 'loadingTemplate',
-            actions: assign({ error: undefined })
-          },
-          {
-            // Default retry goes back to exercising
-            target: 'exercising',
-            actions: assign({ error: undefined })
-          }
-        ]
+        RETRY_OPERATION: {
+          // Default retry goes back to exercising
+          target: 'exercising',
+          actions: assign({ error: undefined })
+        }
       }
     }
   }

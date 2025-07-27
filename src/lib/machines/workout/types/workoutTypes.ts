@@ -23,6 +23,7 @@ export interface WorkoutExercise {
   reps: number; // Renamed from plannedReps for consistency
   weight?: number; // Renamed from plannedWeight for consistency
   restTime?: number; // seconds
+  exerciseName?: string; // ✅ ADD: Human-readable name added by active workout machine
 }
 
 

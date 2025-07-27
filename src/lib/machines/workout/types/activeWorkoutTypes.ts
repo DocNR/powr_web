@@ -57,6 +57,7 @@ export interface ActiveWorkoutContext extends BaseMachineContext {
   // NEW: Parsed template exercises with prescribed parameters
   templateExercises: Array<{
     exerciseRef: string;
+    exerciseName: string;         // ✅ ADD: Human-readable exercise name
     prescribedWeight?: number;    // Optional - may not be in template
     prescribedReps?: number;      // Optional - may not be in template
     prescribedRPE?: number;       // Optional - may not be in template
