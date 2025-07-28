@@ -73,10 +73,16 @@ export class SearchService {
         console.log(`[SearchService] Only found ${cachedResults.length} cached results, searching network...`);
         const networkResults = await this.searchNetworkTemplates(searchTerm, maxResults - cachedResults.length);
         
-        // Merge results, avoiding duplicates
+        // Merge results, avoiding duplicates using full template reference (kind:pubkey:dtag)
         const allResults = new Map<string, WorkoutTemplate>();
-        cachedResults.forEach(template => allResults.set(template.id, template));
-        networkResults.forEach(template => allResults.set(template.id, template));
+        cachedResults.forEach(template => {
+          const uniqueKey = `33402:${template.author}:${template.id}`;
+          allResults.set(uniqueKey, template);
+        });
+        networkResults.forEach(template => {
+          const uniqueKey = `33402:${template.author}:${template.id}`;
+          allResults.set(uniqueKey, template);
+        });
         
         const finalResults = Array.from(allResults.values())
           .slice(0, maxResults)
