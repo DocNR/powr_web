@@ -8,12 +8,12 @@ import { WorkoutCard } from '@/components/powr-ui/workout';
 import { Button } from '@/components/powr-ui/primitives/Button';
 import { Input } from '@/components/powr-ui/primitives/Input';
 import { 
-  Sheet, 
-  SheetContent, 
-  SheetHeader, 
-  SheetTitle, 
-  SheetDescription 
-} from '@/components/powr-ui/primitives/Sheet';
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogDescription 
+} from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 
 interface GlobalWorkoutSearchProps {
@@ -171,21 +171,30 @@ export function GlobalWorkoutSearch({
         <span className="sr-only">Search workouts across Nostr network</span>
       </Button>
 
-      {/* Search Modal - Responsive like WorkoutDetailModal */}
-      <Sheet open={isOpen} onOpenChange={setIsOpen}>
-        <SheetContent 
-          side="top" 
-          className="h-[100vh] md:h-[90vh] w-[100vw] md:max-w-4xl md:mx-auto md:left-1/2 md:-translate-x-1/2 bg-background border-none flex flex-col md:rounded-b-3xl"
+      {/* Search Modal - Full Screen Dialog like ActiveWorkoutInterface */}
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogContent 
+          className="max-w-full max-h-full w-screen h-[100dvh] supports-[height:100dvh]:h-[100dvh] p-0 m-0 rounded-none border-none"
+          showCloseButton={false}
         >
-          <SheetHeader className="pb-4 flex-shrink-0">
-            <SheetTitle>Search Workouts</SheetTitle>
-            <SheetDescription>
+          <DialogHeader className="sr-only">
+            <DialogTitle>Search Workouts</DialogTitle>
+            <DialogDescription>
               Search for workout templates across the Nostr network
-            </SheetDescription>
-          </SheetHeader>
+            </DialogDescription>
+          </DialogHeader>
 
-          {/* Search Input */}
-          <div className="relative mb-6 flex-shrink-0">
+          <div className="relative h-full bg-background overflow-hidden pb-[env(safe-area-inset-bottom)] flex flex-col">
+            {/* Header - Matches ActiveWorkoutInterface pattern */}
+            <div className="pb-4 flex-shrink-0 p-6">
+              <h2 className="text-2xl font-bold">Search Workouts</h2>
+              <p className="text-muted-foreground">
+                Search for workout templates across the Nostr network
+              </p>
+            </div>
+
+            {/* Search Input */}
+            <div className="relative mb-6 flex-shrink-0 px-6">
             <div className={`
               relative flex items-center
               bg-muted/50 
@@ -248,34 +257,34 @@ export function GlobalWorkoutSearch({
             )}
           </div>
 
-          {/* Search Tips (shown when no search term) */}
-          {!searchTerm && (
-            <div className="mb-6 p-4 bg-muted/30 rounded-lg border border-border/50">
-              <div className="text-sm text-muted-foreground">
-                <div className="font-medium mb-2">Search Tips:</div>
-                <ul className="space-y-1 text-xs">
-                  <li>• Search by workout name: &ldquo;chest day&rdquo;, &ldquo;leg workout&rdquo;</li>
-                  <li>• Search by muscle group: &ldquo;chest&rdquo;, &ldquo;legs&rdquo;, &ldquo;shoulders&rdquo;</li>
-                  <li>• Search by description: &ldquo;beginner&rdquo;, &ldquo;advanced&rdquo;, &ldquo;HIIT&rdquo;</li>
-                  <li>• Results come from the entire Nostr network</li>
-                </ul>
+            {/* Search Tips (shown when no search term) */}
+            {!searchTerm && (
+              <div className="mb-6 p-4 bg-muted/30 rounded-lg border border-border/50 mx-6">
+                <div className="text-sm text-muted-foreground">
+                  <div className="font-medium mb-2">Search Tips:</div>
+                  <ul className="space-y-1 text-xs">
+                    <li>• Search by workout name: &ldquo;chest day&rdquo;, &ldquo;leg workout&rdquo;</li>
+                    <li>• Search by muscle group: &ldquo;chest&rdquo;, &ldquo;legs&rdquo;, &ldquo;shoulders&rdquo;</li>
+                    <li>• Search by description: &ldquo;beginner&rdquo;, &ldquo;advanced&rdquo;, &ldquo;HIIT&rdquo;</li>
+                    <li>• Results come from the entire Nostr network</li>
+                  </ul>
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Loading Indicator */}
-          {searchState.isSearching && (
-            <div className="flex items-center justify-center py-8">
-              <div className="flex items-center text-sm text-muted-foreground">
-                <Loader2 className="animate-spin h-4 w-4 mr-2" />
-                Searching Nostr relays for workouts...
+            {/* Loading Indicator */}
+            {searchState.isSearching && (
+              <div className="flex items-center justify-center py-8">
+                <div className="flex items-center text-sm text-muted-foreground">
+                  <Loader2 className="animate-spin h-4 w-4 mr-2" />
+                  Searching Nostr relays for workouts...
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
             {/* Search Results - Using WorkoutCard components with proper padding for hover effects */}
             {searchState.templates.length > 0 && (
-              <div className="flex-1 overflow-y-auto px-1 py-1">
+              <div className="flex-1 overflow-y-auto px-6 py-1">
                 <div className="space-y-3 pb-4">
                   {searchState.templates.map((template) => {
                     const workoutCardData = transformTemplateToWorkoutCard(template);
@@ -292,20 +301,21 @@ export function GlobalWorkoutSearch({
               </div>
             )}
 
-          {/* No Results */}
-          {isSearchActive && searchState.totalFound === 0 && !searchState.isSearching && searchTerm.length >= 2 && (
-            <div className="text-center py-8">
-              <div className="text-muted-foreground">
-                <Search className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p className="text-lg font-medium mb-2">No workouts found</p>
-                <p className="text-sm">
-                  Try different search terms or check your spelling
-                </p>
+            {/* No Results */}
+            {isSearchActive && searchState.totalFound === 0 && !searchState.isSearching && searchTerm.length >= 2 && (
+              <div className="text-center py-8">
+                <div className="text-muted-foreground">
+                  <Search className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p className="text-lg font-medium mb-2">No workouts found</p>
+                  <p className="text-sm">
+                    Try different search terms or check your spelling
+                  </p>
+                </div>
               </div>
-            </div>
-          )}
-        </SheetContent>
-      </Sheet>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
