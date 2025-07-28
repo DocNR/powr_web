@@ -171,9 +171,12 @@ export function GlobalWorkoutSearch({
         <span className="sr-only">Search workouts across Nostr network</span>
       </Button>
 
-      {/* Search Modal - Full Screen */}
+      {/* Search Modal - Responsive like WorkoutDetailModal */}
       <Sheet open={isOpen} onOpenChange={setIsOpen}>
-        <SheetContent side="top" className="h-[100vh] w-[100vw] max-w-none bg-background border-none flex flex-col">
+        <SheetContent 
+          side="top" 
+          className="h-[100vh] md:h-[90vh] w-[100vw] md:max-w-4xl md:mx-auto md:left-1/2 md:-translate-x-1/2 bg-background border-none flex flex-col md:rounded-b-3xl"
+        >
           <SheetHeader className="pb-4 flex-shrink-0">
             <SheetTitle>Search Workouts</SheetTitle>
             <SheetDescription>
