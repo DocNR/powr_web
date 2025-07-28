@@ -19,14 +19,15 @@ const DEFAULT_RELAYS = [
 // Global NDK instance - initialized immediately (official NDK pattern)
 let globalNDK: NDK | null = null;
 let initializationPromise: Promise<NDK> | null = null;
+let relayConnectionPromise: Promise<void> | null = null;
 
 /**
- * Initialize NDK singleton immediately (official NDK pattern)
+ * Initialize NDK singleton with lazy relay connection (optimized for fast auth)
  * 
  * Key architectural decision: Using ONLY NDK cache for persistence.
  * No custom database, no field mapping, no sync complexity.
  */
-const createNDKSingleton = async (): Promise<NDK> => {
+const createNDKSingleton = async (connectRelays: boolean = false): Promise<NDK> => {
   console.log('[NDK] Initializing NDK singleton with IndexedDB cache...');
   
   try {
@@ -55,14 +56,23 @@ const createNDKSingleton = async (): Promise<NDK> => {
       clientName: 'POWR Web',
     });
     
-    // Connect to relays with timeout to prevent hanging
-    console.log('[NDK] Connecting to relays...');
-    await connectWithTimeout(ndk, 10000); // 10 second timeout
-    
-    console.log('[NDK] Successfully connected to relays');
-    
-    // Store global reference
+    // Store global reference immediately (before relay connection)
     globalNDK = ndk;
+    
+    if (connectRelays) {
+      // Connect to relays with reduced timeout for faster auth
+      console.log('[NDK] Connecting to relays...');
+      await connectWithTimeout(ndk, 2000); // Reduced from 10s to 2s
+      console.log('[NDK] Successfully connected to relays');
+    } else {
+      // Start relay connection in background without blocking
+      console.log('[NDK] Starting background relay connection...');
+      relayConnectionPromise = connectWithTimeout(ndk, 3000).then(() => {
+        console.log('[NDK] Background relay connection completed');
+      }).catch((error) => {
+        console.warn('[NDK] Background relay connection failed:', error);
+      });
+    }
     
     return ndk;
     
@@ -87,6 +97,7 @@ const connectWithTimeout = async (ndk: NDK, timeoutMs: number): Promise<void> =>
     ndk.connect()
       .then(() => {
         clearTimeout(timeout);
+        console.log(`[NDK] Connected to relays in ${timeoutMs}ms or less`);
         resolve();
       })
       .catch((error) => {
@@ -95,6 +106,36 @@ const connectWithTimeout = async (ndk: NDK, timeoutMs: number): Promise<void> =>
         resolve(); // Resolve anyway - NDK can work with partial connections
       });
   });
+};
+
+/**
+ * Ensure relays are connected before publishing (lazy connection)
+ */
+export const ensureRelaysConnected = async (): Promise<void> => {
+  if (!globalNDK) {
+    throw new Error('NDK not initialized');
+  }
+
+  // If background connection is still in progress, wait for it
+  if (relayConnectionPromise) {
+    console.log('[NDK] Waiting for background relay connection...');
+    await relayConnectionPromise;
+    relayConnectionPromise = null; // Clear after completion
+    return;
+  }
+
+  // Check if we already have relay connections
+  const connectedRelays = Array.from(globalNDK.pool.relays.values())
+    .filter(relay => relay.connectivity.status === 1); // 1 = connected
+
+  if (connectedRelays.length > 0) {
+    console.log(`[NDK] Already connected to ${connectedRelays.length} relays`);
+    return;
+  }
+
+  // Force connection if not connected
+  console.log('[NDK] No relay connections found, connecting now...');
+  await connectWithTimeout(globalNDK, 3000);
 };
 
 /**

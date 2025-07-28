@@ -26,10 +26,16 @@ import {
   canSignAtom
 } from './atoms';
 import type { Account, LoginMethod, AuthenticationError, Nip46Settings, ValidationResult } from './types';
-import { ensureNDKInitialized } from '../ndk';
+import { ensureNDKInitialized, ensureRelaysConnected } from '../ndk';
 
 async function getNDK(): Promise<NDK> {
   return await ensureNDKInitialized();
+}
+
+async function getNDKWithRelays(): Promise<NDK> {
+  const ndk = await ensureNDKInitialized();
+  await ensureRelaysConnected();
+  return ndk;
 }
 
 // Convenience hooks for accessing auth state
@@ -282,7 +288,7 @@ export function useNip46Login() {
         };
       }
 
-      const mainNDK = await getNDK();
+      const mainNDK = await getNDKWithRelays();
       
       // Get connection settings from bunker URL
       const settings = await getNostrConnectSettings(mainNDK, remoteSignerURL);

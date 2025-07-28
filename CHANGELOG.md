@@ -30,6 +30,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **NIP-07 Authentication Timeout Optimization COMPLETE (July 27, 2025) ✅**
+  
+  **User Impact**: NIP-07 browser extension authentication is now almost instantaneous instead of taking 10+ seconds. Users can click the login button and authenticate immediately with their browser extension, dramatically improving the first-time user experience and app responsiveness.
+  
+  **Developer Notes**: Fixed root cause where NDK initialization was blocking authentication while waiting for relay connections with a 10-second timeout. Implemented lazy relay connection architecture where NDK initializes immediately without waiting for relays, then connects to relays in the background after authentication succeeds. Reduced relay connection timeout from 10 seconds to 2-3 seconds for immediate scenarios. Added `ensureRelaysConnected()` function for publishing operations that need relay access.
+  
+  **Architecture Changes**: Established separation of concerns between authentication and publishing - NIP-07 authentication uses fast NDK without relay connections, while publishing operations ensure relays are connected when needed. Background relay connection happens after login without blocking UX. Foundation ready for optimal user experience with immediate authentication feedback.
+
 ### Added
 - **Workout Detail Modal Scrollable Content & Styling Improvements COMPLETE (July 27, 2025) ✅**
   

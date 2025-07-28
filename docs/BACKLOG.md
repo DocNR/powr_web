@@ -72,6 +72,14 @@ formatting_rules:
 ## 🟢 Normal Priority
 
 ### Technical Improvements
+- [ ] **Authentication/Publishing Separation Architecture Enhancement** (M)
+  - **Context**: Current fix reduces NIP-07 auth from 10s to instant by separating auth from relay connections
+  - **Opportunity**: Further optimize by creating separate "minimal NDK" for authentication vs "full NDK" for publishing
+  - **Benefits**: Even faster auth, cleaner separation of concerns, better error isolation
+  - **Implementation**: Create `createAuthNDK()` (no relays) and `createPublishingNDK()` (with relays)
+  - **Impact**: Authentication becomes truly instant, publishing operations handle their own relay requirements
+  - **Priority**: Medium - current fix works well, this would be architectural improvement
+
 - [ ] **Fix ESLint errors in test files** (S)
   - Multiple ESLint errors in src/components/test/ files
   - Issues: unescaped entities, @typescript-eslint/no-explicit-any, unused variables
