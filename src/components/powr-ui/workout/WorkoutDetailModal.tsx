@@ -292,17 +292,17 @@ export const WorkoutDetailModal = ({
                   {/* Scrollable Tab Content */}
                   <div className="flex-1 overflow-hidden">
                     <TabsContent value="overview" className="mt-0 h-full overflow-y-auto data-[state=inactive]:hidden">
-                      <div className="px-6 pt-4 pb-6 space-y-4">
+                      <div className="px-6 pt-4 pb-6 space-y-3">
                         {description ? (
-                          <div className="bg-white/20 dark:bg-black/20 backdrop-blur-md rounded-lg p-4 border border-white/10">
-                            <p className="text-foreground text-base leading-relaxed">
+                          <div className="bg-muted/50 backdrop-blur-sm rounded-lg p-4">
+                            <p className="text-foreground text-sm leading-relaxed">
                               {description}
                             </p>
                           </div>
                         ) : (
                           <>
-                            <div className="bg-white/20 dark:bg-black/20 backdrop-blur-md rounded-lg p-4 border border-white/10">
-                              <h4 className="font-medium mb-3">About This Workout</h4>
+                            <div className="bg-muted/50 backdrop-blur-sm rounded-lg p-4">
+                              <h4 className="text-foreground font-medium text-sm mb-3">About This Workout</h4>
                               <div className="space-y-3 text-sm leading-relaxed">
                                 <p className="text-foreground">
                                   Mike Mentzer&apos;s Chest and Back routine focuses on high-intensity, low-volume training to target the major muscles of the chest and back.
@@ -316,8 +316,8 @@ export const WorkoutDetailModal = ({
                               </div>
                             </div>
                             
-                            <div className="bg-white/20 dark:bg-black/20 backdrop-blur-md rounded-lg p-4 border border-white/10">
-                              <h4 className="font-medium mb-3">Training Guidelines</h4>
+                            <div className="bg-muted/50 backdrop-blur-sm rounded-lg p-4">
+                              <h4 className="text-foreground font-medium text-sm mb-3">Training Guidelines</h4>
                               <div className="space-y-3 text-sm leading-relaxed">
                                 <p className="text-foreground">
                                   This workout is designed for intermediate to advanced trainees who can handle high-intensity training.
@@ -331,8 +331,8 @@ export const WorkoutDetailModal = ({
                               </div>
                             </div>
                             
-                            <div className="bg-white/20 dark:bg-black/20 backdrop-blur-md rounded-lg p-4 border border-white/10">
-                              <h4 className="font-medium mb-3">Safety & Recovery</h4>
+                            <div className="bg-muted/50 backdrop-blur-sm rounded-lg p-4">
+                              <h4 className="text-foreground font-medium text-sm mb-3">Safety & Recovery</h4>
                               <div className="space-y-3 text-sm leading-relaxed">
                                 <p className="text-foreground">
                                   Remember to warm up properly before starting your workout and cool down with light stretching afterwards.
@@ -399,18 +399,18 @@ export const WorkoutDetailModal = ({
                         {equipment.length > 0 ? (
                           equipment.map((item: string, index: number) => (
                             <div key={index} className="bg-muted/50 backdrop-blur-sm rounded-lg p-4">
-                              <span className="text-foreground font-medium capitalize">{item}</span>
+                              <span className="text-foreground font-medium text-sm capitalize">{item}</span>
                             </div>
                           ))
                         ) : (
                           <>
                             <div className="bg-muted/50 backdrop-blur-sm rounded-lg p-4 text-center">
-                              <p className="text-muted-foreground">Equipment information will be loaded with exercise details</p>
+                              <p className="text-muted-foreground text-sm">Equipment information will be loaded with exercise details</p>
                             </div>
                             {/* Add placeholder equipment to test scrolling */}
                             {['Barbell', 'Dumbbells', 'Pull-up Bar', 'Bench', 'Cable Machine', 'Resistance Bands', 'Kettlebells', 'Medicine Ball', 'Foam Roller', 'Weight Plates'].map((item, index) => (
                               <div key={index} className="bg-muted/50 backdrop-blur-sm rounded-lg p-4">
-                                <span className="text-foreground font-medium capitalize">{item}</span>
+                                <span className="text-foreground font-medium text-sm capitalize">{item}</span>
                               </div>
                             ))}
                           </>

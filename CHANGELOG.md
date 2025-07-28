@@ -30,6 +30,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Global NDK Search Feature COMPLETE (July 28, 2025) ✅**
+  
+  **User Impact**: Users can now search for workout templates across the entire Nostr network using a prominent search button in the header. Clean, borderless search button with responsive design shows "Search" text on desktop and icon-only on mobile. Full-screen search modal provides real-time results from all Nostr relays with professional loading states and search tips.
+  
+  **Developer Notes**: Implemented complete global search system with enhanced search button design using `variant="ghost"` for clean appearance, `cn()` utility for proper class merging, and responsive text label. Created comprehensive search enhancement roadmap in BACKLOG.md including filtering capabilities, exercise templates (Kind 33401), collections (Kind 30003), and advanced search operators.
+  
+  **Architecture Changes**: Established global search patterns with NDK-powered real-time network queries. Clean component architecture with proper separation between search trigger, modal interface, and result handling. Foundation ready for advanced search features and cross-network workout discovery.
+
+### Fixed
+- **Workout Detail Modal Typography Standardization COMPLETE (July 28, 2025) ✅**
+  
+  **User Impact**: All tabs in workout detail modal now have perfectly consistent typography and styling. Overview, Exercises, and Equipment tabs use identical font sizes (`text-sm`), font weights (`font-medium` for headings), and background styling (`bg-muted/50 backdrop-blur-sm`) for a professional, cohesive appearance.
+  
+  **Developer Notes**: Fixed typography inconsistencies where Overview tab used mixed `text-base` and `text-sm` sizes while other tabs used different patterns. Standardized all headings to `text-foreground font-medium text-sm`, all body text to `text-foreground text-sm`, and all placeholder text to `text-muted-foreground text-sm`. Enhanced Equipment tab with consistent `text-sm` sizing throughout.
+  
+  **Architecture Changes**: Established consistent typography system across all modal tabs ensuring uniform user experience. Professional design patterns with semantic color usage and consistent spacing (`space-y-3`). Foundation ready for white label gym personality theming with standardized component styling.
+
 ### Fixed
 - **NIP-07 Authentication Timeout Optimization COMPLETE (July 27, 2025) ✅**
   

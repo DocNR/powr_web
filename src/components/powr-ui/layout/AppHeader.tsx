@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Settings, Sun, Moon } from 'lucide-react';
+import { Sun, Moon } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Button } from '../primitives/Button';
 import { Avatar, AvatarFallback, AvatarImage } from '../primitives/Avatar';
@@ -14,13 +14,16 @@ import {
 } from '../primitives/Sheet';
 import { useAccount } from '@/lib/auth/hooks';
 import { useProfile, getDisplayName, getAvatarUrl } from '@/hooks/useProfile';
+import { GlobalWorkoutSearch } from '@/components/search/GlobalWorkoutSearch';
 
 interface AppHeaderProps {
   title?: string;
+  onWorkoutSelect?: (templateReference: string) => void;
 }
 
 export function AppHeader({ 
-  title = "POWR"
+  title = "POWR",
+  onWorkoutSelect
 }: AppHeaderProps) {
   const { theme, setTheme } = useTheme();
   const account = useAccount();
@@ -178,10 +181,11 @@ export function AppHeader({
       {/* Centered title */}
       <h1 className="text-xl font-bold text-foreground truncate mx-4 flex-1 text-center">{title}</h1>
       
-      {/* Right side - Settings icon (visual balance only) */}
-      <Button variant="ghost" size="icon" className="text-[color:var(--workout-primary)] opacity-50 cursor-default">
-        <Settings className="h-5 w-5" />
-      </Button>
+      {/* Right side - Global Search */}
+      <GlobalWorkoutSearch 
+        onWorkoutSelect={onWorkoutSelect}
+        className="text-[color:var(--workout-primary)]"
+      />
     </header>
   );
 }

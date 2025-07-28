@@ -1,0 +1,1 @@
+export { GlobalWorkoutSearch } from './GlobalWorkoutSearch';

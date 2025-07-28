@@ -15,6 +15,8 @@ import { Menu, User, LogOut, Settings } from 'lucide-react';
 import { useAccount, useLogout } from '@/lib/auth/hooks';
 import { ModeToggle } from '@/components/mode-toggle';
 import { Logo } from '@/components/ui/logo';
+import { GlobalWorkoutSearch } from '@/components/search/GlobalWorkoutSearch';
+import { WorkoutTemplate } from '@/lib/services/searchService';
 
 export function Header() {
   const account = useAccount();
@@ -55,6 +57,12 @@ export function Header() {
 
         {/* User Menu - Right side */}
         <div className="flex items-center space-x-2">
+          <GlobalWorkoutSearch 
+            onTemplateSelect={(template: WorkoutTemplate) => {
+              console.log('Selected template:', template);
+              // TODO: Handle template selection (navigate to template, open modal, etc.)
+            }}
+          />
           <ModeToggle />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

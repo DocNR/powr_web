@@ -649,10 +649,11 @@ export const WorkoutCard = memo(function WorkoutCard({
       <div className="relative">
         <Card 
           className={cn(
-            "p-3 cursor-pointer hover:shadow-md transition-all duration-200",
-            "border border-border hover:ring-2 hover:ring-ring",
-            "active:scale-[0.98] active:ring-2 active:ring-ring",
-            "focus:ring-2 focus:ring-ring focus:outline-none",
+            "p-3 cursor-pointer transition-all duration-200",
+            "border border-border",
+            "hover:shadow-lg hover:shadow-ring/20 hover:border-ring",
+            "active:scale-[0.98] active:shadow-lg active:shadow-ring/20 active:border-ring",
+            "focus:shadow-lg focus:shadow-ring/20 focus:border-ring focus:outline-none",
             className
           )}
           onClick={handleCardClick}

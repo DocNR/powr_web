@@ -48,6 +48,15 @@ formatting_rules:
 ## 🟡 High Priority
 
 ### User Experience Improvements
+- [ ] **Global Search Enhancement** (M)
+  - Add filtering capabilities (difficulty, muscle groups, equipment, duration)
+  - Expand search to include Kind 33401 (Exercise Templates)
+  - Add Kind 30003 (Collections) search support
+  - Implement search result categorization and tabs
+  - Add advanced search operators and saved searches
+  - **Context**: Currently searches Kind 33402 (Workout Templates) only
+  - **Files**: `src/components/search/GlobalWorkoutSearch.tsx`, `src/lib/services/searchService.ts`
+
 - [ ] **UI Layout Standardization** (M)
   - Create semantic layout wrapper components (FeedLayout, ContentLayout, WorkoutLayout)
   - Standardize tab layout patterns while preserving UX differences
