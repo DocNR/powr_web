@@ -226,6 +226,7 @@ export function GlobalWorkoutSearch({
                   flex-1 border-none bg-transparent
                   focus-visible:ring-0 focus-visible:ring-offset-0
                   placeholder:text-muted-foreground/60
+                  text-base md:text-sm
                 "
               />
               
