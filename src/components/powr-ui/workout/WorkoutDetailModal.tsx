@@ -151,61 +151,57 @@ export const WorkoutDetailModal = ({
   return (
     <>
       {/* Full-screen background image */}
-      <div 
-        className={`fixed inset-0 z-40 transition-all duration-500 ease-out ${
-          isOpen ? 'opacity-100 scale-100' : 'opacity-0 scale-105 pointer-events-none'
-        }`}
-      >
-        <WorkoutImageHandler
-          tags={templateData?.tags}
-          content={templateData?.content || templateData?.description}
-          eventKind={templateData?.eventKind || 33402}
-          alt={title}
-          className="w-full h-full object-cover"
-          fill={true}
-          priority={true}
-        />
-        {/* Responsive overlay - lighter for desktop, darker for mobile */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-black/50 md:from-black/40 md:via-black/15 md:to-black/25" />
-      </div>
+      {isOpen && (
+        <div className="fixed inset-0 z-40 opacity-100">
+          <WorkoutImageHandler
+            tags={templateData?.tags}
+            content={templateData?.content || templateData?.description}
+            eventKind={templateData?.eventKind || 33402}
+            alt={title}
+            className="w-full h-full object-cover"
+            fill={true}
+            priority={true}
+          />
+          {/* Responsive overlay - lighter for desktop, darker for mobile */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-black/50 md:from-black/40 md:via-black/15 md:to-black/25" />
+        </div>
+      )}
 
       {/* Header Controls - Fixed over background */}
-      <div 
-        className={`fixed top-0 left-0 right-0 z-50 flex items-center justify-between p-4 transition-all duration-500 ease-out ${
-          isOpen ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'
-        }`}
-      >
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onClose}
-          className="text-white hover:bg-white/20 rounded-full backdrop-blur-sm"
-        >
-          <ArrowLeft className="h-6 w-6" />
-        </Button>
-        <div className="flex items-center gap-2">
+      {isOpen && (
+        <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between p-4">
           <Button
             variant="ghost"
             size="icon"
+            onClick={onClose}
             className="text-white hover:bg-white/20 rounded-full backdrop-blur-sm"
           >
-            <User className="h-6 w-6" />
+            <ArrowLeft className="h-6 w-6" />
           </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="text-white hover:bg-white/20 rounded-full backdrop-blur-sm"
-          >
-            <Settings className="h-6 w-6" />
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-white hover:bg-white/20 rounded-full backdrop-blur-sm"
+            >
+              <User className="h-6 w-6" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-white hover:bg-white/20 rounded-full backdrop-blur-sm"
+            >
+              <Settings className="h-6 w-6" />
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Bottom Sheet */}
       <Sheet open={isOpen} onOpenChange={onClose}>
         <SheetContent 
           side="bottom" 
-          className={`h-[85vh] md:h-[90vh] p-0 rounded-t-3xl border-none bg-background/95 backdrop-blur-md transition-transform duration-500 ease-out md:max-w-2xl md:mx-auto md:left-1/2 md:-translate-x-1/2 ${
+          className={`h-[85vh] md:h-[90vh] p-0 rounded-t-3xl border-none backdrop-blur-2xl transition-transform duration-500 ease-out md:max-w-2xl md:mx-auto md:left-1/2 md:-translate-x-1/2 frosted-glass-gradient ${
             isOpen ? 'translate-y-0' : 'translate-y-full'
           }`}
           style={{
@@ -214,6 +210,12 @@ export const WorkoutDetailModal = ({
             transform: isOpen ? 'translateY(0)' : 'translateY(100%)',
             // iOS safe area support
             paddingBottom: 'env(safe-area-inset-bottom)',
+            // Enhanced glass effect with stronger border
+            borderTop: '1px solid rgba(255, 255, 255, 0.3)',
+            boxShadow: '0 -12px 40px rgba(0, 0, 0, 0.15), 0 -4px 12px rgba(0, 0, 0, 0.1)',
+            // Additional backdrop filter for browsers that support it
+            backdropFilter: 'blur(20px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(20px) saturate(180%)',
           }}
         >
           {/* Loading state */}
@@ -258,9 +260,6 @@ export const WorkoutDetailModal = ({
             <div className="flex flex-col h-full">
               {/* Sheet Header with Title and Button */}
               <div className="flex-shrink-0 p-6 pb-4">
-                {/* Drag handle */}
-                <div className="w-12 h-1 bg-muted-foreground/30 rounded-full mx-auto mb-6" />
-                
                 <div className="space-y-4">
                   <SheetHeader>
                     <SheetTitle className="text-2xl font-bold text-left">
@@ -295,14 +294,14 @@ export const WorkoutDetailModal = ({
                     <TabsContent value="overview" className="mt-0 h-full overflow-y-auto data-[state=inactive]:hidden">
                       <div className="px-6 pt-4 pb-6 space-y-4">
                         {description ? (
-                          <div className="bg-muted/50 backdrop-blur-sm rounded-lg p-4">
+                          <div className="bg-white/20 dark:bg-black/20 backdrop-blur-md rounded-lg p-4 border border-white/10">
                             <p className="text-foreground text-base leading-relaxed">
                               {description}
                             </p>
                           </div>
                         ) : (
                           <>
-                            <div className="bg-muted/50 backdrop-blur-sm rounded-lg p-4">
+                            <div className="bg-white/20 dark:bg-black/20 backdrop-blur-md rounded-lg p-4 border border-white/10">
                               <h4 className="font-medium mb-3">About This Workout</h4>
                               <div className="space-y-3 text-sm leading-relaxed">
                                 <p className="text-foreground">
@@ -317,7 +316,7 @@ export const WorkoutDetailModal = ({
                               </div>
                             </div>
                             
-                            <div className="bg-muted/50 backdrop-blur-sm rounded-lg p-4">
+                            <div className="bg-white/20 dark:bg-black/20 backdrop-blur-md rounded-lg p-4 border border-white/10">
                               <h4 className="font-medium mb-3">Training Guidelines</h4>
                               <div className="space-y-3 text-sm leading-relaxed">
                                 <p className="text-foreground">
@@ -332,7 +331,7 @@ export const WorkoutDetailModal = ({
                               </div>
                             </div>
                             
-                            <div className="bg-muted/50 backdrop-blur-sm rounded-lg p-4">
+                            <div className="bg-white/20 dark:bg-black/20 backdrop-blur-md rounded-lg p-4 border border-white/10">
                               <h4 className="font-medium mb-3">Safety & Recovery</h4>
                               <div className="space-y-3 text-sm leading-relaxed">
                                 <p className="text-foreground">

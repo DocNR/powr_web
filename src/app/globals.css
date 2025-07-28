@@ -297,6 +297,35 @@
   }
 }
 
+/* Frosted Glass Effects */
+@layer utilities {
+  .frosted-glass-gradient {
+    /* Light mode gradient - MUCH more transparent at top, gradual transition */
+    background: linear-gradient(
+      to bottom, 
+      rgba(255, 255, 255, 0.05) 0%, 
+      rgba(255, 255, 255, 0.15) 15%, 
+      rgba(255, 255, 255, 0.35) 35%, 
+      rgba(255, 255, 255, 0.65) 55%, 
+      rgba(255, 255, 255, 0.85) 75%, 
+      rgba(255, 255, 255, 0.95) 100%
+    );
+  }
+  
+  .dark .frosted-glass-gradient {
+    /* Dark mode gradient - MUCH more transparent at top, gradual transition */
+    background: linear-gradient(
+      to bottom, 
+      rgba(0, 0, 0, 0.05) 0%, 
+      rgba(0, 0, 0, 0.15) 15%, 
+      rgba(0, 0, 0, 0.35) 35%, 
+      rgba(0, 0, 0, 0.65) 55%, 
+      rgba(0, 0, 0, 0.85) 75%, 
+      rgba(0, 0, 0, 0.95) 100%
+    );
+  }
+}
+
 /* Standalone PWA mode detection */
 @media (display-mode: standalone) {
   /* Styles when app is installed as PWA */
