@@ -282,7 +282,7 @@ export default function WorkoutsTab() {
       {isLoading && !isLoadingMore && socialWorkouts.length === 0 && discoveryTemplates.length === 0 && (
         <div className="flex items-center justify-center py-8">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600 mx-auto mb-2"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
             <p className="text-sm text-muted-foreground">Loading workout data from Nostr...</p>
           </div>
         </div>
@@ -290,10 +290,10 @@ export default function WorkoutsTab() {
 
       {/* Error State */}
       {error && (
-        <div className="p-4 bg-red-50 rounded border border-red-200">
-          <h3 className="font-medium mb-2 text-red-900">⚠️ Error Loading Data</h3>
-          <p className="text-sm text-red-700">{error}</p>
-          <p className="text-xs text-red-600 mt-2">
+        <div className="p-4 bg-destructive/10 rounded border border-destructive/20">
+          <h3 className="font-medium mb-2 text-destructive">⚠️ Error Loading Data</h3>
+          <p className="text-sm text-destructive/80">{error}</p>
+          <p className="text-xs text-destructive/60 mt-2">
             Check console for details. Ensure NDK is initialized and connected.
           </p>
         </div>
@@ -303,9 +303,22 @@ export default function WorkoutsTab() {
       <section>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">Workouts your friends are trying</h2>
-          <button className="text-sm text-orange-600 hover:text-orange-700">
-            View all
-          </button>
+          {hasMoreWorkouts && (
+            <button 
+              onClick={loadMoreSocialWorkouts}
+              disabled={isLoadingMore}
+              className="text-sm text-primary hover:text-primary/80 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+            >
+              {isLoadingMore ? (
+                <>
+                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-primary"></div>
+                  Loading...
+                </>
+              ) : (
+                'Load more'
+              )}
+            </button>
+          )}
         </div>
         
         {!isLoading && socialWorkouts.length === 0 ? (
@@ -366,27 +379,6 @@ export default function WorkoutsTab() {
               </div>
             )}
             
-            {/* Load More Social Workouts */}
-            {hasMoreWorkouts && (
-              <div className="flex justify-center mt-4">
-                <button
-                  onClick={loadMoreSocialWorkouts}
-                  disabled={isLoadingMore}
-                  className="px-4 py-2 text-sm bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                >
-                  {isLoadingMore ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      Loading more...
-                    </>
-                  ) : (
-                    <>
-                      📥 Load more templates
-                    </>
-                  )}
-                </button>
-              </div>
-            )}
           </>
         )}
       </section>
@@ -395,9 +387,22 @@ export default function WorkoutsTab() {
       <section>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">Find workout</h2>
-          <button className="text-sm text-orange-600 hover:text-orange-700">
-            Browse all
-          </button>
+          {hasMoreTemplates && (
+            <button 
+              onClick={loadMoreDiscoveryTemplates}
+              disabled={isLoadingMore}
+              className="text-sm text-primary hover:text-primary/80 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+            >
+              {isLoadingMore ? (
+                <>
+                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-primary"></div>
+                  Loading...
+                </>
+              ) : (
+                'Load more'
+              )}
+            </button>
+          )}
         </div>
         
         <SearchableWorkoutDiscovery
@@ -414,27 +419,6 @@ export default function WorkoutsTab() {
           isLoading={isLoading && discoveryTemplates.length === 0}  // ← Only show loading when no templates loaded yet
         />
         
-        {/* Load More Discovery Templates */}
-        {hasMoreTemplates && (
-          <div className="flex justify-center mt-4">
-            <button
-              onClick={loadMoreDiscoveryTemplates}
-              disabled={isLoadingMore}
-              className="px-4 py-2 text-sm bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            >
-              {isLoadingMore ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  Loading more...
-                </>
-              ) : (
-                <>
-                  📥 Load more templates
-                </>
-              )}
-            </button>
-          </div>
-        )}
       </section>
 
       {/* Workout Detail Modal */}
