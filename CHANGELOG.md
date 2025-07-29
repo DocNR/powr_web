@@ -30,6 +30,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Workout History Detail Modal Rich Template Attribution COMPLETE (July 29, 2025) ✅**
+  
+  **User Impact**: Users can now view rich template attribution in workout history details with the same WorkoutCard interface used throughout the app. Template section now displays cover image, author info, exercise count, duration, and difficulty with full interactive menu (copy NADDR, view details, share, add to library). Clicking template cards opens WorkoutDetailModal for deeper exploration of the templates that inspired past workouts.
+  
+  **Developer Notes**: Enhanced WorkoutHistoryDetailModal by replacing generic template attribution with full WorkoutCard component using compact variant. Implemented data transformation from ProcessedWorkoutData template reference to complete WorkoutCard format with proper author attribution, exercise summary, and estimated duration. Integrated existing socialSharingService.copyTemplateNaddr() functionality with comprehensive menu actions. Fixed all TypeScript errors and maintained component separation patterns.
+  
+  **Architecture Changes**: Established consistent WorkoutCard usage across all app interfaces (search results, history details, template browsing). Template attribution now provides rich visual experience matching familiar UI patterns. Foundation ready for seamless template exploration workflow where users can discover and reuse successful workout templates from their history.
+
 ### Fixed
 - **Workout Summary Social Sharing Implementation COMPLETE (July 29, 2025) ✅**
   
