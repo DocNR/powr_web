@@ -7,6 +7,8 @@
  */
 
 import type { CompletedWorkout } from './workoutEventGeneration';
+import type { ParsedWorkoutEvent } from './dataParsingService';
+import { nip19 } from 'nostr-tools';
 
 export interface WorkoutSocialContent {
   content: string;
@@ -357,6 +359,206 @@ Total: ${stats.exerciseCount} exercises, ${stats.totalSets} sets, ${stats.totalR
       exerciseName,
       sets
     }));
+  }
+
+  /**
+   * Generate shareable URL for a workout record
+   * Creates nevent encoding for public sharing
+   */
+  generateWorkoutRecordURL(workoutRecord: ParsedWorkoutEvent): string {
+    try {
+      // Generate nevent encoding for the workout record
+      const nevent = nip19.neventEncode({
+        id: workoutRecord.eventId,
+        author: workoutRecord.authorPubkey,
+        kind: 1301, // NIP-101e workout record
+        relays: ['wss://nos.lol', 'wss://relay.damus.io', 'wss://relay.primal.net']
+      });
+
+      // Generate public URL
+      const baseUrl = typeof window !== 'undefined' 
+        ? window.location.origin 
+        : 'https://powr.me'; // Fallback for server-side
+
+      return `${baseUrl}/workout/${nevent}`;
+    } catch (error) {
+      console.error('[SocialSharingService] Failed to generate workout URL:', error);
+      return '';
+    }
+  }
+
+  /**
+   * Generate naddr encoding for workout record (alternative sharing format)
+   * Useful for cross-client compatibility
+   */
+  generateWorkoutRecordNaddr(workoutRecord: ParsedWorkoutEvent): string {
+    try {
+      // For Kind 1301 (workout records), we use nevent instead of naddr
+      // since workout records are not replaceable events
+      return this.generateWorkoutRecordNevent(workoutRecord);
+    } catch (error) {
+      console.error('[SocialSharingService] Failed to generate workout naddr:', error);
+      return '';
+    }
+  }
+
+  /**
+   * Generate nevent encoding for workout record
+   * Pure nevent string without URL wrapper
+   */
+  generateWorkoutRecordNevent(workoutRecord: ParsedWorkoutEvent): string {
+    try {
+      return nip19.neventEncode({
+        id: workoutRecord.eventId,
+        author: workoutRecord.authorPubkey,
+        kind: 1301,
+        relays: ['wss://nos.lol', 'wss://relay.damus.io', 'wss://relay.primal.net']
+      });
+    } catch (error) {
+      console.error('[SocialSharingService] Failed to generate nevent:', error);
+      return '';
+    }
+  }
+
+  /**
+   * Copy workout URL to clipboard
+   * Returns success/failure status
+   */
+  async copyWorkoutURL(workoutRecord: ParsedWorkoutEvent): Promise<{ success: boolean; error?: string }> {
+    try {
+      const url = this.generateWorkoutRecordURL(workoutRecord);
+      
+      if (!url) {
+        return { success: false, error: 'Failed to generate workout URL' };
+      }
+
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(url);
+        return { success: true };
+      } else {
+        // Fallback for older browsers or non-secure contexts
+        const textArea = document.createElement('textarea');
+        textArea.value = url;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        const successful = document.execCommand('copy');
+        document.body.removeChild(textArea);
+        
+        if (successful) {
+          return { success: true };
+        } else {
+          return { success: false, error: 'Failed to copy to clipboard' };
+        }
+      }
+    } catch (error) {
+      console.error('[SocialSharingService] Failed to copy URL:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      };
+    }
+  }
+
+  /**
+   * Share workout using native share API (mobile)
+   * Falls back to clipboard copy on desktop
+   */
+  async shareWorkout(workoutRecord: ParsedWorkoutEvent): Promise<{ success: boolean; error?: string }> {
+    try {
+      const url = this.generateWorkoutRecordURL(workoutRecord);
+      const title = `${workoutRecord.title} - POWR Workout`;
+      const text = `Check out my workout: ${workoutRecord.title}`;
+
+      if (navigator.share && navigator.canShare) {
+        const shareData = { title, text, url };
+        
+        if (navigator.canShare(shareData)) {
+          await navigator.share(shareData);
+          return { success: true };
+        }
+      }
+
+      // Fallback to clipboard copy
+      return await this.copyWorkoutURL(workoutRecord);
+    } catch (error) {
+      console.error('[SocialSharingService] Failed to share workout:', error);
+      
+      // Fallback to clipboard copy on error
+      return await this.copyWorkoutURL(workoutRecord);
+    }
+  }
+
+  /**
+   * Generate social sharing text with workout URL
+   * Combines workout content with shareable link
+   */
+  generateSocialShareText(workoutRecord: ParsedWorkoutEvent): string {
+    const url = this.generateWorkoutRecordURL(workoutRecord);
+    
+    // Convert ParsedWorkoutEvent to CompletedWorkout format for content generation
+    const completedWorkout: CompletedWorkout = {
+      workoutId: workoutRecord.eventId,
+      title: workoutRecord.title,
+      workoutType: 'strength', // Default type
+      startTime: workoutRecord.createdAt * 1000, // Convert to milliseconds
+      endTime: (workoutRecord.createdAt + workoutRecord.duration) * 1000,
+      completedSets: workoutRecord.exercises.map((exercise, index) => ({
+        exerciseRef: exercise.exerciseRef,
+        setNumber: index + 1, // Generate set number from index
+        reps: exercise.reps,
+        weight: exercise.weight,
+        rpe: exercise.rpe,
+        setType: exercise.setType || 'normal',
+        completedAt: workoutRecord.createdAt * 1000 // Use workout creation time
+      }))
+    };
+
+    const socialContent = this.generateWorkoutSocialContent(completedWorkout);
+    
+    if (url) {
+      return `${socialContent}
+
+🔗 View workout: ${url}`;
+    }
+
+    return socialContent;
+  }
+
+  /**
+   * Validate workout record for sharing
+   * Ensures all required data is present
+   */
+  validateWorkoutForSharing(workoutRecord: ParsedWorkoutEvent): {
+    valid: boolean;
+    errors: string[];
+  } {
+    const errors: string[] = [];
+
+    if (!workoutRecord.eventId) {
+      errors.push('Missing event ID');
+    }
+
+    if (!workoutRecord.authorPubkey) {
+      errors.push('Missing author pubkey');
+    }
+
+    if (!workoutRecord.title || workoutRecord.title.trim().length === 0) {
+      errors.push('Missing workout title');
+    }
+
+    if (!workoutRecord.exercises || workoutRecord.exercises.length === 0) {
+      errors.push('No exercises found in workout');
+    }
+
+    return {
+      valid: errors.length === 0,
+      errors
+    };
   }
 }
 

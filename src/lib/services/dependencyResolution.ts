@@ -102,6 +102,9 @@ export interface Collection {
   eventId?: string;
 }
 
+// Import ParsedWorkoutEvent from dataParsingService for workout records
+export type WorkoutRecord = import('./dataParsingService').ParsedWorkoutEvent;
+
 export interface ResolvedTemplate {
   template: WorkoutTemplate;
   exercises: Exercise[];
@@ -508,6 +511,31 @@ export class DependencyResolutionService {
       console.error('[DependencyResolutionService] ❌ Failed to resolve single template:', error);
       throw error;
     }
+  }
+
+  /**
+   * NEW: Resolve workout records for history functionality
+   * Optimized for workout history tab with CACHE_FIRST strategy
+   */
+  async resolveWorkoutRecords(userPubkey: string, limit: number = 50): Promise<WorkoutRecord[]> {
+    const startTime = Date.now();
+    console.log('[DependencyResolutionService] Resolving workout records for user:', userPubkey.slice(0, 8));
+
+    const filter: NDKFilter = {
+      kinds: [WORKOUT_EVENT_KINDS.WORKOUT_RECORD as number],
+      authors: [userPubkey],
+      limit: limit
+    };
+
+    const workoutEvents = await this.fetchEventsOptimized(filter);
+
+    // Use DataParsingService for workout record parsing
+    const workoutRecords = dataParsingService.parseWorkoutEventsBatch(Array.from(workoutEvents));
+
+    const resolveTime = Date.now() - startTime;
+    console.log(`[DependencyResolutionService] ✅ Resolved ${workoutRecords.length} workout records in ${resolveTime}ms`);
+
+    return workoutRecords;
   }
 
   /**

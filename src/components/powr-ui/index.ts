@@ -6,6 +6,7 @@
 export { Button } from './primitives/Button';
 export { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './primitives/Card';
 export { Avatar, AvatarFallback, AvatarImage } from './primitives/Avatar';
+export { Badge } from './primitives/Badge';
 export { 
   Sheet, 
   SheetClose, 

@@ -12,6 +12,7 @@ import { useNavigation } from '@/providers/NavigationProvider';
 import { useSubNavigation } from '@/providers/SubNavigationProvider';
 import { getSubNavigation } from '@/config/subNavigation';
 import { WorkoutDataProvider } from '@/providers/WorkoutDataProvider';
+import { WorkoutHistoryProvider } from '@/providers/WorkoutHistoryProvider';
 import { WorkoutUIProvider } from '@/providers/WorkoutUIProvider';
 import { WorkoutContext } from '@/contexts/WorkoutContext';
 import { workoutLifecycleMachine } from '@/lib/machines/workout/workoutLifecycleMachine';
@@ -240,9 +241,11 @@ export function AppLayout() {
           >
             <div className="flex-1">
               <WorkoutDataProvider>
-                <WorkoutUIProvider>
-                  <TabRouter />
-                </WorkoutUIProvider>
+                <WorkoutHistoryProvider>
+                  <WorkoutUIProvider>
+                    <TabRouter />
+                  </WorkoutUIProvider>
+                </WorkoutHistoryProvider>
               </WorkoutDataProvider>
             </div>
           </main>
