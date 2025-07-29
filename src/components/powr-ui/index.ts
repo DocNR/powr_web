@@ -21,6 +21,7 @@ export {
 export { Progress } from './primitives/Progress';
 export { Input } from './primitives/Input';
 export { Label } from './primitives/Label';
+export { Textarea } from './primitives/Textarea';
 export { Tabs, TabsContent, TabsList, TabsTrigger } from './primitives/Tabs';
 
 // Layout Components

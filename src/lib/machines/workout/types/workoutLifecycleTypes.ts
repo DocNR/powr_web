@@ -27,6 +27,9 @@ export interface WorkoutLifecycleContext extends BaseMachineContext {
   // Active workout actor reference
   activeWorkoutActor?: unknown; // XState actor reference
   
+  // Publishing actor reference (for optimistic background publishing)
+  publishingActor?: unknown; // XState actor reference
+  
   // Error handling
   error?: ErrorInfo;
   
@@ -63,7 +66,12 @@ export type WorkoutLifecycleEvent =
   | { type: 'RESET_LIFECYCLE' }
   | { type: 'ERROR_OCCURRED'; error: ErrorInfo }
   | { type: 'RETRY_OPERATION' }
-  | { type: 'DISMISS_ERROR' };
+  | { type: 'DISMISS_ERROR' }
+  // NEW: Summary and social sharing events
+  | { type: 'SHOW_SUMMARY' }
+  | { type: 'SHARE_WORKOUT'; content: string }
+  | { type: 'SKIP_SHARING' }
+  | { type: 'CLOSE_SUMMARY' };
 
 // Setup machine input (for invoked setup machine)
 export interface SetupMachineInput {
@@ -100,6 +108,9 @@ export type WorkoutLifecycleState =
   | 'setup'
   | 'active'
   | 'completed'
+  | 'published'
+  | 'summary'
+  | 'sharing'
   | 'error';
 
 // Guards for lifecycle machine

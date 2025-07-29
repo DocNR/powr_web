@@ -14,6 +14,7 @@ import type {
 import { defaultWorkoutLifecycleContext } from './types/workoutLifecycleTypes';
 import type { UserInfo, WorkoutData } from './types/workoutTypes';
 import { publishWorkoutActor } from './actors/publishWorkoutActor';
+import { publishSocialNoteActor } from './actors/publishSocialNoteActor';
 import { loadTemplateActor } from './actors/loadTemplateActor';
 import { workoutSetupMachine, loadTemplatesActor } from './workoutSetupMachine';
 import { activeWorkoutMachine } from './activeWorkoutMachine';
@@ -209,6 +210,7 @@ export const workoutLifecycleMachine = setup({
     // Include the imported actors for use in invoke
     loadTemplateActor,
     publishWorkoutActor,
+    publishSocialNoteActor,
     loadTemplatesActor,
     
     // Use direct reference to real setup machine (following NOGA pattern)
@@ -464,76 +466,78 @@ export const workoutLifecycleMachine = setup({
     },
     
     completed: {
-      invoke: {
-        src: 'publishWorkoutActor',
-        input: ({ context }) => {
-          console.log('[WorkoutLifecycle] 📤 PUBLISHING PHASE: Preparing workout data for publishing');
-          console.log('[WorkoutLifecycle] � Context workout data analysis:', {
-            hasWorkoutData: !!context.workoutData,
-            workoutId: context.workoutData?.workoutId,
-            completedSetsCount: context.workoutData?.completedSets?.length || 0,
-            extraSetsCount: Object.keys(context.workoutData?.extraSetsRequested || {}).length,
-            hasEndTime: !!context.workoutData?.endTime,
-            templateId: context.templateSelection?.templateId
-          });
-
-          // ✅ CRITICAL FIX: Ensure we're using the updated workout data from WORKOUT_COMPLETED event
-          if (!context.workoutData || !context.workoutData.completedSets) {
-            console.error('[WorkoutLifecycle] ❌ PUBLISHING ERROR: No completed sets data available!');
-            console.error('[WorkoutLifecycle] 📊 Available context:', {
+      entry: [
+        'logTransition',
+        // Spawn publishing actor for optimistic background publishing
+        assign({
+          publishingActor: ({ spawn, context }: { spawn: (src: string, options: { input: any }) => any; context: WorkoutLifecycleContext }) => {
+            console.log('[WorkoutLifecycle] 📤 PUBLISHING PHASE: Starting optimistic background publishing');
+            console.log('[WorkoutLifecycle] 📊 Context workout data analysis:', {
               hasWorkoutData: !!context.workoutData,
-              workoutDataKeys: context.workoutData ? Object.keys(context.workoutData) : [],
-              templateSelection: context.templateSelection
+              workoutId: context.workoutData?.workoutId,
+              completedSetsCount: context.workoutData?.completedSets?.length || 0,
+              extraSetsCount: Object.keys(context.workoutData?.extraSetsRequested || {}).length,
+              hasEndTime: !!context.workoutData?.endTime,
+              templateId: context.templateSelection?.templateId
+            });
+
+            // ✅ CRITICAL FIX: Ensure we're using the updated workout data from WORKOUT_COMPLETED event
+            if (!context.workoutData || !context.workoutData.completedSets) {
+              console.error('[WorkoutLifecycle] ❌ PUBLISHING ERROR: No completed sets data available!');
+              console.error('[WorkoutLifecycle] 📊 Available context:', {
+                hasWorkoutData: !!context.workoutData,
+                workoutDataKeys: context.workoutData ? Object.keys(context.workoutData) : [],
+                templateSelection: context.templateSelection
+              });
+            }
+
+            // Create completed workout data using the REAL data from activeWorkoutMachine
+            const completedWorkout = {
+              workoutId: context.workoutData?.workoutId || `workout_${Date.now()}`,
+              title: context.workoutData?.title || 'Completed Workout',
+              workoutType: (context.workoutData?.workoutType || 'strength') as 'strength' | 'circuit' | 'emom' | 'amrap',
+              startTime: context.workoutData?.startTime || Date.now(),
+              endTime: context.workoutData?.endTime || Date.now(),
+              // ✅ CRITICAL FIX: Use the real completed sets from activeWorkoutMachine
+              completedSets: context.workoutData?.completedSets || [],
+              notes: context.workoutData?.notes,
+              // Template information for NIP-101e compliance
+              templateId: context.templateSelection?.templateId,
+              templatePubkey: context.templateSelection?.templatePubkey || context.userInfo.pubkey,
+              templateReference: context.templateSelection?.templateReference,
+              templateRelayUrl: context.templateSelection?.templateRelayUrl || '',
+              // Include extra sets information for debugging
+              extraSetsRequested: context.workoutData?.extraSetsRequested || {}
+            };
+            
+            console.log('[WorkoutLifecycle] 📤 FINAL PUBLISHING DATA:', {
+              workoutId: completedWorkout.workoutId,
+              title: completedWorkout.title,
+              completedSetsCount: completedWorkout.completedSets.length,
+              extraSetsCount: Object.keys(completedWorkout.extraSetsRequested).length,
+              templateId: completedWorkout.templateId,
+              templateReference: completedWorkout.templateReference,
+              hasValidData: completedWorkout.completedSets.length > 0
+            });
+            
+            // ✅ VALIDATION: Ensure we have actual workout data to publish
+            if (completedWorkout.completedSets.length === 0) {
+              console.warn('[WorkoutLifecycle] ⚠️ WARNING: Publishing workout with 0 completed sets!');
+            }
+            
+            // Spawn the publishing actor (fire-and-forget)
+            return spawn('publishWorkoutActor', {
+              input: {
+                workoutData: completedWorkout,
+                userPubkey: context.userInfo.pubkey
+              }
             });
           }
-
-          // Create completed workout data using the REAL data from activeWorkoutMachine
-          const completedWorkout = {
-            workoutId: context.workoutData?.workoutId || `workout_${Date.now()}`,
-            title: context.workoutData?.title || 'Completed Workout',
-            workoutType: (context.workoutData?.workoutType || 'strength') as 'strength' | 'circuit' | 'emom' | 'amrap',
-            startTime: context.workoutData?.startTime || Date.now(),
-            endTime: context.workoutData?.endTime || Date.now(),
-            // ✅ CRITICAL FIX: Use the real completed sets from activeWorkoutMachine
-            completedSets: context.workoutData?.completedSets || [],
-            notes: context.workoutData?.notes,
-            // Template information for NIP-101e compliance
-            templateId: context.templateSelection?.templateId,
-            templatePubkey: context.templateSelection?.templatePubkey || context.userInfo.pubkey,
-            templateReference: context.templateSelection?.templateReference,
-            templateRelayUrl: context.templateSelection?.templateRelayUrl || '',
-            // Include extra sets information for debugging
-            extraSetsRequested: context.workoutData?.extraSetsRequested || {}
-          };
-          
-          console.log('[WorkoutLifecycle] 📤 FINAL PUBLISHING DATA:', {
-            workoutId: completedWorkout.workoutId,
-            title: completedWorkout.title,
-            completedSetsCount: completedWorkout.completedSets.length,
-            extraSetsCount: Object.keys(completedWorkout.extraSetsRequested).length,
-            templateId: completedWorkout.templateId,
-            templateReference: completedWorkout.templateReference,
-            hasValidData: completedWorkout.completedSets.length > 0
-          });
-          
-          // ✅ VALIDATION: Ensure we have actual workout data to publish
-          if (completedWorkout.completedSets.length === 0) {
-            console.warn('[WorkoutLifecycle] ⚠️ WARNING: Publishing workout with 0 completed sets!');
-          }
-          
-          return {
-            workoutData: completedWorkout,
-            userPubkey: context.userInfo.pubkey
-          };
-        },
-        onDone: {
-          target: 'published',
-          actions: ['logTransition']
-        },
-        onError: {
-          target: 'publishError',
-          actions: ['setError', 'logTransition']
-        }
+        })
+      ],
+      // Immediate transition to summary - no waiting for publishing
+      always: {
+        target: 'summary'
       },
       on: {
         START_SETUP: {
@@ -549,9 +553,21 @@ export const workoutLifecycleMachine = setup({
       }
     },
     
-    published: {
+    summary: {
       entry: ['logTransition'],
       on: {
+        SHARE_WORKOUT: {
+          target: 'sharing',
+          actions: ['logTransition']
+        },
+        SKIP_SHARING: {
+          target: 'idle',
+          actions: ['logTransition']
+        },
+        CLOSE_SUMMARY: {
+          target: 'idle',
+          actions: ['logTransition']
+        },
         START_SETUP: {
           target: 'setup',
           actions: [
@@ -561,18 +577,52 @@ export const workoutLifecycleMachine = setup({
             'logTransition', 
             'updateLastActivity'
           ]
+        }
+      }
+    },
+    
+    sharing: {
+      entry: ['logTransition'],
+      invoke: {
+        src: 'publishSocialNoteActor',
+        input: ({ context, event }) => {
+          console.log('[WorkoutLifecycle] 📱 SOCIAL SHARING: Preparing social note for publishing');
+          
+          if (event.type !== 'SHARE_WORKOUT') {
+            console.error('[WorkoutLifecycle] ❌ SHARING ERROR: Invalid event type for sharing state');
+            return {
+              content: 'Workout Complete! 💪 #powr',
+              userPubkey: context.userInfo.pubkey,
+              workoutId: context.workoutData?.workoutId
+            };
+          }
+          
+          return {
+            content: event.content,
+            userPubkey: context.userInfo.pubkey,
+            workoutId: context.workoutData?.workoutId
+          };
         },
-        RESET_LIFECYCLE: {
+        onDone: {
+          target: 'idle',
+          actions: ['logTransition']
+        },
+        onError: {
+          // Silent failure - return to idle without showing error to user
           target: 'idle',
           actions: ['logTransition']
         }
+      },
+      // Auto-timeout for optimistic UX
+      after: {
+        1000: 'idle' // Return to idle after 1 second regardless of publishing status
       }
     },
     
     publishError: {
       on: {
         DISMISS_ERROR: {
-          target: 'published',
+          target: 'summary',
           actions: ['clearError', 'logTransition']
         }
       }

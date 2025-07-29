@@ -10,6 +10,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { CalendarBar, WorkoutCard, ScrollableGallery, SearchableWorkoutDiscovery, WorkoutDetailModal } from '@/components/powr-ui/workout';
+import { WorkoutSummaryModal } from '@/components/powr-ui/workout/WorkoutSummaryModal';
 import WorkoutCardSkeleton from '@/components/powr-ui/workout/WorkoutCardSkeleton';
 import { useWorkoutData } from '@/providers/WorkoutDataProvider';
 import { useWorkoutContext } from '@/hooks/useWorkoutContext';
@@ -207,6 +208,25 @@ export default function WorkoutsTab() {
     // ✅ FIXED: DON'T close modal - let the machine state change handle the UI
     // The useEffect that watches workoutState will handle opening/closing the modal
     console.log('🚀 START_WORKOUT event sent to machine');
+  };
+
+  // Summary modal handlers
+  const handleShareWorkout = (content: string) => {
+    console.log('📱 Sharing workout to Nostr:', content);
+    workoutSend({ 
+      type: 'SHARE_WORKOUT',
+      content: content
+    });
+  };
+
+  const handleSkipSharing = () => {
+    console.log('⏭️ Skipping workout sharing');
+    workoutSend({ type: 'SKIP_SHARING' });
+  };
+
+  const handleCloseSummary = () => {
+    console.log('❌ Closing workout summary');
+    workoutSend({ type: 'CLOSE_SUMMARY' });
   };
 
   const handleAuthorClick = (pubkey: string) => {
@@ -475,6 +495,29 @@ export default function WorkoutsTab() {
         onClose={handleCloseModal}
         onStartWorkout={handleStartWorkout}
       />
+
+      {/* Workout Summary Modal */}
+      {workoutState.matches('summary') && workoutState.context.workoutData && (
+        <WorkoutSummaryModal
+          isOpen={true}
+          onClose={handleCloseSummary}
+          workoutData={{
+            workoutId: workoutState.context.workoutData.workoutId,
+            title: workoutState.context.workoutData.title,
+            workoutType: workoutState.context.workoutData.workoutType,
+            startTime: workoutState.context.workoutData.startTime,
+            endTime: workoutState.context.workoutData.endTime || Date.now(),
+            completedSets: workoutState.context.workoutData.completedSets || [],
+            notes: workoutState.context.workoutData.notes,
+            templateId: (workoutState.context.templateSelection as any)?.templateId,
+            templatePubkey: (workoutState.context.templateSelection as any)?.templatePubkey || workoutState.context.userInfo.pubkey,
+            templateReference: (workoutState.context.templateSelection as any)?.templateReference,
+            templateRelayUrl: (workoutState.context.templateSelection as any)?.templateRelayUrl || ''
+          }}
+          onShare={handleShareWorkout}
+          onSkipSharing={handleSkipSharing}
+        />
+      )}
     </div>
   );
 }

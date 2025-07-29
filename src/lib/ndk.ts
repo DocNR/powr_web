@@ -53,7 +53,7 @@ const createNDKSingleton = async (connectRelays: boolean = false): Promise<NDK> 
       lowestValidationRatio: 0.0,   // Accept events from first responding relay
       autoConnectUserRelays: false, // Prevent auto connections that block
       autoFetchUserMutelist: false, // Prevent auto fetches that block
-      clientName: 'POWR Web',
+      clientName: 'POWR',
     });
     
     // Store global reference immediately (before relay connection)

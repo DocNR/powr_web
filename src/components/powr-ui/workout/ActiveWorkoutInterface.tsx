@@ -433,7 +433,10 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
 
       {/* Cancel Confirmation Dialog */}
       <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
-        <DialogContent>
+        <DialogContent
+          onPointerDownOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle>Cancel Workout?</DialogTitle>
           </DialogHeader>
@@ -443,7 +446,11 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={() => setShowCancelDialog(false)}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setShowCancelDialog(false);
+              }}
             >
               Keep Going
             </Button>
@@ -459,7 +466,10 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
 
       {/* Finish Confirmation Dialog */}
       <Dialog open={showFinishDialog} onOpenChange={setShowFinishDialog}>
-        <DialogContent>
+        <DialogContent
+          onPointerDownOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle>Finish Workout?</DialogTitle>
           </DialogHeader>
@@ -469,7 +479,11 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={() => setShowFinishDialog(false)}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setShowFinishDialog(false);
+              }}
             >
               Keep Going
             </Button>

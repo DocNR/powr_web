@@ -118,7 +118,7 @@ export class WorkoutEventGenerationService {
     // Standard Nostr hashtags
     tags.push(['t', 'fitness']);
     tags.push(['t', workoutData.workoutType]);
-    tags.push(['client', 'POWR Web']);
+    tags.push(['client', 'POWR']);
     
     // Build content with workout summary - delegate to utility service
     const content = this.generateWorkoutSummary(workoutData);
