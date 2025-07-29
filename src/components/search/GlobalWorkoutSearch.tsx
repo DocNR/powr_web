@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Search, X, Loader2 } from 'lucide-react';
+import { Search, X, Loader2, ArrowLeft } from 'lucide-react';
 import { useNDKSearch } from '@/hooks/useNDKSearch';
 import { WorkoutTemplate } from '@/lib/services/searchService';
 import { WorkoutCard } from '@/components/powr-ui/workout';
@@ -180,18 +180,32 @@ export function GlobalWorkoutSearch({
           <DialogHeader className="sr-only">
             <DialogTitle>Search Workouts</DialogTitle>
             <DialogDescription>
-              Search for workout templates across the Nostr network
             </DialogDescription>
           </DialogHeader>
 
           <div className="relative h-full bg-background overflow-hidden pb-[env(safe-area-inset-bottom)] flex flex-col">
-            {/* Header - Matches ActiveWorkoutInterface pattern */}
-            <div className="pb-4 flex-shrink-0 p-6">
-              <h2 className="text-2xl font-bold">Search Workouts</h2>
-              <p className="text-muted-foreground">
-                Search for workout templates across the Nostr network
-              </p>
+            {/* Header - Matches ActiveWorkoutInterface pattern with back button */}
+            <div className="flex items-center justify-between p-4 bg-background border-b border-border flex-shrink-0">
+              {/* Back Button - Matches ActiveWorkoutInterface */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsOpen(false)}
+                className="text-muted-foreground hover:text-foreground"
+                title="Back to previous screen"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+
+              {/* Title */}
+              <div className="flex flex-col items-center">
+                <h2 className="text-lg font-semibold">Search Workouts</h2>
+              </div>
+
+              {/* Empty space for balance */}
+              <div className="w-10"></div>
             </div>
+
 
             {/* Search Input */}
             <div className="relative mb-6 flex-shrink-0 px-6">

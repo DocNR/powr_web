@@ -1,8 +1,14 @@
-import { useState } from 'react';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/powr-ui/primitives/Sheet';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/powr-ui/primitives/Button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/powr-ui/primitives/Tabs';
-import { Play, ArrowLeft, User, Settings, AlertCircle } from 'lucide-react';
+import { Play, ArrowLeft, AlertCircle } from 'lucide-react';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogDescription 
+} from '@/components/ui/dialog';
 import { WorkoutImageHandler } from './WorkoutImageHandler';
 import { ExpandableExerciseCard } from './ExpandableExerciseCard';
 
@@ -53,6 +59,7 @@ interface TemplateData {
     equipment: string;
     description: string;
     muscleGroups: string[];
+    difficulty?: string;
   }>;
   // NEW: Support for workout machine context data
   workoutData?: {
@@ -134,12 +141,48 @@ export const WorkoutDetailModal = ({
                      templateData?.content || 
                      '';
   
-  // Use exercises from resolved exercises first, then machine context, then fallback
-  const exercises = templateData?.resolvedExercises || 
-                   templateData?.loadedExercises ||
-                   templateData?.workoutData?.exercises || 
-                   templateData?.exercises || 
-                   [];
+  // QUICK FIX: Map resolved template data to Exercise interface for ExpandableExerciseCard
+  const exercises = useMemo(() => {
+    // Priority 1: Extract from resolvedTemplate.exercises (has correct sets/reps data)
+    if (templateData?.resolvedTemplate?.exercises) {
+      return templateData.resolvedTemplate.exercises.map((templateExercise, index) => {
+        // Find matching resolved exercise for additional details
+        const resolvedExercise = templateData.resolvedExercises?.find(ex => 
+          ex.id === templateExercise.exerciseRef.split(':')[2]
+        );
+        
+        return {
+          name: resolvedExercise?.name || `Exercise ${index + 1}`,
+          sets: templateExercise.sets || 1, // Use actual sets from template
+          reps: templateExercise.reps || 1, // Use actual reps from template
+          weight: templateExercise.weight,
+          description: resolvedExercise?.description || 'No description available',
+          equipment: resolvedExercise?.equipment,
+          difficulty: resolvedExercise?.difficulty,
+          muscleGroups: resolvedExercise?.muscleGroups || []
+        };
+      });
+    }
+    
+    // Priority 2: Use resolved exercises directly (fallback)
+    if (templateData?.resolvedExercises) {
+      return templateData.resolvedExercises.map(ex => ({
+        name: ex.name,
+        sets: 3, // Fallback - will be fixed by service layer
+        reps: 12, // Fallback - will be fixed by service layer
+        description: ex.description,
+        equipment: ex.equipment,
+        difficulty: ex.difficulty,
+        muscleGroups: ex.muscleGroups || []
+      }));
+    }
+    
+    // Priority 3: Other fallbacks
+    return templateData?.loadedExercises ||
+           templateData?.workoutData?.exercises || 
+           templateData?.exercises || 
+           [];
+  }, [templateData]);
   
   // Aggregate equipment from resolved exercises first, then loaded exercises
   const equipment = templateData?.resolvedExercises 
@@ -167,57 +210,60 @@ export const WorkoutDetailModal = ({
         </div>
       )}
 
-      {/* Header Controls - Fixed over background */}
-      {isOpen && (
-        <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between p-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onClose}
-            className="text-white hover:bg-white/20 rounded-full backdrop-blur-sm"
-          >
-            <ArrowLeft className="h-6 w-6" />
-          </Button>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-white hover:bg-white/20 rounded-full backdrop-blur-sm"
-            >
-              <User className="h-6 w-6" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-white hover:bg-white/20 rounded-full backdrop-blur-sm"
-            >
-              <Settings className="h-6 w-6" />
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* Bottom Sheet */}
-      <Sheet open={isOpen} onOpenChange={onClose}>
-        <SheetContent 
-          side="bottom" 
-          className={`h-[85vh] md:h-[90vh] p-0 rounded-t-3xl border-none backdrop-blur-2xl transition-transform duration-500 ease-out md:max-w-2xl md:mx-auto md:left-1/2 md:-translate-x-1/2 frosted-glass-gradient ${
-            isOpen ? 'translate-y-0' : 'translate-y-full'
-          }`}
-          style={{
-            // Ensure proper iOS/Android behavior
-            WebkitTransform: isOpen ? 'translateY(0)' : 'translateY(100%)',
-            transform: isOpen ? 'translateY(0)' : 'translateY(100%)',
-            // iOS safe area support
-            paddingBottom: 'env(safe-area-inset-bottom)',
-            // Enhanced glass effect with stronger border
-            borderTop: '1px solid rgba(255, 255, 255, 0.3)',
-            boxShadow: '0 -12px 40px rgba(0, 0, 0, 0.15), 0 -4px 12px rgba(0, 0, 0, 0.1)',
-            // Additional backdrop filter for browsers that support it
-            backdropFilter: 'blur(20px) saturate(180%)',
-            WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-          }}
+      {/* Dialog Modal - Full Screen like ActiveWorkoutInterface */}
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent 
+          className="max-w-full max-h-full w-screen h-[100dvh] supports-[height:100dvh]:h-[100dvh] p-0 m-0 rounded-none border-none"
+          showCloseButton={false}
         >
+          <DialogHeader className="sr-only">
+            <DialogTitle>{title}</DialogTitle>
+            <DialogDescription>
+              Workout template details and exercise information
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="relative h-full bg-background overflow-hidden pb-[env(safe-area-inset-bottom)] flex flex-col frosted-glass-gradient">
+            {/* Header - Matches ActiveWorkoutInterface pattern with back button */}
+            <div className="flex items-center justify-between p-4 bg-background/80 backdrop-blur-sm border-b border-border flex-shrink-0">
+              {/* Back Button - Matches ActiveWorkoutInterface */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onClose}
+                className="text-foreground hover:text-foreground/80"
+                title="Back to previous screen"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+
+              {/* Title */}
+              <div className="flex flex-col items-center">
+                <h2 className="text-lg font-semibold">{title}</h2>
+              </div>
+
+              {/* Empty space for balance */}
+              <div className="w-10"></div>
+            </div>
+
+            {/* Template Image - Standard size below header */}
+            {templateData && !isLoading && !error && (
+              <div className="flex-shrink-0 px-6 pt-4">
+                <div className="relative w-full h-48 rounded-lg overflow-hidden bg-muted/30">
+                  <WorkoutImageHandler
+                    tags={templateData?.tags}
+                    content={templateData?.content || templateData?.description}
+                    eventKind={templateData?.eventKind || 33402}
+                    alt={title}
+                    className="w-full h-full object-cover"
+                    fill={true}
+                  />
+                  {/* Subtle overlay for better contrast */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent" />
+                </div>
+              </div>
+            )}
+
           {/* Loading state */}
           {isLoading && (
             <div className="flex items-center justify-center h-full">
@@ -257,24 +303,16 @@ export const WorkoutDetailModal = ({
 
           {/* Main content */}
           {templateData && !isLoading && !error && (
-            <div className="flex flex-col h-full">
-              {/* Sheet Header with Title and Button */}
+            <>
+              {/* Start Workout Button */}
               <div className="flex-shrink-0 p-6 pb-4">
-                <div className="space-y-4">
-                  <SheetHeader>
-                    <SheetTitle className="text-2xl font-bold text-left">
-                      {title}
-                    </SheetTitle>
-                  </SheetHeader>
-                  
-                  <Button
-                    onClick={onStartWorkout}
-                    className="w-full h-12 bg-gradient-to-r from-orange-400 via-orange-500 to-red-500 hover:from-orange-500 hover:via-orange-600 hover:to-red-600 text-black font-semibold text-base rounded-xl flex items-center justify-center gap-2"
-                  >
-                    <Play className="h-5 w-5 fill-current" />
-                    Start workout
-                  </Button>
-                </div>
+                <Button
+                  onClick={onStartWorkout}
+                  className="w-full h-12 bg-gradient-to-r from-orange-400 via-orange-500 to-red-500 hover:from-orange-500 hover:via-orange-600 hover:to-red-600 text-black font-semibold text-base rounded-xl flex items-center justify-center gap-2"
+                >
+                  <Play className="h-5 w-5 fill-current" />
+                  Start workout
+                </Button>
               </div>
 
               {/* Tabs and Content */}
@@ -420,10 +458,11 @@ export const WorkoutDetailModal = ({
                   </div>
                 </Tabs>
               </div>
-            </div>
+            </>
           )}
-        </SheetContent>
-      </Sheet>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
