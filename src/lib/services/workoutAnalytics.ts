@@ -3,7 +3,11 @@
  * 
  * Pure business logic for calculating workout statistics and analytics.
  * Follows service-layer-architecture.md patterns - no NDK operations, only analytics logic.
+ * 
+ * Extended for Workout History Modal support with timeline processing.
  */
+
+import type { ParsedWorkoutEvent, ParsedExerciseSet } from '@/lib/services/dataParsingService';
 
 export interface WorkoutStats {
   totalWorkouts: number;
@@ -18,21 +22,76 @@ export interface WorkoutStats {
   averageRPE: number;
 }
 
-export interface ParsedWorkoutEvent {
+// Timeline data structures for Workout History Modal
+export interface WorkoutTimelineEntry {
+  exerciseRef: string;
+  exerciseName: string;
+  setNumber: number;
+  reps: number;
+  weight: number;
+  rpe?: number;
+  setType: 'warmup' | 'normal' | 'drop' | 'failure';
+  completedAt?: number;
+  // For display
+  displayWeight: string; // "60kg" or "bodyweight"
+  displayRPE: string; // "RPE 7" or ""
+}
+
+export interface ProcessedWorkoutData {
+  // Basic workout info
   id: string;
   title: string;
+  description: string;
+  workoutType: string;
   duration: number;
-  exercises: Array<{ reference: string; sets: number }>;
   startTime: number;
   endTime: number;
-  completedSets?: Array<{
+  completed: boolean;
+  authorPubkey: string;
+  createdAt: number;
+  eventId: string;
+  
+  // Timeline data (chronological order from NIP-101e tags)
+  timeline: WorkoutTimelineEntry[];
+  
+  // Calculated statistics
+  stats: {
+    totalVolume: number;
+    totalReps: number;
+    totalSets: number;
+    averageRPE: number | null;
+    exerciseCount: number;
+    duration: number;
+  };
+  
+  // Exercise summary (grouped for stats section)
+  exerciseSummary: Array<{
+    exerciseName: string;
     exerciseRef: string;
-    reps: number;
-    weight: number;
-    rpe?: number;
-    setType: string;
-    completedAt: number;
+    totalSets: number;
+    totalReps: number;
+    totalVolume: number;
+    averageRPE: number | null;
+    weightRange: string; // "60-80kg" or "bodyweight"
   }>;
+  
+  // Template information
+  template?: {
+    reference: string;
+    pubkey: string;
+    dTag: string;
+    name?: string; // Resolved from template data
+    authorName?: string; // For attribution
+  };
+}
+
+export interface TemplateAttribution {
+  reference: string;
+  pubkey: string;
+  dTag: string;
+  name: string;
+  authorName?: string;
+  naddr: string; // For sharing
 }
 
 export interface WorkoutIntensityAnalysis {
@@ -62,6 +121,157 @@ export interface ExerciseFrequencyData {
 export class WorkoutAnalyticsService {
   
   /**
+   * Process workout for history modal display
+   * Main method for Phase 1 - moves business logic out of modal
+   */
+  processWorkoutForHistory(
+    workout: ParsedWorkoutEvent, 
+    resolvedExercises: Map<string, { name: string }>
+  ): ProcessedWorkoutData {
+    console.log(`[WorkoutAnalyticsService] Processing workout for history: ${workout.title}`);
+    
+    // Create timeline from exercises array (chronological order from NIP-101e tags)
+    const timeline: WorkoutTimelineEntry[] = workout.exercises.map((exercise) => {
+      const exerciseName = resolvedExercises.get(exercise.exerciseRef)?.name || 'Unknown Exercise';
+      
+      return {
+        exerciseRef: exercise.exerciseRef,
+        exerciseName,
+        setNumber: exercise.setNumber,
+        reps: exercise.reps,
+        weight: exercise.weight,
+        rpe: exercise.rpe,
+        setType: exercise.setType,
+        completedAt: exercise.completedAt,
+        // Display formatting
+        displayWeight: exercise.weight === 0 ? 'bodyweight' : `${exercise.weight}kg`,
+        displayRPE: exercise.rpe ? `RPE ${exercise.rpe}` : ''
+      };
+    });
+    
+    // Calculate statistics
+    const totalReps = workout.exercises.reduce((sum, ex) => sum + ex.reps, 0);
+    const totalSets = workout.exercises.length;
+    const totalVolume = workout.exercises.reduce((sum, ex) => sum + (ex.weight * ex.reps), 0);
+    const rpeValues = workout.exercises.filter(ex => ex.rpe).map(ex => ex.rpe!);
+    const averageRPE = rpeValues.length > 0 ? rpeValues.reduce((sum, rpe) => sum + rpe, 0) / rpeValues.length : null;
+    
+    // Group exercises for summary
+    const exerciseGroups = new Map<string, {
+      exerciseName: string;
+      exerciseRef: string;
+      sets: ParsedExerciseSet[];
+    }>();
+    
+    workout.exercises.forEach(exercise => {
+      const exerciseName = resolvedExercises.get(exercise.exerciseRef)?.name || 'Unknown Exercise';
+      
+      if (!exerciseGroups.has(exercise.exerciseRef)) {
+        exerciseGroups.set(exercise.exerciseRef, {
+          exerciseName,
+          exerciseRef: exercise.exerciseRef,
+          sets: []
+        });
+      }
+      exerciseGroups.get(exercise.exerciseRef)!.sets.push(exercise);
+    });
+    
+    const exerciseSummary = Array.from(exerciseGroups.values()).map(group => {
+      const totalSets = group.sets.length;
+      const totalReps = group.sets.reduce((sum, set) => sum + set.reps, 0);
+      const totalVolume = group.sets.reduce((sum, set) => sum + (set.weight * set.reps), 0);
+      const rpeValues = group.sets.filter(set => set.rpe).map(set => set.rpe!);
+      const averageRPE = rpeValues.length > 0 ? rpeValues.reduce((sum, rpe) => sum + rpe, 0) / rpeValues.length : null;
+      
+      // Calculate weight range
+      const weights = group.sets.map(set => set.weight).filter(w => w > 0);
+      let weightRange: string;
+      if (weights.length === 0) {
+        weightRange = 'bodyweight';
+      } else if (weights.length === 1) {
+        weightRange = `${weights[0]}kg`;
+      } else {
+        const minWeight = Math.min(...weights);
+        const maxWeight = Math.max(...weights);
+        weightRange = minWeight === maxWeight ? `${minWeight}kg` : `${minWeight}-${maxWeight}kg`;
+      }
+      
+      return {
+        exerciseName: group.exerciseName,
+        exerciseRef: group.exerciseRef,
+        totalSets,
+        totalReps,
+        totalVolume,
+        averageRPE,
+        weightRange
+      };
+    });
+    
+    // Parse template information
+    let template: ProcessedWorkoutData['template'] | undefined;
+    if (workout.templateReference && workout.templatePubkey) {
+      const templateParts = workout.templateReference.split(':');
+      template = {
+        reference: workout.templateReference,
+        pubkey: workout.templatePubkey,
+        dTag: templateParts[2] || 'unknown'
+      };
+    }
+    
+    const uniqueExercises = new Set(workout.exercises.map(ex => ex.exerciseRef));
+    
+    return {
+      // Basic workout info
+      id: workout.id,
+      title: workout.title,
+      description: workout.description,
+      workoutType: workout.workoutType,
+      duration: workout.duration,
+      startTime: workout.startTime,
+      endTime: workout.endTime,
+      completed: workout.completed,
+      authorPubkey: workout.authorPubkey,
+      createdAt: workout.createdAt,
+      eventId: workout.eventId,
+      
+      // Timeline data (chronological order)
+      timeline,
+      
+      // Calculated statistics
+      stats: {
+        totalVolume,
+        totalReps,
+        totalSets,
+        averageRPE,
+        exerciseCount: uniqueExercises.size,
+        duration: workout.duration
+      },
+      
+      // Exercise summary (grouped)
+      exerciseSummary,
+      
+      // Template information
+      template
+    };
+  }
+  
+  /**
+   * Format duration for display (fixes the duration bug)
+   */
+  formatDuration(durationMs: number): string {
+    const totalSeconds = Math.floor(durationMs / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    
+    if (hours > 0) {
+      return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    } else {
+      return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    }
+  }
+  
+  /**
    * Calculate comprehensive workout statistics
    */
   calculateWorkoutStats(workouts: ParsedWorkoutEvent[]): WorkoutStats {
@@ -89,24 +299,19 @@ export class WorkoutAnalyticsService {
     let rpeCount = 0;
     
     workouts.forEach(workout => {
-      // Count exercises from exercise array
+      // Count exercises from exercises array (ParsedExerciseSet[])
       workout.exercises.forEach(exercise => {
-        const exerciseId = exercise.reference.split(':')[2]; // Extract d-tag
+        const exerciseId = exercise.exerciseRef.split(':')[2]; // Extract d-tag
         const count = exerciseFrequency.get(exerciseId) || 0;
-        exerciseFrequency.set(exerciseId, count + exercise.sets);
-        totalSets += exercise.sets;
+        exerciseFrequency.set(exerciseId, count + 1); // Count individual sets
+        totalSets += 1;
+        totalReps += exercise.reps;
+        
+        if (exercise.rpe) {
+          totalRPE += exercise.rpe;
+          rpeCount++;
+        }
       });
-      
-      // If detailed set data is available, use it for reps and RPE
-      if (workout.completedSets) {
-        workout.completedSets.forEach(set => {
-          totalReps += set.reps;
-          if (set.rpe) {
-            totalRPE += set.rpe;
-            rpeCount++;
-          }
-        });
-      }
     });
     
     const mostFrequentExercises = Array.from(exerciseFrequency.entries())
@@ -128,10 +333,10 @@ export class WorkoutAnalyticsService {
   }
   
   /**
-   * Calculate workout intensity analysis
+   * Calculate workout intensity analysis (using exercises array)
    */
   calculateWorkoutIntensity(workout: ParsedWorkoutEvent): WorkoutIntensityAnalysis {
-    if (!workout.completedSets || workout.completedSets.length === 0) {
+    if (!workout.exercises || workout.exercises.length === 0) {
       return {
         averageRPE: 0,
         totalVolume: 0,
@@ -140,14 +345,14 @@ export class WorkoutAnalyticsService {
       };
     }
     
-    const setsWithRPE = workout.completedSets.filter(set => set.rpe);
+    const setsWithRPE = workout.exercises.filter(exercise => exercise.rpe);
     const averageRPE = setsWithRPE.length > 0 
-      ? setsWithRPE.reduce((sum, set) => sum + (set.rpe || 0), 0) / setsWithRPE.length
+      ? setsWithRPE.reduce((sum, exercise) => sum + (exercise.rpe || 0), 0) / setsWithRPE.length
       : 0;
     
     // Calculate total volume (weight * reps for all sets)
-    const totalVolume = workout.completedSets.reduce((sum, set) => {
-      return sum + (set.weight * set.reps);
+    const totalVolume = workout.exercises.reduce((sum, exercise) => {
+      return sum + (exercise.weight * exercise.reps);
     }, 0);
     
     // Simple intensity score: RPE * volume / duration (in minutes)
@@ -171,233 +376,6 @@ export class WorkoutAnalyticsService {
       totalVolume,
       intensityScore,
       intensityLevel
-    };
-  }
-  
-  /**
-   * Analyze exercise frequency and performance over time
-   */
-  analyzeExerciseFrequency(workouts: ParsedWorkoutEvent[], timeWindowDays: number = 30): ExerciseFrequencyData[] {
-    const cutoffTime = Date.now() - (timeWindowDays * 24 * 60 * 60 * 1000);
-    const recentWorkouts = workouts.filter(w => w.startTime >= cutoffTime);
-    
-    if (recentWorkouts.length === 0) {
-      return [];
-    }
-    
-    const exerciseData = new Map<string, {
-      totalSets: number;
-      totalReps: number;
-      totalVolume: number;
-      totalRPE: number;
-      rpeCount: number;
-      lastPerformed: number;
-      workoutCount: number;
-    }>();
-    
-    recentWorkouts.forEach(workout => {
-      const workoutExercises = new Set<string>();
-      
-      // Track exercises from completed sets
-      if (workout.completedSets) {
-        workout.completedSets.forEach(set => {
-          const exerciseId = set.exerciseRef.split(':')[2];
-          workoutExercises.add(exerciseId);
-          
-          if (!exerciseData.has(exerciseId)) {
-            exerciseData.set(exerciseId, {
-              totalSets: 0,
-              totalReps: 0,
-              totalVolume: 0,
-              totalRPE: 0,
-              rpeCount: 0,
-              lastPerformed: 0,
-              workoutCount: 0
-            });
-          }
-          
-          const data = exerciseData.get(exerciseId)!;
-          data.totalSets++;
-          data.totalReps += set.reps;
-          data.totalVolume += set.weight * set.reps;
-          data.lastPerformed = Math.max(data.lastPerformed, workout.startTime);
-          
-          if (set.rpe) {
-            data.totalRPE += set.rpe;
-            data.rpeCount++;
-          }
-        });
-      }
-      
-      // Count workouts per exercise
-      workoutExercises.forEach(exerciseId => {
-        const data = exerciseData.get(exerciseId);
-        if (data) {
-          data.workoutCount++;
-        }
-      });
-    });
-    
-    // Convert to frequency data
-    const weeksInPeriod = timeWindowDays / 7;
-    
-    return Array.from(exerciseData.entries()).map(([exerciseId, data]) => ({
-      exerciseId,
-      totalSets: data.totalSets,
-      totalReps: data.totalReps,
-      totalVolume: data.totalVolume,
-      averageRPE: data.rpeCount > 0 ? data.totalRPE / data.rpeCount : 0,
-      lastPerformed: data.lastPerformed,
-      frequency: data.workoutCount / weeksInPeriod
-    })).sort((a, b) => b.frequency - a.frequency);
-  }
-  
-  /**
-   * Calculate progression metrics for a specific exercise
-   */
-  calculateExerciseProgression(workouts: ParsedWorkoutEvent[], exerciseId: string): {
-    trend: 'improving' | 'stable' | 'declining' | 'insufficient_data';
-    volumeChange: number; // percentage change
-    strengthChange: number; // percentage change in max weight
-    enduranceChange: number; // percentage change in max reps
-    consistencyScore: number; // 0-1 score based on frequency
-  } {
-    const exerciseSets = workouts
-      .filter(w => w.completedSets)
-      .flatMap(w => w.completedSets!.filter(set => 
-        set.exerciseRef.split(':')[2] === exerciseId
-      ))
-      .sort((a, b) => a.completedAt - b.completedAt);
-    
-    if (exerciseSets.length < 4) {
-      return {
-        trend: 'insufficient_data',
-        volumeChange: 0,
-        strengthChange: 0,
-        enduranceChange: 0,
-        consistencyScore: 0
-      };
-    }
-    
-    // Split into first and second half for comparison
-    const midPoint = Math.floor(exerciseSets.length / 2);
-    const firstHalf = exerciseSets.slice(0, midPoint);
-    const secondHalf = exerciseSets.slice(midPoint);
-    
-    // Calculate metrics for each half
-    const firstHalfVolume = firstHalf.reduce((sum, set) => sum + (set.weight * set.reps), 0);
-    const secondHalfVolume = secondHalf.reduce((sum, set) => sum + (set.weight * set.reps), 0);
-    
-    const firstHalfMaxWeight = Math.max(...firstHalf.map(set => set.weight));
-    const secondHalfMaxWeight = Math.max(...secondHalf.map(set => set.weight));
-    
-    const firstHalfMaxReps = Math.max(...firstHalf.map(set => set.reps));
-    const secondHalfMaxReps = Math.max(...secondHalf.map(set => set.reps));
-    
-    // Calculate percentage changes
-    const volumeChange = firstHalfVolume > 0 
-      ? ((secondHalfVolume - firstHalfVolume) / firstHalfVolume) * 100 
-      : 0;
-    
-    const strengthChange = firstHalfMaxWeight > 0 
-      ? ((secondHalfMaxWeight - firstHalfMaxWeight) / firstHalfMaxWeight) * 100 
-      : 0;
-    
-    const enduranceChange = firstHalfMaxReps > 0 
-      ? ((secondHalfMaxReps - firstHalfMaxReps) / firstHalfMaxReps) * 100 
-      : 0;
-    
-    // Determine overall trend
-    const positiveChanges = [volumeChange > 5, strengthChange > 5, enduranceChange > 5].filter(Boolean).length;
-    const negativeChanges = [volumeChange < -5, strengthChange < -5, enduranceChange < -5].filter(Boolean).length;
-    
-    let trend: 'improving' | 'stable' | 'declining' | 'insufficient_data';
-    if (positiveChanges >= 2) {
-      trend = 'improving';
-    } else if (negativeChanges >= 2) {
-      trend = 'declining';
-    } else {
-      trend = 'stable';
-    }
-    
-    // Calculate consistency score based on frequency
-    const timeSpan = exerciseSets[exerciseSets.length - 1].completedAt - exerciseSets[0].completedAt;
-    const weeksSpanned = timeSpan / (7 * 24 * 60 * 60 * 1000);
-    const expectedSessions = weeksSpanned * 2; // Assume 2x per week is good
-    const consistencyScore = Math.min(1, exerciseSets.length / expectedSessions);
-    
-    return {
-      trend,
-      volumeChange,
-      strengthChange,
-      enduranceChange,
-      consistencyScore
-    };
-  }
-  
-  /**
-   * Generate workout performance summary
-   */
-  generatePerformanceSummary(workouts: ParsedWorkoutEvent[], timeWindowDays: number = 30): {
-    totalWorkouts: number;
-    averageWorkoutsPerWeek: number;
-    totalTrainingTime: number;
-    averageWorkoutDuration: number;
-    topExercises: ExerciseFrequencyData[];
-    overallIntensity: 'low' | 'moderate' | 'high' | 'unknown';
-    consistencyScore: number;
-  } {
-    const cutoffTime = Date.now() - (timeWindowDays * 24 * 60 * 60 * 1000);
-    const recentWorkouts = workouts.filter(w => w.startTime >= cutoffTime);
-    
-    if (recentWorkouts.length === 0) {
-      return {
-        totalWorkouts: 0,
-        averageWorkoutsPerWeek: 0,
-        totalTrainingTime: 0,
-        averageWorkoutDuration: 0,
-        topExercises: [],
-        overallIntensity: 'unknown',
-        consistencyScore: 0
-      };
-    }
-    
-    const totalWorkouts = recentWorkouts.length;
-    const weeksInPeriod = timeWindowDays / 7;
-    const averageWorkoutsPerWeek = totalWorkouts / weeksInPeriod;
-    
-    const totalTrainingTime = recentWorkouts.reduce((sum, w) => sum + w.duration, 0);
-    const averageWorkoutDuration = totalTrainingTime / totalWorkouts;
-    
-    const topExercises = this.analyzeExerciseFrequency(workouts, timeWindowDays).slice(0, 5);
-    
-    // Calculate overall intensity
-    const intensityAnalyses = recentWorkouts.map(w => this.calculateWorkoutIntensity(w));
-    const avgRPE = intensityAnalyses.reduce((sum, analysis) => sum + analysis.averageRPE, 0) / intensityAnalyses.length;
-    
-    let overallIntensity: 'low' | 'moderate' | 'high' | 'unknown';
-    if (avgRPE === 0) {
-      overallIntensity = 'unknown';
-    } else if (avgRPE < 6) {
-      overallIntensity = 'low';
-    } else if (avgRPE < 8) {
-      overallIntensity = 'moderate';
-    } else {
-      overallIntensity = 'high';
-    }
-    
-    // Calculate consistency score (0-1 based on workout frequency)
-    const idealWorkoutsPerWeek = 3;
-    const consistencyScore = Math.min(1, averageWorkoutsPerWeek / idealWorkoutsPerWeek);
-    
-    return {
-      totalWorkouts,
-      averageWorkoutsPerWeek,
-      totalTrainingTime,
-      averageWorkoutDuration,
-      topExercises,
-      overallIntensity,
-      consistencyScore
     };
   }
 }

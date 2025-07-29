@@ -8,6 +8,7 @@
 
 import type { CompletedWorkout } from './workoutEventGeneration';
 import type { ParsedWorkoutEvent } from './dataParsingService';
+import { workoutAnalyticsService } from './workoutAnalytics';
 import { nip19 } from 'nostr-tools';
 
 export interface WorkoutSocialContent {
@@ -285,12 +286,11 @@ Total: ${stats.exerciseCount} exercises, ${stats.totalSets} sets, ${stats.totalR
 
   /**
    * Format duration from start and end timestamps or milliseconds
+   * Uses WorkoutAnalyticsService for consistent formatting
    */
   formatDuration(startTimeOrDuration: number, endTime?: number): string {
     const durationMs = endTime ? endTime - startTimeOrDuration : startTimeOrDuration;
-    const minutes = Math.floor(durationMs / 60000);
-    const seconds = Math.floor((durationMs % 60000) / 1000);
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    return workoutAnalyticsService.formatDuration(durationMs);
   }
 
   /**
@@ -417,6 +417,76 @@ Total: ${stats.exerciseCount} exercises, ${stats.totalSets} sets, ${stats.totalR
     } catch (error) {
       console.error('[SocialSharingService] Failed to generate nevent:', error);
       return '';
+    }
+  }
+
+  /**
+   * Generate NADDR encoding for workout template (Kind 33402)
+   * Templates are replaceable events, so we use naddr instead of nevent
+   */
+  generateTemplateNaddr(templateReference: string): string {
+    try {
+      // Parse template reference: "33402:pubkey:d-tag"
+      const parts = templateReference.split(':');
+      if (parts.length !== 3 || parts[0] !== '33402') {
+        throw new Error(`Invalid template reference format: ${templateReference}`);
+      }
+
+      const [, pubkey, dTag] = parts;
+      
+      return nip19.naddrEncode({
+        identifier: dTag,
+        pubkey: pubkey,
+        kind: 33402,
+        relays: ['wss://nos.lol', 'wss://relay.damus.io', 'wss://relay.primal.net']
+      });
+    } catch (error) {
+      console.error('[SocialSharingService] Failed to generate template naddr:', error);
+      return '';
+    }
+  }
+
+  /**
+   * Copy template NADDR to clipboard
+   * Returns success/failure status
+   */
+  async copyTemplateNaddr(templateReference: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const naddr = this.generateTemplateNaddr(templateReference);
+      
+      if (!naddr) {
+        return { success: false, error: 'Failed to generate template NADDR' };
+      }
+
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(naddr);
+        return { success: true };
+      } else {
+        // Fallback for older browsers or non-secure contexts
+        const textArea = document.createElement('textarea');
+        textArea.value = naddr;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        const successful = document.execCommand('copy');
+        document.body.removeChild(textArea);
+        
+        if (successful) {
+          return { success: true };
+        } else {
+          return { success: false, error: 'Failed to copy to clipboard' };
+        }
+      }
+    } catch (error) {
+      console.error('[SocialSharingService] Failed to copy template NADDR:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      };
     }
   }
 

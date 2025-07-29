@@ -7,7 +7,9 @@ import { Input } from '@/components/powr-ui/primitives/Input';
 import { Button } from '@/components/powr-ui/primitives/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/powr-ui/primitives/Card';
 import { WorkoutHistoryDetailModal } from '@/components/powr-ui/workout/WorkoutHistoryDetailModal';
+import { workoutAnalyticsService } from '@/lib/services/workoutAnalytics';
 import type { ParsedWorkoutEvent } from '@/lib/services/dataParsingService';
+import type { ProcessedWorkoutData } from '@/lib/services/workoutAnalytics';
 
 export function LogTab() {
   // Use WorkoutHistoryProvider for data management (following WorkoutsTab pattern)
@@ -23,6 +25,7 @@ export function LogTab() {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedWorkout, setSelectedWorkout] = useState<ParsedWorkoutEvent | null>(null);
+  const [processedWorkout, setProcessedWorkout] = useState<ProcessedWorkoutData | null>(null);
 
   // Enhanced search with debouncing (reusing GlobalWorkoutSearch patterns)
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
@@ -72,6 +75,21 @@ export function LogTab() {
       return `${filteredWorkouts.length} workout${filteredWorkouts.length === 1 ? '' : 's'}`;
     }
     return "";
+  };
+
+  // Handle workout selection and processing
+  const handleWorkoutSelect = async (workout: ParsedWorkoutEvent) => {
+    setSelectedWorkout(workout);
+    
+    // Process the workout data using the analytics service
+    try {
+      const processed = workoutAnalyticsService.processWorkoutForHistory(workout, resolvedExercises);
+      setProcessedWorkout(processed);
+    } catch (error) {
+      console.error('Failed to process workout data:', error);
+      // Still show modal with raw data if processing fails
+      setProcessedWorkout(null);
+    }
   };
 
   // Calculate total volume for a workout
@@ -186,7 +204,7 @@ export function LogTab() {
             <Card 
               key={workout.eventId} 
               className="cursor-pointer hover:shadow-md transition-shadow"
-              onClick={() => setSelectedWorkout(workout)}
+              onClick={() => handleWorkoutSelect(workout)}
             >
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
@@ -262,12 +280,14 @@ export function LogTab() {
       )}
 
       {/* Workout History Detail Modal */}
-      {selectedWorkout && (
+      {selectedWorkout && processedWorkout && (
         <WorkoutHistoryDetailModal
           isOpen={!!selectedWorkout}
-          onClose={() => setSelectedWorkout(null)}
-          workout={selectedWorkout}
-          resolvedExercises={resolvedExercises}
+          onClose={() => {
+            setSelectedWorkout(null);
+            setProcessedWorkout(null);
+          }}
+          processedWorkout={processedWorkout}
         />
       )}
     </>
