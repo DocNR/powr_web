@@ -165,9 +165,9 @@ export function AppHeader({
             {/* App Info */}
             <div className="mt-auto pt-6 border-t">
               <div className="text-center space-y-2">
-                <h3 className="font-medium text-[color:var(--workout-primary)]">POWR Workout PWA</h3>
+                <h2 className="font-medium text-[color:var(--workout-primary)]">POWR</h2>
                 <p className="text-xs text-muted-foreground">
-                  Decentralized Fitness
+                  Proof Of Workout / Relays
                 </p>
                 <p className="text-xs text-muted-foreground">
                   Powered by Nostr
