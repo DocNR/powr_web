@@ -1,13 +1,78 @@
 'use client';
 
 import React from 'react';
-import { MessageCircle, Heart, Share } from 'lucide-react';
-import { Button } from '@/components/powr-ui/primitives/Button';
-import { Card, CardContent } from '@/components/powr-ui/primitives/Card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/powr-ui/primitives/Avatar';
-import { useSubNavigation } from '@/providers/SubNavigationProvider';
+import { Users, MessageCircle, Sparkles } from 'lucide-react';
+// import { Button } from '@/components/powr-ui/primitives/Button';
+// import { Card, CardContent } from '@/components/powr-ui/primitives/Card';
+// import { Avatar, AvatarFallback, AvatarImage } from '@/components/powr-ui/primitives/Avatar';
+// import { useSubNavigation } from '@/providers/SubNavigationProvider';
 
 export function SocialTab() {
+  // const { getActiveSubTab } = useSubNavigation();
+  // const activeSubTab = getActiveSubTab('social') || 'all';
+
+  return (
+    <>
+      <div className="text-center space-y-2">
+        <div className="flex items-center justify-center gap-3">
+          <Users className="h-8 w-8 text-[color:var(--workout-primary)]" />
+          <h1 className="text-3xl font-bold tracking-tight">Social Fitness</h1>
+        </div>
+        <p className="text-muted-foreground text-lg">
+          Connect with the Nostr fitness community
+        </p>
+      </div>
+
+      {/* Main Coming Soon Message */}
+      <div className="flex flex-col items-center justify-center py-16 px-8 text-center space-y-6">
+        <div className="relative">
+          <MessageCircle className="h-24 w-24 text-muted-foreground/20" />
+          <Sparkles className="h-8 w-8 text-[color:var(--workout-primary)] absolute -top-2 -right-2" />
+        </div>
+        
+        <div className="space-y-3">
+          <h2 className="text-2xl font-semibold">Social Features Coming Soon™</h2>
+          <p className="text-muted-foreground max-w-md">
+            We&apos;re building a decentralized social platform where fitness enthusiasts can share workouts, compete, and motivate each other through the Nostr protocol.
+          </p>
+        </div>
+
+        {/* Feature Preview */}
+        <div className="grid gap-4 text-sm max-w-lg mt-8">
+          <div className="flex items-start gap-3 text-left">
+            <div className="w-2 h-2 rounded-full bg-[color:var(--workout-primary)] mt-2 flex-shrink-0" />
+            <p className="text-muted-foreground">
+              Share your workout achievements with the community
+            </p>
+          </div>
+          <div className="flex items-start gap-3 text-left">
+            <div className="w-2 h-2 rounded-full bg-[color:var(--workout-primary)] mt-2 flex-shrink-0" />
+            <p className="text-muted-foreground">
+              Follow friends and see their fitness progress
+            </p>
+          </div>
+          <div className="flex items-start gap-3 text-left">
+            <div className="w-2 h-2 rounded-full bg-[color:var(--workout-primary)] mt-2 flex-shrink-0" />
+            <p className="text-muted-foreground">
+              Compete on leaderboards and challenge others
+            </p>
+          </div>
+          <div className="flex items-start gap-3 text-left">
+            <div className="w-2 h-2 rounded-full bg-[color:var(--workout-primary)] mt-2 flex-shrink-0" />
+            <p className="text-muted-foreground">
+              Discover new workouts from top performers
+            </p>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+
+}
+
+// COMMENTED OUT: Original mock design - will be restored when building social features
+/*
+function SocialTabOriginal() {
   const { getActiveSubTab } = useSubNavigation();
   const activeSubTab = getActiveSubTab('social') || 'all';
 
@@ -24,7 +89,7 @@ export function SocialTab() {
 function MeView() {
   return (
     <div className="-mx-4">
-      {/* Personal Stats Header */}
+      {/* Personal Stats Header *\/}
       <div className="px-4 pb-4 border-b border-border">
         <div className="grid grid-cols-2 gap-4">
           <div className="text-center">
@@ -38,7 +103,7 @@ function MeView() {
         </div>
       </div>
 
-      {/* My Posts Feed - Twitter/X style */}
+      {/* My Posts Feed - Twitter/X style *\/}
       <div className="divide-y divide-border">
         {[
           {
@@ -130,7 +195,7 @@ function MeView() {
                 </div>
                 <p className="text-sm mb-3 leading-relaxed">{post.content}</p>
                 
-                {/* Workout Details Card (if present) */}
+                {/* Workout Details Card (if present) *\/}
                 {post.workoutDetails && (
                   <div className="mb-3 p-3 border border-border rounded-lg bg-muted/30">
                     <h4 className="font-medium mb-2">{post.workoutDetails.name}</h4>
@@ -171,9 +236,9 @@ function MeView() {
 function LeaderboardView() {
   return (
     <div className="space-y-6">
-      {/* Top 3 Podium */}
+      {/* Top 3 Podium *\/}
       <div className="flex items-end justify-center gap-4 mb-8">
-        {/* 2nd Place */}
+        {/* 2nd Place *\/}
         <div className="text-center">
           <div className="w-16 h-16 rounded-full bg-gray-500 mx-auto mb-2 flex items-center justify-center">
             <span className="text-white font-bold">JD</span>
@@ -185,7 +250,7 @@ function LeaderboardView() {
           </div>
         </div>
 
-        {/* 1st Place */}
+        {/* 1st Place *\/}
         <div className="text-center">
           <div className="w-20 h-20 rounded-full bg-gradient-to-r from-orange-500 to-orange-600 mx-auto mb-2 flex items-center justify-center ring-4 ring-orange-300">
             <span className="text-white font-bold text-lg">SL</span>
@@ -197,7 +262,7 @@ function LeaderboardView() {
           </div>
         </div>
 
-        {/* 3rd Place */}
+        {/* 3rd Place *\/}
         <div className="text-center">
           <div className="w-16 h-16 rounded-full bg-orange-400 mx-auto mb-2 flex items-center justify-center">
             <span className="text-white font-bold">EW</span>
@@ -210,7 +275,7 @@ function LeaderboardView() {
         </div>
       </div>
 
-      {/* Rest of Leaderboard */}
+      {/* Rest of Leaderboard *\/}
       <Card>
         <CardContent className="p-4">
           <div className="space-y-3">
@@ -245,7 +310,7 @@ function LeaderboardView() {
 function AllUsersView() {
   return (
     <div className="-mx-4">
-      {/* Social Feed - No cards, thin hairlines */}
+      {/* Social Feed - No cards, thin hairlines *\/}
       <div className="divide-y divide-border">
         {[
           {
@@ -323,7 +388,7 @@ function AllUsersView() {
                 </div>
                 <p className="text-sm mb-3 leading-relaxed">{post.content}</p>
                 
-                {/* Workout Details Card (if present) */}
+                {/* Workout Details Card (if present) *\/}
                 {post.workoutDetails && (
                   <div className="mb-3 p-3 border border-border rounded-lg bg-muted/30">
                     <h4 className="font-medium mb-2">{post.workoutDetails.name}</h4>
@@ -359,3 +424,4 @@ function AllUsersView() {
     </div>
   );
 }
+*/
