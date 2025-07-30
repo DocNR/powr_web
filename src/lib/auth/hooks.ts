@@ -26,16 +26,10 @@ import {
   canSignAtom
 } from './atoms';
 import type { Account, LoginMethod, AuthenticationError, Nip46Settings, ValidationResult } from './types';
-import { ensureNDKInitialized, ensureRelaysConnected } from '../ndk';
+import { ensureNDKInitialized } from '../ndk';
 
 async function getNDK(): Promise<NDK> {
   return await ensureNDKInitialized();
-}
-
-async function getNDKWithRelays(): Promise<NDK> {
-  const ndk = await ensureNDKInitialized();
-  await ensureRelaysConnected();
-  return ndk;
 }
 
 // Convenience hooks for accessing auth state
@@ -288,7 +282,7 @@ export function useNip46Login() {
         };
       }
 
-      const mainNDK = await getNDKWithRelays();
+      const mainNDK = await getNDK();
       
       // Get connection settings from bunker URL
       const settings = await getNostrConnectSettings(mainNDK, remoteSignerURL);
@@ -536,7 +530,72 @@ export function useCheckAmberAuth() {
   };
 }
 
+/**
+ * Ephemeral Key Authentication (Demo Mode)
+ * Generates a random temporary key for testing and demos
+ */
+export function useEphemeralLogin() {
+  const [, setAccount] = useAtom(accountAtom);
+  const [accounts, setAccounts] = useAtom(accountsAtom);
+  const [, setLoginMethod] = useAtom(methodAtom);
+
+  return async (): Promise<{ success: boolean; error?: AuthenticationError }> => {
+    try {
+      console.log('[Ephemeral Login] Generating temporary key for demo...');
+      
+      const ndk = await getNDK();
+      
+      // Generate ephemeral private key signer
+      const signer = NDKPrivateKeySigner.generate();
+      const user = await signer.user();
+      
+      if (!user || !user.pubkey) {
+        return {
+          success: false,
+          error: {
+            code: 'EPHEMERAL_GENERATION_FAILED',
+            message: 'Failed to generate ephemeral key',
+          }
+        };
+      }
+
+      // Set the signer on NDK
+      ndk.signer = signer;
+
+      // Get additional user info
+      const npub = nip19.npubEncode(user.pubkey);
+      
+      const account: Account = {
+        method: 'ephemeral' as LoginMethod,
+        pubkey: user.pubkey,
+        npub,
+      };
+
+      console.log('[Ephemeral Login] Generated demo account:', user.pubkey.slice(0, 16) + '...');
+
+      // Update state
+      setAccount(account);
+      setAccounts([account, ...accounts.filter(a => a.pubkey !== user.pubkey)]);
+      setLoginMethod('ephemeral');
+
+      return { success: true };
+
+    } catch (err) {
+      console.error('[Ephemeral Login]', err);
+      return {
+        success: false,
+        error: {
+          code: 'EPHEMERAL_GENERATION_FAILED',
+          message: 'Failed to generate ephemeral key for demo mode',
+          details: { originalError: err }
+        }
+      };
+    }
+  };
+}
+
 // Export aliases for compatibility with page component
 export const useLoginWithNip07 = useNip07Login;
 export const useLoginWithNip46 = useNip46Login;
 export const useLoginWithAmber = useAmberLogin;
+export const useLoginWithEphemeral = useEphemeralLogin;

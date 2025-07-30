@@ -30,6 +30,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Landing Page Monospace Typography & Authentication Enhancement COMPLETE (July 30, 2025) ✅**
+  
+  **User Impact**: Landing page now features distinctive monospace typography for key tech elements (main slogan "Your Fitness, Your Rules", POWR logo, Nostr protocol badges) creating authentic developer/hacker credibility while maintaining readability for body text. Enhanced authentication system with simplified LoginDialog supporting NIP-07 browser extensions, NIP-46 remote signing, and ephemeral demo accounts. Honest messaging with "Join tens of athletes" reflects authentic early-stage community.
+  
+  **Developer Notes**: Created `.font-mono-tech` utility class with comprehensive monospace font stack (SF Mono, Monaco, Inconsolata, Roboto Mono, Source Code Pro, Menlo, Consolas). Applied selectively to brand elements and protocol references for techy aesthetic. Enhanced LoginDialog with improved error handling, loading states, and debugging logs for NIP-46 troubleshooting. Added ephemeral login for instant demo access without authentication complexity.
+  
+  **Architecture Changes**: Established balanced typography system combining monospace tech credibility with readable body text. Enhanced authentication patterns with comprehensive error handling and debugging capabilities. Foundation ready for reliable multi-method Nostr authentication with professional UX feedback.
+
+### Fixed
+- **Web Environment Amber Button Hide Fix COMPLETE (July 30, 2025) ✅**
+  
+  **User Impact**: Amber authentication buttons are now properly hidden in web browsers and PWAs, only appearing in native mobile environments where Amber app-to-app communication actually works. Users no longer see confusing "Connect with Amber" buttons that would fail in web environments, providing a cleaner and more appropriate authentication experience.
+  
+  **Developer Notes**: Created environment detection utility (`src/lib/utils/environment.ts`) with `isAmberAvailable()` function that returns false for web environments and true for native mobile (Capacitor/React Native). Updated both LoginDialog component and main page authentication sections to conditionally render Amber buttons using `{isAmberAvailable() && (...)}` pattern. Fixed TypeScript errors by using proper `'Capacitor' in window` checks instead of `any` type casting.
+  
+  **Architecture Changes**: Established environment detection patterns for conditional feature availability across web and mobile platforms. Clean separation between web-compatible authentication (NIP-07, NIP-46) and mobile-specific authentication (Amber NIP-55). Foundation ready for React Native migration where Amber buttons will properly appear and function in native Android environments.
+
 ### Fixed
 - **Share Workout Button iOS Native Share Fix COMPLETE (July 30, 2025) ✅**
   

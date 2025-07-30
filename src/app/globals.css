@@ -152,6 +152,11 @@
   body {
     @apply bg-background text-foreground;
   }
+  
+  /* Monospace utility class for techy elements */
+  .font-mono-tech {
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Source Code Pro', 'Menlo', 'Consolas', monospace;
+  }
 }
 
 /* PWA Mobile Optimizations */

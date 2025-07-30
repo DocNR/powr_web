@@ -1,423 +1,217 @@
 'use client';
 
 /**
- * POWR Workout PWA - Login-03 Style Authentication
+ * POWR Workout PWA - Landing Page
  * 
- * Based on shadcn/ui login-03 component with Nostr authentication
+ * Revolutionary fitness tracking with data control and Nostr integration.
+ * Emphasizes user autonomy and the decentralized fitness movement.
  */
 
-import { useEffect } from 'react';
-import { Button } from '@/components/powr-ui/primitives/Button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/powr-ui/primitives/Card';
-import { Input } from '@/components/powr-ui/primitives/Input';
-import { Label } from '@/components/powr-ui/primitives/Label';
-import { 
-  useAccount, 
-  useIsAuthenticated, 
-  useLoginWithNip07,
-  useLoginWithNip46,
-  useLoginWithAmber,
-  useCheckAmberAuth,
-  useLogout
-} from '@/lib/auth/hooks';
+import { useEffect, useState } from 'react';
+import { Shield, Globe, Unlock, Zap, Users, ArrowRight } from 'lucide-react';
+import { useIsAuthenticated, useEphemeralLogin } from '@/lib/auth/hooks';
 import { initializeNDK } from '@/lib/ndk';
-import { Cable, Loader2, Smartphone, Gamepad2 } from 'lucide-react';
-import { useState } from 'react';
-import { Logo } from '@/components/ui/logo';
+import { LoginDialog } from '@/components/auth/LoginDialog';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { Button } from '@/components/powr-ui/primitives/Button';
+import { Card, CardContent } from '@/components/powr-ui/primitives/Card';
+import { Badge } from '@/components/powr-ui/primitives/Badge';
+import { Logo } from '@/components/ui/logo';
 
 export default function Home() {
-  const account = useAccount();
   const isAuthenticated = useIsAuthenticated();
-  const loginWithNip07 = useLoginWithNip07();
-  const loginWithNip46 = useLoginWithNip46();
-  const loginWithAmber = useLoginWithAmber();
-  const checkAmberAuth = useCheckAmberAuth();
-  const logout = useLogout();
-  
-  const [bunkerUrl, setBunkerUrl] = useState('');
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [hasNip07, setHasNip07] = useState(false);
+  const ephemeralLogin = useEphemeralLogin();
   const [mounted, setMounted] = useState(false);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   // Set mounted state to prevent hydration mismatches
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Initialize NDK on app start (following Chachi pattern)
+  // Initialize NDK on app start
   useEffect(() => {
-    if (!mounted) return; // Wait for component to mount
+    if (!mounted) return;
     
     const initializeApp = async () => {
       try {
         console.log('[App] Initializing NDK...');
         await initializeNDK();
         console.log('[App] NDK initialized successfully');
-        
-        // Check for NIP-07 extension (only after mounting)
-        const hasExtension = typeof window !== 'undefined' && 
-                            typeof window.nostr !== 'undefined';
-        setHasNip07(hasExtension);
-        
-        // Check for existing Amber authentication on startup
-        console.log('[App] Checking for existing Amber authentication...');
-        const amberAuthSuccess = await checkAmberAuth();
-        if (amberAuthSuccess) {
-          console.log('[App] Amber authentication restored from localStorage');
-        } else {
-          console.log('[App] No existing Amber authentication found');
-        }
-        
-        console.log('[App] NDK initialization complete');
       } catch (error) {
         console.error('[App] Initialization failed:', error);
       }
     };
 
     initializeApp();
-  }, [mounted, checkAmberAuth]);
+  }, [mounted]);
 
-  // Listen for Amber authentication results from popup window + localStorage bridge
-  useEffect(() => {
-    if (!mounted) return;
-
-    const processAmberAuthResult = async (result: { success: boolean; pubkey?: string; error?: string }) => {
-      if (result.success && result.pubkey) {
-        console.log('[Amber Auth] Processing successful authentication');
-        setIsConnecting(true);
-        
-        try {
-          console.log('[Amber Auth] Authenticating with pubkey:', result.pubkey);
-          
-          // Use the actual authentication hook
-          const authResult = await loginWithAmber(result.pubkey);
-          
-          if (authResult.success) {
-            console.log('[Amber Auth] Authentication successful');
-            // No need to reload - auth state will update automatically
-          } else {
-            console.error('[Amber Auth] Authentication failed:', authResult.error);
-            throw new Error(authResult.error?.message || 'Authentication failed');
-          }
-          
-        } catch (error) {
-          console.error('[Amber Auth] Authentication failed:', error);
-          setIsConnecting(false);
-        }
-      } else {
-        console.error('[Amber Auth] Authentication failed:', result.error);
-        setIsConnecting(false);
-      }
-    };
-
-    const handleAmberAuthMessage = async (event: MessageEvent) => {
-      // Verify origin for security
-      if (event.origin !== window.location.origin) {
-        console.warn('[Amber Auth] Ignoring message from unknown origin:', event.origin);
-        return;
-      }
-
-      // Check if this is an Amber auth result
-      if (event.data?.type === 'AMBER_AUTH_RESULT') {
-        console.log('[Amber Auth] Received auth result from popup:', event.data.result);
-        await processAmberAuthResult(event.data.result);
-      }
-    };
-
-    // 🚀 UNIVERSAL LOCALSTORAGE BRIDGE POLLING
-    const checkLocalStorageBridge = () => {
-      try {
-        const storedResult = localStorage.getItem('amber_auth_result');
-        if (storedResult) {
-          console.log('[Amber Auth] Found auth result in localStorage bridge');
-          
-          const authResult = JSON.parse(storedResult);
-          
-          // Clear the bridge data immediately to prevent reprocessing
-          localStorage.removeItem('amber_auth_result');
-          
-          console.log('[Amber Auth] Processing localStorage bridge result:', authResult);
-          processAmberAuthResult(authResult);
-        }
-      } catch (error) {
-        console.error('[Amber Auth] Error checking localStorage bridge:', error);
-      }
-    };
-
-    // Add message listener for immediate communication
-    window.addEventListener('message', handleAmberAuthMessage);
-    console.log('[Amber Auth] Message listener added for popup communication');
-
-    // Start localStorage bridge polling (checks every 500ms)
-    const bridgePollingInterval = setInterval(checkLocalStorageBridge, 500);
-    console.log('[Amber Auth] Started localStorage bridge polling');
-
-    // Also check immediately in case auth result is already there
-    checkLocalStorageBridge();
-
-    // Cleanup
-    return () => {
-      window.removeEventListener('message', handleAmberAuthMessage);
-      clearInterval(bridgePollingInterval);
-      console.log('[Amber Auth] Message listener and localStorage polling stopped');
-    };
-  }, [mounted, loginWithAmber]);
-
-  // NIP-07 Extension Change Detection (ONLY for extension users)
-  useEffect(() => {
-    // Only monitor extension changes if user logged in with NIP-07
-    if (!mounted || !hasNip07 || !isAuthenticated || !account || account.method !== 'nip07') {
-      return;
-    }
-
-    const lastKnownPubkey = account.pubkey;
-    
-    const checkExtensionChange = async () => {
-      try {
-        if (window.nostr && typeof window.nostr.getPublicKey === 'function') {
-          const currentPubkey = await window.nostr.getPublicKey();
-          
-          if (currentPubkey !== lastKnownPubkey) {
-            console.log('[Extension Change] Detected account switch!');
-            console.log('[Extension Change] Old:', lastKnownPubkey.slice(0, 16) + '...');
-            console.log('[Extension Change] New:', currentPubkey.slice(0, 16) + '...');
-            
-            // Auto-logout (page refresh will handle the clean state)
-            console.log('[Extension Change] Auto-switching to new account...');
-            await logout();
-          }
-        }
-      } catch (error) {
-        // Extension might deny permission or be unavailable - that's OK
-        console.log('[Extension Change] Check failed (normal if user denies):', error instanceof Error ? error.message : String(error));
-      }
-    };
-
-    // Check every 3 seconds for extension changes (less frequent to avoid spam)
-    const interval = setInterval(checkExtensionChange, 3000);
-    
-    console.log('[Extension Change] Started monitoring for account changes (NIP-07 users only)');
-    
-    return () => {
-      clearInterval(interval);
-      console.log('[Extension Change] Stopped monitoring');
-    };
-  }, [mounted, hasNip07, isAuthenticated, account, logout]);
-
-  const handleNip07Login = async () => {
-    setIsConnecting(true);
+  const handleTryDemo = async () => {
+    console.log('[Landing Page] Try Demo button clicked');
     try {
-      await loginWithNip07();
+      setIsLoggingIn(true);
+      console.log('[Landing Page] Starting ephemeral login...');
+      const result = await ephemeralLogin();
+      console.log('[Landing Page] Ephemeral login result:', result);
+      if (!result.success && result.error) {
+        console.error('Demo login failed:', result.error);
+      }
     } catch (error) {
-      console.error('NIP-07 login failed:', error);
+      console.error('Demo login error:', error);
     } finally {
-      setIsConnecting(false);
+      setIsLoggingIn(false);
     }
   };
 
-  const handleNip46Login = async () => {
-    if (!bunkerUrl.trim()) return;
-    
-    setIsConnecting(true);
-    try {
-      await loginWithNip46(bunkerUrl.trim());
-    } catch (error) {
-      console.error('NIP-46 login failed:', error);
-    } finally {
-      setIsConnecting(false);
-    }
-  };
-
-  if (isAuthenticated && account) {
-    // Beautiful App with Navigation
+  if (isAuthenticated) {
+    // Show the main app when authenticated
     return <AppLayout />;
   }
 
-  // Login-03 Style Authentication Page
+  // Show landing page when not authenticated
   return (
-    <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-muted p-6 md:p-10" suppressHydrationWarning>
-      <div className="flex w-full max-w-sm flex-col gap-6">
-        {/* Logo */}
-        <a href="#" className="flex items-center gap-2 self-center font-medium">
-          <Logo width={24} height={24} className="rounded-md" />
-          POWR
-        </a>
-        
-        {/* Login Form */}
-        <div className="flex flex-col gap-6">
-          <Card>
-            <CardHeader className="text-center">
-              <CardTitle className="text-xl">Welcome back</CardTitle>
-              <CardDescription>
-                Connect your Nostr identity to start tracking workouts
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={(e) => e.preventDefault()}>
-                <div className="grid gap-6">
-                  {/* NIP-07 Browser Extension */}
-                  <div className="flex flex-col gap-4">
-                    <Button 
-                      variant="outline" 
-                      className="w-full" 
-                      onClick={handleNip07Login}
-                      disabled={!hasNip07 || isConnecting}
-                    >
-                      {isConnecting ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : (
-                        <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                        </svg>
-                      )}
-                      {hasNip07 ? 'Connect Browser Extension' : 'No Extension Detected'}
-                    </Button>
-                    {!hasNip07 && (
-                      <p className="text-xs text-muted-foreground text-center">
-                        Install <a href="https://getalby.com" className="underline">Alby</a> or{' '}
-                        <a href="https://github.com/fiatjaf/nos2x" className="underline">nos2x</a> for the best experience
-                      </p>
-                    )}
-                  </div>
-                  
-                  {/* Connect with Amber */}
-                  <div className="flex flex-col gap-2">
-                    <Button 
-                      variant="outline" 
-                      className="w-full" 
-                      onClick={async () => {
-                        try {
-                          // NIP-55: Android Signer Application integration
-                          // Use nostrsigner: scheme for direct Amber integration
-                          
-                          const params = new URLSearchParams();
-                          params.append('compressionType', 'none');
-                          params.append('returnType', 'signature');
-                          params.append('type', 'get_public_key');
-                          
-                          // Use the current origin (works for both localhost and network IP)
-                          const callbackUrl = `${window.location.origin}/auth/callback`;
-                          params.append('callbackUrl', callbackUrl);
-                          
-                          console.log('[Amber Connect] Using callback URL:', callbackUrl);
-                          
-                          // Create NIP-55 URL for Amber
-                          const amberUrl = `nostrsigner:?${params.toString()}`;
-                          
-                          console.log('[Amber Connect] Opening Amber with NIP-55 URL:', amberUrl);
-                          
-                          // Launch Amber app using NIP-55 protocol
-                          window.location.href = amberUrl;
-                          
-                        } catch (error) {
-                          console.error('[Amber Connect] Error:', error);
-                        }
-                      }}
-                      disabled={isConnecting}
-                    >
-                      {isConnecting ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : (
-                        <Smartphone className="mr-2 h-4 w-4" />
-                      )}
-                      Connect with Amber
-                    </Button>
-                    <p className="text-xs text-muted-foreground text-center">
-                      Opens Amber app for secure mobile signing. Install from{' '}
-                      <a href="https://github.com/greenart7c3/Amber/releases" className="underline">GitHub</a> or{' '}
-                      <a href="https://f-droid.org/packages/com.greenart7c3.nostrsigner/" className="underline">F-Droid</a>
-                    </p>
-                  </div>
-                  
-                  {/* Divider */}
-                  <div className="text-center">
-                    <span className="text-xs uppercase text-muted-foreground">
-                      Or continue with
-                    </span>
-                  </div>
-                  
-                  {/* NIP-46 Remote Signer */}
-                  <div className="grid gap-6">
-                    <div className="grid gap-2">
-                      <Label htmlFor="bunker">Remote Signer</Label>
-                      <div className="flex gap-2">
-                        <Input
-                          id="bunker"
-                          type="text"
-                          placeholder="bunker://"
-                          value={bunkerUrl}
-                          onChange={(e) => setBunkerUrl(e.target.value)}
-                          disabled={isConnecting}
-                        />
-                        <Button 
-                          type="button" 
-                          size="icon"
-                          onClick={handleNip46Login}
-                          disabled={!bunkerUrl.trim() || isConnecting}
-                        >
-                          {isConnecting ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Cable className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        Examples: bunker://pubkey@relay.com or user@nsecbunker.com
-                      </p>
-                    </div>
-                  </div>
-                  
-                  {/* Demo Login for Testing UI */}
-                  <div className="flex flex-col gap-2">
-                    <Button 
-                      variant="outline" 
-                      className="w-full" 
-                      onClick={async () => {
-                        // Demo login using working bunker URL
-                        const demoBunkerUrl = 'bunker://b187f4fa71daeed34a709dcb0e0b5a317b2408a739327f1e549b7bd8011362d0?relay=wss%3A%2F%2Fpromenade.fiatjaf.com';
-                        setIsConnecting(true);
-                        try {
-                          await loginWithNip46(demoBunkerUrl);
-                        } catch (error) {
-                          console.error('Demo login failed:', error);
-                        } finally {
-                          setIsConnecting(false);
-                        }
-                      }}
-                      disabled={isConnecting}
-                    >
-                      {isConnecting ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : (
-                        <Gamepad2 className="mr-2 h-4 w-4" />
-                      )}
-                      Demo Login (Working Bunker)
-                    </Button>
-                    <p className="text-xs text-muted-foreground text-center">
-                      Uses real bunker URL for testing dashboard
-                    </p>
-                  </div>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-          
-          {/* Security Notice */}
-          <div className="text-balance text-center text-xs text-muted-foreground [&_a]:underline [&_a]:underline-offset-4 [&_a]:hover:text-primary">
-            <div className="flex items-center justify-center gap-2">
-              <span>POWR never stores your private keys.</span>
-            </div>
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20" suppressHydrationWarning>
+      {/* Header */}
+      <header className="container mx-auto px-6 py-8">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Logo width={32} height={32} className="rounded-md" />
+            <span className="text-xl font-bold font-mono-tech">POWR</span>
+          </div>
+          <Badge variant="secondary" className="hidden sm:flex font-mono-tech">
+            Powered by Nostr
+          </Badge>
+        </div>
+      </header>
+
+      {/* Hero Section */}
+      <main className="container mx-auto px-6 py-12">
+        <div className="max-w-4xl mx-auto text-center space-y-8">
+          {/* Main Headline */}
+          <div className="space-y-4">
+            <h1 className="text-4xl sm:text-6xl font-bold tracking-tight font-mono-tech">
+              Your Fitness,{' '}
+              <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                Your Rules
+              </span>
+            </h1>
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              Control your data. Connect with athletes worldwide. 
+              Join the decentralized fitness revolution.
+            </p>
+          </div>
+
+          {/* CTA Buttons */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <LoginDialog
+              trigger={
+                <Button size="lg" className="w-full sm:w-auto">
+                  Get Started
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              }
+            />
+            <Button 
+              variant="outline" 
+              size="lg" 
+              className="w-full sm:w-auto"
+              onClick={handleTryDemo}
+              disabled={isLoggingIn}
+            >
+              {isLoggingIn ? (
+                <>
+                  <Zap className="mr-2 h-4 w-4 animate-pulse" />
+                  Starting Demo...
+                </>
+              ) : (
+                <>
+                  <Zap className="mr-2 h-4 w-4" />
+                  Try Demo
+                </>
+              )}
+            </Button>
           </div>
         </div>
-      </div>
+
+        {/* Features Grid */}
+        <div className="max-w-5xl mx-auto mt-24">
+          <div className="grid md:grid-cols-3 gap-8">
+            {/* Control Your Data */}
+            <Card className="border-0 bg-card/50 backdrop-blur-sm">
+              <CardContent className="p-8 text-center space-y-4">
+                <div className="w-12 h-12 mx-auto bg-primary/10 rounded-lg flex items-center justify-center">
+                  <Shield className="h-6 w-6 text-primary" />
+                </div>
+                <h3 className="text-xl font-semibold">Control Your Data</h3>
+                <p className="text-muted-foreground">
+                  Your workouts stay with you, not locked in an app. 
+                  Switch platforms anytime, keep your progress forever.
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* Connect Globally */}
+            <Card className="border-0 bg-card/50 backdrop-blur-sm">
+              <CardContent className="p-8 text-center space-y-4">
+                <div className="w-12 h-12 mx-auto bg-primary/10 rounded-lg flex items-center justify-center">
+                  <Globe className="h-6 w-6 text-primary" />
+                </div>
+                <h3 className="text-xl font-semibold">Connect Globally</h3>
+                <p className="text-muted-foreground">
+                  Join athletes worldwide on the open Nostr network. 
+                  Share workouts, find motivation, build community.
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* No Lock-in */}
+            <Card className="border-0 bg-card/50 backdrop-blur-sm">
+              <CardContent className="p-8 text-center space-y-4">
+                <div className="w-12 h-12 mx-auto bg-primary/10 rounded-lg flex items-center justify-center">
+                  <Unlock className="h-6 w-6 text-primary" />
+                </div>
+                <h3 className="text-xl font-semibold">No Lock-in</h3>
+                <p className="text-muted-foreground">
+                  Break free from app ecosystems. Your fitness journey 
+                  belongs to you, not to any single company.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Social Proof / Revolution Message */}
+        <div className="max-w-3xl mx-auto mt-24 text-center space-y-6">
+          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+            <Users className="h-4 w-4" />
+            <span>Join tens of athletes taking control of their data</span>
+          </div>
+          
+          <div className="bg-muted/30 rounded-lg p-6 border border-muted">
+            <p className="text-lg font-medium mb-2">
+              &ldquo;The future of fitness is open, decentralized, and user-controlled.&rdquo;
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Built on Nostr protocol • No ads • No tracking • No vendor lock-in
+            </p>
+          </div>
+        </div>
+      </main>
+
+      {/* Footer */}
+      <footer className="container mx-auto px-6 py-12 mt-24 border-t border-muted">
+        <div className="max-w-4xl mx-auto text-center space-y-4">
+          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+            <span>Powered by</span>
+            <Badge variant="outline" className="text-xs font-mono-tech">
+              Nostr Protocol
+            </Badge>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            POWR never stores your private keys. Your data, your control.
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }
