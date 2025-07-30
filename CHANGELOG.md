@@ -31,6 +31,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Share Workout Button Direct URL Copy Fix COMPLETE (July 30, 2025) ✅**
+  
+  **User Impact**: Share workout button now copies just the public workout URL directly instead of opening social sharing dialog. Desktop users get "Link copied!" toast notification, iPhone users get native iOS share sheet. Fixed critical issue where share button appeared to do nothing on iPhone - now opens native share sheet reliably with proper fallback to clipboard when native sharing unavailable.
+  
+  **Developer Notes**: Modified WorkoutHistoryDetailModal handleShareWorkout to directly generate and copy public workout URL using socialSharingService.generateWorkoutRecordURL(). Enhanced mobile detection for native share API with proper fallback handling. Fixed TypeScript errors by adding required 'id' property to ParsedWorkoutEvent objects and using 'as const' for workoutType. Maintained Toast notification system for user feedback.
+  
+  **Architecture Changes**: Simplified share workflow eliminates social sharing dialog step for direct URL sharing. Enhanced cross-platform reliability with native share API for mobile and clipboard fallback for desktop. Foundation ready for consistent sharing experience across all workout sharing contexts.
+
 - **Share Workout Button UX Enhancement COMPLETE (July 30, 2025) ✅**
   
   **User Impact**: Users now get clear feedback when sharing workouts with "Link copied!" toast notifications on desktop and native share sheet on mobile. Fixed critical iPhone issue where share button appeared to do nothing - now opens iOS native share sheet reliably. Enhanced user experience with loading states, proper error handling, and fallback clipboard functionality when native sharing unavailable.

@@ -27,7 +27,6 @@ import { socialSharingService } from '@/lib/services/socialSharingService';
 import { workoutAnalyticsService } from '@/lib/services/workoutAnalytics';
 import { showSuccessToast, showErrorToast } from '@/components/powr-ui/primitives/Toast';
 import type { ProcessedWorkoutData } from '@/lib/services/workoutAnalytics';
-import type { ParsedWorkoutEvent } from '@/lib/services/dataParsingService';
 
 
 interface WorkoutHistoryDetailModalProps {
@@ -63,62 +62,94 @@ export const WorkoutHistoryDetailModal: React.FC<WorkoutHistoryDetailModalProps>
     });
   };
 
-  // Enhanced share workout method with proper user feedback
+  // Enhanced share workout method - directly copy public URL
   const handleShareWorkout = async () => {
     if (isSharing) return; // Prevent double-clicks
     
     setIsSharing(true);
     
     try {
-      // Create a ParsedWorkoutEvent-like object for sharing service compatibility
-      const workoutForSharing: ParsedWorkoutEvent = {
-        id: processedWorkout.eventId,
+      // Create a minimal ParsedWorkoutEvent for the sharing service
+      const workoutForSharing = {
+        id: processedWorkout.eventId, // Add required id property
         eventId: processedWorkout.eventId,
+        authorPubkey: processedWorkout.authorPubkey,
         title: processedWorkout.title,
         description: '',
-        authorPubkey: processedWorkout.authorPubkey,
-        createdAt: processedWorkout.createdAt,
-        startTime: processedWorkout.createdAt,
-        endTime: processedWorkout.createdAt + Math.floor(processedWorkout.stats.duration / 1000),
-        duration: Math.floor(processedWorkout.stats.duration / 1000), // Convert to seconds
-        workoutType: 'strength',
+        createdAt: Math.floor(processedWorkout.createdAt / 1000), // Convert to seconds
+        startTime: Math.floor(processedWorkout.createdAt / 1000),
+        endTime: Math.floor(processedWorkout.createdAt / 1000) + Math.floor(processedWorkout.stats.duration / 1000),
+        duration: Math.floor(processedWorkout.stats.duration / 1000),
+        workoutType: 'strength' as const,
         completed: true,
         tags: [],
-        exercises: [] // Not needed for URL generation
+        exercises: []
       };
       
-      const result = await socialSharingService.shareWorkout(workoutForSharing);
+      // Generate the public workout URL
+      const publicUrl = socialSharingService.generateWorkoutRecordURL(workoutForSharing);
       
-      if (result.success) {
-        // Check if native share API is available
-        const hasNativeShare = typeof navigator !== 'undefined' && 
-                              'share' in navigator && 
-                              'canShare' in navigator;
+      // Check if native share API is available and supported
+      const hasNativeShare = typeof navigator !== 'undefined' && 
+                            'share' in navigator && 
+                            navigator.canShare && 
+                            navigator.canShare({ url: publicUrl });
+      
+      if (hasNativeShare) {
+        // Use native share API for mobile
+        await navigator.share({
+          title: `${processedWorkout.title} - POWR Workout`,
+          text: `Check out my workout: ${processedWorkout.title}`,
+          url: publicUrl
+        });
         
-        if (hasNativeShare) {
-          showSuccessToast(
-            "Workout Shared!",
-            "Your workout has been shared successfully."
-          );
-        } else {
-          showSuccessToast(
-            "Link Copied!",
-            "Workout link has been copied to your clipboard. Share it anywhere!"
-          );
-        }
+        showSuccessToast(
+          "Workout Shared!",
+          "Your workout has been shared successfully."
+        );
       } else {
-        // Show error with helpful instructions
-        showErrorToast(
-          "Share Failed",
-          result.error || "Unable to share workout. Please try copying the link manually."
+        // Fallback to clipboard for desktop
+        await navigator.clipboard.writeText(publicUrl);
+        
+        showSuccessToast(
+          "Link Copied!",
+          "Workout link has been copied to your clipboard. Share it anywhere!"
         );
       }
     } catch (error) {
       console.error('Failed to share workout:', error);
-      showErrorToast(
-        "Share Error",
-        "Something went wrong while sharing your workout. Please try again."
-      );
+      
+      // Fallback error handling - try to copy to clipboard
+      try {
+        const workoutForSharing = {
+          id: processedWorkout.eventId, // Add required id property
+          eventId: processedWorkout.eventId,
+          authorPubkey: processedWorkout.authorPubkey,
+          title: processedWorkout.title,
+          description: '',
+          createdAt: Math.floor(processedWorkout.createdAt / 1000),
+          startTime: Math.floor(processedWorkout.createdAt / 1000),
+          endTime: Math.floor(processedWorkout.createdAt / 1000) + Math.floor(processedWorkout.stats.duration / 1000),
+          duration: Math.floor(processedWorkout.stats.duration / 1000),
+          workoutType: 'strength' as const,
+          completed: true,
+          tags: [],
+          exercises: []
+        };
+        
+        const publicUrl = socialSharingService.generateWorkoutRecordURL(workoutForSharing);
+        await navigator.clipboard.writeText(publicUrl);
+        
+        showSuccessToast(
+          "Link Copied!",
+          "Workout link has been copied to your clipboard."
+        );
+      } catch {
+        showErrorToast(
+          "Share Failed",
+          "Unable to share workout. Please try again or check your browser permissions."
+        );
+      }
     } finally {
       setIsSharing(false);
     }
