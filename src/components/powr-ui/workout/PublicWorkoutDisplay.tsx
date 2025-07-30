@@ -486,7 +486,7 @@ export const PublicWorkoutDisplay: React.FC<PublicWorkoutDisplayProps> = ({
 
 
         {/* POWR Conversion CTA */}
-        <Card className="bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-950/30 dark:to-red-950/30 border-orange-200 dark:border-orange-800">
+        <Card className="bg-muted/50 backdrop-blur-sm border-primary/20">
           <CardContent className="p-6 text-center">
             <h3 className="text-xl font-bold mb-2 text-foreground">
               Want to track your workouts like {userDisplayName}?
