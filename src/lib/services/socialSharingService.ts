@@ -26,6 +26,30 @@ export interface SingleWorkoutStats {
   averageRPE: number;
 }
 
+export interface DecodedNevent {
+  eventId: string;
+  authorPubkey: string;
+  kind: number;
+  relays: string[];
+}
+
+export interface PublicWorkoutData {
+  eventId: string;
+  authorPubkey: string;
+  title: string;
+  exercises: Array<{
+    exerciseRef: string;
+    reps: number;
+    weight: number;
+    rpe?: number;
+    setType?: string;
+    setNumber: number;
+  }>;
+  duration: number;
+  createdAt: number;
+  relays: string[];
+}
+
 /**
  * Social Sharing Service
  * 
@@ -362,6 +386,111 @@ Total: ${stats.exerciseCount} exercises, ${stats.totalSets} sets, ${stats.totalR
   }
 
   /**
+   * Decode nevent to extract workout event details
+   * Used for public workout sharing links
+   */
+  decodeWorkoutNevent(nevent: string): DecodedNevent {
+    try {
+      const decoded = nip19.decode(nevent);
+      
+      if (decoded.type !== 'nevent') {
+        throw new Error(`Invalid nevent type: ${decoded.type}`);
+      }
+      
+      const eventData = decoded.data;
+      
+      return {
+        eventId: eventData.id,
+        authorPubkey: eventData.author || '',
+        kind: eventData.kind || 1301,
+        relays: eventData.relays || []
+      };
+    } catch (error) {
+      console.error('[SocialSharingService] Failed to decode nevent:', error);
+      throw new Error(`Invalid nevent format: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Validate nevent format and structure
+   * Ensures it's a valid workout record nevent
+   */
+  validateWorkoutNevent(nevent: string): { valid: boolean; error?: string } {
+    try {
+      const decoded = this.decodeWorkoutNevent(nevent);
+      
+      if (decoded.kind !== 1301) {
+        return {
+          valid: false,
+          error: `Invalid event kind: ${decoded.kind}. Expected 1301 (workout record).`
+        };
+      }
+      
+      if (!decoded.eventId || decoded.eventId.length !== 64) {
+        return {
+          valid: false,
+          error: 'Invalid event ID format'
+        };
+      }
+      
+      if (!decoded.authorPubkey || decoded.authorPubkey.length !== 64) {
+        return {
+          valid: false,
+          error: 'Invalid author pubkey format'
+        };
+      }
+      
+      return { valid: true };
+    } catch (error) {
+      return {
+        valid: false,
+        error: error instanceof Error ? error.message : 'Invalid nevent format'
+      };
+    }
+  }
+
+  /**
+   * Extract event ID from nevent for NDK queries
+   * Simple extraction without full validation
+   */
+  extractEventIdFromNevent(nevent: string): string {
+    try {
+      const decoded = this.decodeWorkoutNevent(nevent);
+      return decoded.eventId;
+    } catch (error) {
+      console.error('[SocialSharingService] Failed to extract event ID:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Extract relay hints from nevent for optimized queries
+   * Returns relay URLs for better event discovery
+   */
+  extractRelayHintsFromNevent(nevent: string): string[] {
+    try {
+      const decoded = this.decodeWorkoutNevent(nevent);
+      return decoded.relays.filter(relay => relay.startsWith('wss://'));
+    } catch (error) {
+      console.error('[SocialSharingService] Failed to extract relay hints:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Validate nevent is specifically a workout record (Kind 1301)
+   * Used for type-safe workout sharing
+   */
+  validateWorkoutNeventKind(nevent: string): boolean {
+    try {
+      const decoded = this.decodeWorkoutNevent(nevent);
+      return decoded.kind === 1301;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
    * Generate shareable URL for a workout record
    * Creates nevent encoding for public sharing
    */
@@ -378,7 +507,7 @@ Total: ${stats.exerciseCount} exercises, ${stats.totalSets} sets, ${stats.totalR
       // Generate public URL
       const baseUrl = typeof window !== 'undefined' 
         ? window.location.origin 
-        : 'https://powr.me'; // Fallback for server-side
+        : 'https://powr-kappa.vercel.app'; // Fallback for server-side
 
       return `${baseUrl}/workout/${nevent}`;
     } catch (error) {

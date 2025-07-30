@@ -11,8 +11,8 @@
  * - Template attribution with NADDR sharing
  */
 
-import React, { useState, useMemo } from 'react';
-import { ArrowLeft, Share2, Copy, Calendar, Clock } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { ArrowLeft, Copy, Calendar, Clock } from 'lucide-react';
 import { Button } from '@/components/powr-ui/primitives/Button';
 import { Badge } from '@/components/powr-ui/primitives/Badge';
 import { 
@@ -25,6 +25,7 @@ import {
 import { WorkoutCard } from '@/components/powr-ui/workout/WorkoutCard';
 import { socialSharingService } from '@/lib/services/socialSharingService';
 import { workoutAnalyticsService } from '@/lib/services/workoutAnalytics';
+import { showSuccessToast, showErrorToast } from '@/components/powr-ui/primitives/Toast';
 import type { ProcessedWorkoutData } from '@/lib/services/workoutAnalytics';
 import type { ParsedWorkoutEvent } from '@/lib/services/dataParsingService';
 
@@ -62,79 +63,64 @@ export const WorkoutHistoryDetailModal: React.FC<WorkoutHistoryDetailModalProps>
     });
   };
 
-  // Handle sharing functionality
-  const handleShare = async () => {
+  // Enhanced share workout method with proper user feedback
+  const handleShareWorkout = async () => {
+    if (isSharing) return; // Prevent double-clicks
+    
     setIsSharing(true);
+    
     try {
-      // Create a ParsedWorkoutEvent object for sharing service compatibility
+      // Create a ParsedWorkoutEvent-like object for sharing service compatibility
       const workoutForSharing: ParsedWorkoutEvent = {
         id: processedWorkout.eventId,
         eventId: processedWorkout.eventId,
         title: processedWorkout.title,
-        description: '', // Not available in ProcessedWorkoutData
+        description: '',
         authorPubkey: processedWorkout.authorPubkey,
         createdAt: processedWorkout.createdAt,
         startTime: processedWorkout.createdAt,
         endTime: processedWorkout.createdAt + Math.floor(processedWorkout.stats.duration / 1000),
         duration: Math.floor(processedWorkout.stats.duration / 1000), // Convert to seconds
-        workoutType: 'strength', // Default type
-        completed: true, // Workout is completed since it's in history
-        tags: [['t', 'fitness']], // Basic tags
-        exercises: processedWorkout.timeline.map(entry => ({
-          exerciseRef: entry.exerciseRef,
-          reps: entry.reps,
-          weight: entry.weight,
-          rpe: entry.rpe,
-          setType: entry.setType || 'normal',
-          setNumber: entry.setNumber
-        }))
-      };
-
-      const shareText = socialSharingService.generateSocialShareText(workoutForSharing);
-      const shareUrl = socialSharingService.generateWorkoutRecordURL(workoutForSharing);
-
-      // Try native share API first
-      if (navigator.share && navigator.canShare) {
-        const shareData = {
-          title: `${processedWorkout.title} - POWR Workout`,
-          text: shareText,
-          url: shareUrl
-        };
-
-        if (navigator.canShare(shareData)) {
-          await navigator.share(shareData);
-          return;
-        }
-      }
-
-      // Fallback to clipboard
-      await navigator.clipboard.writeText(`${shareText}\n\n${shareUrl}`);
-      // TODO: Add toast notification
-      console.log('Workout shared to clipboard');
-
-    } catch (error) {
-      console.error('Failed to share workout:', error);
-      // TODO: Add error toast
-    } finally {
-      setIsSharing(false);
-    }
-  };
-
-  const handleCopyLink = async () => {
-    try {
-      // Create a ParsedWorkoutEvent-like object for sharing service compatibility
-      const workoutForSharing = {
-        eventId: processedWorkout.eventId,
-        authorPubkey: processedWorkout.authorPubkey
+        workoutType: 'strength',
+        completed: true,
+        tags: [],
+        exercises: [] // Not needed for URL generation
       };
       
-      const shareUrl = socialSharingService.generateWorkoutRecordURL(workoutForSharing as ParsedWorkoutEvent);
-      await navigator.clipboard.writeText(shareUrl);
-      // TODO: Add toast notification
-      console.log('Link copied to clipboard');
+      const result = await socialSharingService.shareWorkout(workoutForSharing);
+      
+      if (result.success) {
+        // Check if native share API is available
+        const hasNativeShare = typeof navigator !== 'undefined' && 
+                              'share' in navigator && 
+                              'canShare' in navigator;
+        
+        if (hasNativeShare) {
+          showSuccessToast(
+            "Workout Shared!",
+            "Your workout has been shared successfully."
+          );
+        } else {
+          showSuccessToast(
+            "Link Copied!",
+            "Workout link has been copied to your clipboard. Share it anywhere!"
+          );
+        }
+      } else {
+        // Show error with helpful instructions
+        showErrorToast(
+          "Share Failed",
+          result.error || "Unable to share workout. Please try copying the link manually."
+        );
+      }
     } catch (error) {
-      console.error('Failed to copy link:', error);
-      // TODO: Add error toast
+      console.error('Failed to share workout:', error);
+      showErrorToast(
+        "Share Error",
+        "Something went wrong while sharing your workout. Please try again."
+      );
+    } finally {
+      setIsSharing(false);
     }
   };
 
@@ -224,6 +210,42 @@ export const WorkoutHistoryDetailModal: React.FC<WorkoutHistoryDetailModalProps>
     }
   };
 
+  // Extract exercise name from exercise reference (fallback strategy)
+  const extractExerciseNameFromRef = (exerciseRef: string): string => {
+    try {
+      // Exercise reference format: "33401:pubkey:exercise-d-tag"
+      const parts = exerciseRef.split(':');
+      if (parts.length >= 3) {
+        const dTag = parts[2];
+        // Convert kebab-case to title case (e.g., "push-up" -> "Push Up")
+        return dTag
+          .split('-')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ');
+      }
+      return 'Unknown Exercise';
+    } catch {
+      console.warn('[WorkoutHistoryDetailModal] Failed to extract exercise name from ref:', exerciseRef);
+      return 'Unknown Exercise';
+    }
+  };
+
+  // Get display name for exercise with fallback strategy
+  const getExerciseDisplayName = (exerciseName: string, exerciseRef?: string): string => {
+    // If we have a proper exercise name (not a reference), use it
+    if (exerciseName && !exerciseName.includes(':') && exerciseName !== 'Unknown Exercise') {
+      return exerciseName;
+    }
+    
+    // Fallback to extracting name from reference
+    if (exerciseRef) {
+      return extractExerciseNameFromRef(exerciseRef);
+    }
+    
+    // Last resort fallback
+    return exerciseName || 'Unknown Exercise';
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent 
@@ -238,7 +260,7 @@ export const WorkoutHistoryDetailModal: React.FC<WorkoutHistoryDetailModalProps>
         </DialogHeader>
 
         <div className="relative h-full bg-background overflow-hidden pb-[env(safe-area-inset-bottom)] flex flex-col">
-          {/* Header - Matches other modal patterns */}
+          {/* Header - Simplified without share button */}
           <div className="flex items-center justify-between p-4 bg-background/80 backdrop-blur-sm border-b border-border flex-shrink-0">
             {/* Back Button */}
             <Button
@@ -256,17 +278,8 @@ export const WorkoutHistoryDetailModal: React.FC<WorkoutHistoryDetailModalProps>
               <h2 className="text-lg font-semibold">Workout Details</h2>
             </div>
 
-            {/* Share Button */}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleShare}
-              disabled={isSharing}
-              className="text-foreground hover:text-foreground/80"
-              title="Share workout"
-            >
-              <Share2 className="h-5 w-5" />
-            </Button>
+            {/* Empty space for symmetry */}
+            <div className="w-10 h-10"></div>
           </div>
 
           {/* Scrollable Content */}
@@ -349,7 +362,7 @@ export const WorkoutHistoryDetailModal: React.FC<WorkoutHistoryDetailModalProps>
                           {index + 1}
                         </div>
                         <div>
-                          <h4 className="font-medium">{entry.exerciseName}</h4>
+                          <h4 className="font-medium">{getExerciseDisplayName(entry.exerciseName, entry.exerciseRef)}</h4>
                           <p className="text-sm text-muted-foreground">Set {entry.setNumber}</p>
                         </div>
                       </div>
@@ -373,7 +386,7 @@ export const WorkoutHistoryDetailModal: React.FC<WorkoutHistoryDetailModalProps>
                   {processedWorkout.exerciseSummary.map((exercise, index) => (
                     <div key={index} className="border rounded-lg p-4 bg-card">
                       <div className="flex items-center justify-between mb-3">
-                        <h4 className="font-semibold text-lg">{exercise.exerciseName}</h4>
+                        <h4 className="font-semibold text-lg">{getExerciseDisplayName(exercise.exerciseName, exercise.exerciseRef)}</h4>
                         <Badge variant="secondary">
                           {exercise.totalSets} set{exercise.totalSets > 1 ? 's' : ''}
                         </Badge>
@@ -421,7 +434,7 @@ export const WorkoutHistoryDetailModal: React.FC<WorkoutHistoryDetailModalProps>
                 </div>
               )}
 
-              {/* Share Section - Simplified */}
+              {/* Share Section - Single Clear Action */}
               <div className="space-y-4">
                 <h3 className="text-xl font-semibold text-foreground">Share This Workout</h3>
                 
@@ -430,25 +443,13 @@ export const WorkoutHistoryDetailModal: React.FC<WorkoutHistoryDetailModalProps>
                     Share your workout achievement with the community or save the link for your records.
                   </p>
                   
-                  <div className="flex gap-3">
-                    <Button
-                      onClick={handleShare}
-                      disabled={isSharing}
-                      className="flex-1 h-12 bg-gradient-to-r from-orange-400 via-orange-500 to-red-500 hover:from-orange-500 hover:via-orange-600 hover:to-red-600 text-black font-semibold text-base rounded-xl flex items-center justify-center gap-2"
-                    >
-                      <Share2 className="h-5 w-5" />
-                      {isSharing ? 'Sharing...' : 'Share Workout'}
-                    </Button>
-                    
-                    <Button
-                      variant="outline"
-                      onClick={handleCopyLink}
-                      className="h-12 px-6 flex items-center gap-2"
-                    >
-                      <Copy className="h-4 w-4" />
-                      Copy Link
-                    </Button>
-                  </div>
+                  <Button
+                    onClick={handleShareWorkout}
+                    className="w-full h-12 bg-gradient-to-r from-orange-400 via-orange-500 to-red-500 hover:from-orange-500 hover:via-orange-600 hover:to-red-600 text-white font-semibold text-base rounded-xl flex items-center justify-center gap-2"
+                  >
+                    <Copy className="h-5 w-5" />
+                    Share Workout
+                  </Button>
                 </div>
               </div>
             </div>

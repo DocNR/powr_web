@@ -1,0 +1,143 @@
+Standardized Exercise Name,D-Tag,Body Part,Equipment,Sample Weight,Sample Reps,Difficulty,Movement Pattern,Notes
+Chest Fly Single Arm Band,chest-fly-single-arm-band,Chest,Resistance Band,3 lb,15,Intermediate,Push,Unilateral chest exercise
+Romanian Deadlift Single Leg Band,romanian-deadlift-single-leg-band,Legs,Resistance Band,5 lb,15,Intermediate,Pull,Unilateral posterior chain
+Ab Wheel,ab-wheel,Core,Ab Wheel,-,-,Advanced,Push,Core strengthening
+Aerobics,aerobics,Cardio,Bodyweight,-,-,Beginner,Full Body,Cardiovascular exercise
+Alternate Curls Band,alternate-curls-band,Arms,Resistance Band,3 lb,12,Beginner,Pull,Bicep exercise
+Dumbbell Upper Chest Raise Alternating,dumbbell-upper-chest-raise-alternating,Chest,Dumbbell,30 lb,8,Intermediate,Push,Upper chest development
+Lunge Reverse Dumbbell Alternating,lunge-reverse-dumbbell-alternating,Legs,Dumbbell,60 lb,10,Intermediate,Push,Unilateral leg exercise
+Angels And Devils,angels-and-devils,Back,Bodyweight,-,45 reps,Intermediate,Pull,Back strengthening
+Arnold Press Dumbbell,arnold-press-dumbbell,Shoulders,Dumbbell,-,-,Intermediate,Push,Rotating shoulder press
+Around the World,around-the-world,Chest,Dumbbell,-,-,Intermediate,Push,Circular arm movement
+Back Extension,back-extension,Back,Bodyweight,-,-,Beginner,Pull,Lower back strengthening
+Back Extension Machine,back-extension-machine,Back,Machine,220 lb,5,Beginner,Pull,Machine-assisted back extension
+Back ISO Propain Finisher,back-iso-propain-finisher,Back,Bodyweight,-,25 reps,Advanced,Pull,Isometric back finisher
+Back Pro Pain Finisher,back-pro-pain-finisher,Back,Bodyweight,-,-,Advanced,Pull,Advanced back finisher
+Ball Slams,ball-slams,Full Body,Medicine Ball,-,-,Intermediate,Power,Explosive full-body movement
+Step Up Barbell,step-up-barbell,Legs,Barbell,135 lb,10,Intermediate,Push,Unilateral leg exercise
+Battle Ropes,battle-ropes,Cardio,Battle Ropes,-,-,Intermediate,Full Body,Cardio conditioning
+Bench Dip,bench-dip,Arms,Bench,-,30 reps,Beginner,Push,Tricep exercise
+Bench Press Barbell,bench-press-barbell,Chest,Barbell,185 lb,3,Intermediate,Push,Compound chest exercise
+Bench Press Cable,bench-press-cable,Chest,Cable,-,-,Intermediate,Push,Cable chest press
+Bench Press Dumbbell,bench-press-dumbbell,Chest,Dumbbell,80 lb,6,Intermediate,Push,Unilateral chest press
+Bench Press Smith Machine,bench-press-smith-machine,Chest,Smith Machine,-,-,Beginner,Push,Guided barbell press
+Bench Press Close Grip Barbell,bench-press-close-grip-barbell,Arms,Barbell,-,-,Intermediate,Push,Tricep-focused press
+Bench Press Wide Grip Barbell,bench-press-wide-grip-barbell,Chest,Barbell,-,-,Intermediate,Push,Wide-grip chest press
+Row Single Arm Dumbbell Bent Over,row-single-arm-dumbbell-bent-over,Back,Dumbbell,70 lb,9,Intermediate,Pull,Unilateral back exercise
+Row Band Bent Over,row-band-bent-over,Back,Resistance Band,-,12 reps,Beginner,Pull,Band rowing exercise
+Row Barbell Bent Over,row-barbell-bent-over,Back,Barbell,95 lb,10,Intermediate,Pull,Compound back exercise
+Row Dumbbell Bent Over,row-dumbbell-bent-over,Back,Dumbbell,50 lb,11,Intermediate,Pull,Dumbbell rowing
+Row Underhand Barbell Bent Over,row-underhand-barbell-bent-over,Back,Barbell,145 lb,8,Intermediate,Pull,Underhand grip row
+Bicep Curl Barbell,bicep-curl-barbell,Arms,Barbell,80 lb,5,Beginner,Pull,Basic bicep exercise
+Bicep Curl Cable,bicep-curl-cable,Arms,Cable,-,-,Beginner,Pull,Cable bicep curl
+Bicep Curl Dumbbell,bicep-curl-dumbbell,Arms,Dumbbell,35 lb,5,Beginner,Pull,Dumbbell bicep curl
+Bicep Curl Machine,bicep-curl-machine,Arms,Machine,-,-,Beginner,Pull,Machine bicep curl
+Biceps Iso Propain Finisher,biceps-iso-propain-finisher,Arms,Bodyweight,0 lb,18,Advanced,Pull,Isometric bicep finisher
+Biceps Propain Finisher,biceps-propain-finisher,Arms,Bodyweight,-,40 reps,Advanced,Pull,Advanced bicep finisher
+Bicycle Crunch,bicycle-crunch,Core,Bodyweight,-,2 reps,Beginner,Pull,Core exercise
+Box Jump,box-jump,Legs,Box,-,19 reps,Intermediate,Power,Plyometric leg exercise
+Squat Box Barbell,squat-box-barbell,Legs,Barbell,-,-,Intermediate,Push,Squat variation with box
+Bridge And Reach Over,bridge-and-reach-over,Other,Bodyweight,-,45 reps,Beginner,Full Body,Mobility/flexibility exercise
+Bulgarian Split Squat,bulgarian-split-squat,Legs,Bodyweight,110 lb,5,Intermediate,Push,Single-leg squat variation
+Burpee,burpee,Full Body,Bodyweight,-,10 reps,Intermediate,Full Body,High-intensity full-body exercise
+Cable Crossover,cable-crossover,Chest,Cable,-,-,Intermediate,Push,Cable chest fly variation
+Cable Crunch,cable-crunch,Core,Cable,-,-,Beginner,Pull,Cable abdominal exercise
+Cable Kickback,cable-kickback,Arms,Cable,-,-,Beginner,Push,Tricep isolation exercise
+Cable Pull Through,cable-pull-through,Legs,Cable,-,-,Intermediate,Pull,Hip hinge movement
+Cable Twist,cable-twist,Core,Cable,-,-,Intermediate,Pull,Rotational core exercise
+Calf Press Leg Press Machine,calf-press-leg-press-machine,Legs,Machine,-,-,Beginner,Push,Calf exercise on leg press
+Calf Press Seated Leg Press Machine,calf-press-seated-leg-press-machine,Legs,Machine,-,-,Beginner,Push,Seated calf exercise
+Calf Raise Band,calf-raise-band,Legs,Resistance Band,5 lb,20,Beginner,Push,Band calf raise
+Chest Dip,chest-dip,Chest,Bodyweight,-,100 reps,Intermediate,Push,Bodyweight chest exercise
+Chest Dip Assisted,chest-dip-assisted,Chest,Machine,-,10 reps,Beginner,Push,Assisted chest dip
+Chest Fly,chest-fly,Chest,Machine,-,-,Beginner,Push,Machine chest fly
+Chest Fly Band,chest-fly-band,Chest,Resistance Band,-,-,Beginner,Push,Band chest fly
+Chest Fly Dumbbell,chest-fly-dumbbell,Chest,Dumbbell,45 lb,9,Intermediate,Push,Dumbbell chest fly
+Chest ISO Propain Finisher,chest-iso-propain-finisher,Chest,Bodyweight,-,22 reps,Advanced,Push,Isometric chest finisher
+Chest Press Band,chest-press-band,Chest,Resistance Band,-,-,Beginner,Push,Band chest press
+Chest Press Machine,chest-press-machine,Chest,Machine,-,-,Beginner,Push,Machine chest press
+Chest Pro Pain Finisher,chest-pro-pain-finisher,Chest,Bodyweight,-,42 reps,Advanced,Push,Advanced chest finisher
+Rear Delt Raise Chest Supported,rear-delt-raise-chest-supported,Back,Machine,-,-,Beginner,Pull,Rear deltoid isolation
+Chin Up,chin-up,Back,Bodyweight,-,-,Intermediate,Pull,Underhand pull-up
+Chin Up Assisted,chin-up-assisted,Back,Machine,-,-,Beginner,Pull,Assisted chin-up
+Chin Up Band,chin-up-band,Arms,Resistance Band,-,8 reps,Intermediate,Pull,Band-assisted chin-up
+Clean Barbell,clean-barbell,Olympic,Barbell,-,-,Advanced,Power,Olympic lift - clean
+Clean and Jerk Barbell,clean-and-jerk-barbell,Olympic,Barbell,-,-,Advanced,Power,Olympic lift - clean and jerk
+Climbing,climbing,Cardio,Bodyweight,-,-,Intermediate,Full Body,Rock/wall climbing
+Close Pushups,close-pushups,Chest,Bodyweight,-,-,Intermediate,Push,Narrow-grip pushup
+Cobra Push Up,cobra-push-up,Arms,Bodyweight,-,15 reps,Intermediate,Push,Yoga-inspired pushup variation
+Concentration Curl Dumbbell,concentration-curl-dumbbell,Arms,Dumbbell,-,-,Beginner,Pull,Isolated bicep curl
+Cross Body Crunch,cross-body-crunch,Core,Bodyweight,-,-,Beginner,Pull,Oblique-focused crunch
+Crunch,crunch,Core,Bodyweight,-,-,Beginner,Pull,Basic abdominal crunch
+Crunch Machine,crunch-machine,Core,Machine,-,-,Beginner,Pull,Machine-assisted crunch
+Crunch Stability Ball,crunch-stability-ball,Core,Stability Ball,-,-,Beginner,Pull,Stability ball crunch
+Cycling,cycling,Cardio,Bike,-,-,Beginner,Full Body,Stationary or outdoor cycling
+Cycling Indoor,cycling-indoor,Cardio,Bike,-,-,Beginner,Full Body,Indoor cycling/spin
+Dumbbell Biceps Curl Torcher,dumbbell-biceps-curl-torcher,Arms,Dumbbell,20 lb,25,Intermediate,Pull,High-rep bicep torcher
+Dumbbell Calf Raise Torcher,dumbbell-calf-raise-torcher,Legs,Dumbbell,50 lb,25,Intermediate,Push,High-rep calf torcher
+Dumbbell Shrugs Torcher,dumbbell-shrugs-torcher,Back,Dumbbell,50 lb,25,Intermediate,Pull,High-rep shoulder shrug
+Dumbbell Abduction Rows,dumbbell-abduction-rows,Shoulders,Dumbbell,30 lb,12,Intermediate,Pull,Rear deltoid exercise
+Dumbbell Gorilla Rows Alternating,dumbbell-gorilla-rows-alternating,Back,Dumbbell,65 lb,8,Intermediate,Pull,Alternating bent-over rows
+Dumbbell Reverse Sprinter Lunge Alternating,dumbbell-reverse-sprinter-lunge-alternating,Legs,Dumbbell,40 lb,10,Intermediate,Push,Dynamic lunge variation
+Dumbbell Bench Front Squats,dumbbell-bench-front-squats,Legs,Dumbbell,50 lb,12,Intermediate,Push,Front-loaded squat
+Dumbbell Cheat Laterals,dumbbell-cheat-laterals,Shoulders,Dumbbell,30 lb,12,Intermediate,Push,Lateral raise with momentum
+Dumbbell Drag Curl,dumbbell-drag-curl,Arms,Dumbbell,30 lb,10,Intermediate,Pull,Bicep curl variation
+Dumbbell Floor Press,dumbbell-floor-press,Chest,Dumbbell,70 lb,7,Intermediate,Push,Floor-based chest press
+Dumbbell Haney Shrugs,dumbbell-haney-shrugs,Back,Dumbbell,50 lb,6,Intermediate,Pull,Behind-back shrug variation
+Dumbbell Hip Thrust,dumbbell-hip-thrust,Legs,Dumbbell,50 lb,20,Intermediate,Push,Glute-focused hip thrust
+Dumbbell JM Press,dumbbell-jm-press,Arms,Dumbbell,35 lb,12,Intermediate,Push,Close-grip tricep press
+Dumbbell Kickbacks,dumbbell-kickbacks,Arms,Dumbbell,20 lb,10,Beginner,Push,Tricep isolation exercise
+Dumbbell Leaning Step Ups,dumbbell-leaning-step-ups,Legs,Dumbbell,50 lb,6,Intermediate,Push,Angled step-up variation
+Dumbbell No Money Curls,dumbbell-no-money-curls,Arms,Dumbbell,30 lb,5,Intermediate,Pull,Reverse curl variation
+Dumbbell Overhead Extensions,dumbbell-overhead-extensions,Arms,Dumbbell,25 lb,12,Intermediate,Push,Overhead tricep extension
+Dumbbell Rear Delt Rows,dumbbell-rear-delt-rows,Shoulders,Dumbbell,20 lb,16,Intermediate,Pull,Rear deltoid isolation
+Dumbbell Renegade Rows,dumbbell-renegade-rows,Back,Dumbbell,-,-,Advanced,Pull,Plank position rowing
+Dumbbell Rocket Squats,dumbbell-rocket-squats,Legs,Dumbbell,70 lb,8,Intermediate,Push,Explosive squat variation
+Dumbbell Rows,dumbbell-rows,Back,Dumbbell,70 lb,5,Intermediate,Pull,Standard dumbbell rows
+Dumbbell Static Creeping Lunges,dumbbell-static-creeping-lunges,Legs,Dumbbell,30 lb,6,Intermediate,Push,Isometric lunge variation
+Dumbbell Step Up,dumbbell-step-up,Legs,Dumbbell,40 lb,11,Intermediate,Push,Step-up with dumbbells
+Dumbbell Straight Bar Curls,dumbbell-straight-bar-curls,Arms,Dumbbell,35 lb,5,Intermediate,Pull,Straight bar bicep curls
+Dumbbell Thrusters,dumbbell-thrusters,Shoulders,Dumbbell,-,-,Intermediate,Push,Squat to press combination
+Dumbbell Tripod Rows,dumbbell-tripod-rows,Back,Dumbbell,80 lb,5,Intermediate,Pull,Three-point stance rowing
+Dumbbell Underhand Bench Press,dumbbell-underhand-bench-press,Chest,Dumbbell,50 lb,10,Intermediate,Push,Underhand grip press
+Deadlift Band,deadlift-band,Legs,Resistance Band,-,15 reps,Beginner,Pull,Band deadlift movement
+Deadlift Barbell,deadlift-barbell,Back,Barbell,212 lb,5,Advanced,Pull,Classic barbell deadlift
+Deadlift Dumbbell,deadlift-dumbbell,Legs,Dumbbell,90 lb,5,Intermediate,Pull,Dumbbell deadlift
+Deadlift Smith Machine,deadlift-smith-machine,Legs,Smith Machine,-,-,Beginner,Pull,Guided deadlift movement
+Deadlift High Pull Barbell,deadlift-high-pull-barbell,Olympic,Barbell,-,-,Advanced,Power,Olympic lifting variation
+Decline Bench Press Barbell,decline-bench-press-barbell,Chest,Barbell,-,-,Intermediate,Push,Decline angle barbell press
+Decline Bench Press Dumbbell,decline-bench-press-dumbbell,Chest,Dumbbell,50 lb,9,Intermediate,Push,Decline angle dumbbell press
+Decline Bench Press Smith Machine,decline-bench-press-smith-machine,Chest,Smith Machine,-,-,Beginner,Push,Decline Smith machine press
+Decline Crunch,decline-crunch,Core,Bodyweight,-,-,Beginner,Pull,Decline bench crunches
+Deficit Deadlift Barbell,deficit-deadlift-barbell,Legs,Barbell,-,-,Advanced,Pull,Elevated platform deadlift
+Diagonal Jumping Planks,diagonal-jumping-planks,Core,Bodyweight,-,15 reps,Intermediate,Power,Dynamic plank variation
+Diamond Cutter Pushups,diamond-cutter-pushups,Chest,Bodyweight,-,15 reps,Intermediate,Push,Diamond hand position pushup
+Divebomber Pushup,divebomber-pushup,Chest,Bodyweight,-,10 reps,Intermediate,Push,Yoga-inspired pushup flow
+Double Dumbbell Frog Press,double-dumbbell-frog-press,Legs,Dumbbell,70 lb,12,Intermediate,Push,Frog position leg press
+Double Dumbbell Pullover,double-dumbbell-pullover,Back,Dumbbell,30 lb,10,Intermediate,Pull,Double dumbbell pullover
+Elbow Tucked Dumbbell Bench Press,elbow-tucked-dumbbell-bench-press,Arms,Dumbbell,60 lb,11,Intermediate,Push,Tricep-focused bench press
+Elliptical Machine,elliptical-machine,Cardio,Machine,-,-,Beginner,Full Body,Elliptical cardio exercise
+Wall Slides,wall-slides,Back,Bodyweight,-,45 reps,Beginner,Pull,Wall-supported back exercise
+Face Pull Cable,face-pull-cable,Shoulders,Cable,50 lb,20,Intermediate,Pull,Rear deltoid cable exercise
+Face Pull TRX,face-pull-trx,Back,TRX,-,45 reps,Intermediate,Pull,TRX rear deltoid exercise
+Hip Thrust Barbell,hip-thrust-barbell,Legs,Barbell,-,-,Intermediate,Push,Barbell hip thrust
+Hip Thrust Bodyweight,hip-thrust-bodyweight,Legs,Bodyweight,-,-,Beginner,Push,Bodyweight hip thrust
+Incline Bench Press Barbell,incline-bench-press-barbell,Chest,Barbell,135 lb,8,Intermediate,Push,Incline barbell press
+Incline Bench Press Cable,incline-bench-press-cable,Chest,Cable,-,-,Intermediate,Push,Incline cable press
+Incline Bench Press Dumbbell,incline-bench-press-dumbbell,Chest,Dumbbell,120 lb,5,Intermediate,Push,Incline dumbbell press
+Incline Bench Press Smith Machine,incline-bench-press-smith-machine,Chest,Smith Machine,-,-,Beginner,Push,Incline Smith press
+Incline Bench Press Isometric Hold Dumbbell,incline-bench-press-isometric-hold-dumbbell,Chest,Dumbbell,45 lb,1,Advanced,Push,Isometric hold variation
+Reverse Hyperextension,reverse-hyperextension,Back,Bodyweight,-,-,Intermediate,Pull,Lower back extension
+Reverse Lunge Band,reverse-lunge-band,Legs,Resistance Band,5 lb,15,Beginner,Push,Band reverse lunge
+Reverse Plank,reverse-plank,Core,Bodyweight,-,-,Intermediate,Push,Reverse plank hold
+Romanian Deadlift Barbell,romanian-deadlift-barbell,Back,Barbell,185 lb,9,Intermediate,Pull,Barbell RDL
+Romanian Deadlift Dumbbell,romanian-deadlift-dumbbell,Legs,Dumbbell,100 lb,8,Intermediate,Pull,Dumbbell RDL
+Rowing Machine,rowing-machine,Cardio,Machine,-,-,Beginner,Pull,Rowing machine cardio
+Running,running,Cardio,Bodyweight,-,-,Beginner,Full Body,Outdoor running
+Running Treadmill,running-treadmill,Cardio,Treadmill,-,-,Beginner,Full Body,Treadmill running
+V Up,v-up,Core,Bodyweight,-,-,Intermediate,Pull,Core V-up exercise
+Walking,walking,Cardio,Bodyweight,-,-,Beginner,Full Body,Walking for cardio
+Wide Pull Up,wide-pull-up,Back,Bodyweight,-,-,Intermediate,Pull,Wide-grip pull-up
+Wrist Roller,wrist-roller,Arms,Equipment,-,-,Beginner,Pull,Wrist strengthening
+Yoga,yoga,Cardio,Bodyweight,-,-,Beginner,Full Body,Yoga practice
+Zercher Squat Barbell,zercher-squat-barbell,Legs,Barbell,-,-,Advanced,Push,Front-loaded squat hold
