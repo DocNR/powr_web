@@ -31,13 +31,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
-- **Share Workout Button Direct URL Copy Fix COMPLETE (July 30, 2025) ✅**
+- **Share Workout Button iOS Native Share Fix COMPLETE (July 30, 2025) ✅**
   
-  **User Impact**: Share workout button now copies just the public workout URL directly instead of opening social sharing dialog. Desktop users get "Link copied!" toast notification, iPhone users get native iOS share sheet. Fixed critical issue where share button appeared to do nothing on iPhone - now opens native share sheet reliably with proper fallback to clipboard when native sharing unavailable.
+  **User Impact**: Share workout button now works perfectly on iOS with clean native share sheet showing just the workout URL. Fixed issue where iOS share sheet was displaying social media text ("Check out my workout: ...") instead of sharing the URL directly. Desktop users get "Link copied!" toast notification, iPhone users get clean native iOS share sheet with just the workout title and URL.
   
-  **Developer Notes**: Modified WorkoutHistoryDetailModal handleShareWorkout to directly generate and copy public workout URL using socialSharingService.generateWorkoutRecordURL(). Enhanced mobile detection for native share API with proper fallback handling. Fixed TypeScript errors by adding required 'id' property to ParsedWorkoutEvent objects and using 'as const' for workoutType. Maintained Toast notification system for user feedback.
+  **Developer Notes**: Removed 'text' parameter from navigator.share() call to eliminate social sharing format in iOS native share sheet. Now only passes 'title' and 'url' parameters for clean URL sharing. Enhanced mobile detection for native share API with proper fallback handling. Fixed TypeScript errors by adding required 'id' property to ParsedWorkoutEvent objects and using 'as const' for workoutType. Maintained Toast notification system for user feedback.
   
-  **Architecture Changes**: Simplified share workflow eliminates social sharing dialog step for direct URL sharing. Enhanced cross-platform reliability with native share API for mobile and clipboard fallback for desktop. Foundation ready for consistent sharing experience across all workout sharing contexts.
+  **Architecture Changes**: Optimized native share API usage for clean URL sharing without social media formatting. Enhanced cross-platform reliability with native share API for mobile and clipboard fallback for desktop. Foundation ready for consistent sharing experience across all workout sharing contexts.
 
 - **Share Workout Button UX Enhancement COMPLETE (July 30, 2025) ✅**
   

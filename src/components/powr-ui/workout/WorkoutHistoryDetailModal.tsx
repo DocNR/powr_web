@@ -96,10 +96,9 @@ export const WorkoutHistoryDetailModal: React.FC<WorkoutHistoryDetailModalProps>
                             navigator.canShare({ url: publicUrl });
       
       if (hasNativeShare) {
-        // Use native share API for mobile
+        // Use native share API for mobile - just share the URL directly
         await navigator.share({
           title: `${processedWorkout.title} - POWR Workout`,
-          text: `Check out my workout: ${processedWorkout.title}`,
           url: publicUrl
         });
         
