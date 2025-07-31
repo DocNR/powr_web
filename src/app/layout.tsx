@@ -65,7 +65,11 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        {/* Viewport configuration handled by src/app/viewport.ts */}
+        {/* Critical: Manual viewport for better PWA zoom prevention */}
+        <meta 
+          name="viewport" 
+          content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover" 
+        />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}

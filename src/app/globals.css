@@ -429,24 +429,37 @@
   }
 }
 
-/* Landscape orientation handling - Rely on PWA manifest orientation lock */
+/* Landscape orientation handling - Make it usable but encourage portrait */
 @media screen and (orientation: landscape) and (max-height: 500px) {
-  /* Optional: Show subtle landscape notice without breaking viewport */
+  /* Adjust layout for landscape without breaking it */
+  body {
+    font-size: 14px; /* Smaller text for landscape */
+  }
+  
+  /* Show subtle landscape notice */
   body::after {
-    content: "Rotate device for best experience";
+    content: "📱 Rotate for best experience";
     position: fixed;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(0, 0, 0, 0.8);
+    top: 10px;
+    right: 10px;
+    background: rgba(0, 0, 0, 0.7);
     color: white;
-    padding: 8px 16px;
-    border-radius: 20px;
+    padding: 4px 8px;
+    border-radius: 12px;
     z-index: 1000;
-    font-size: 14px;
+    font-size: 12px;
     pointer-events: none;
     opacity: 0.8;
-    display: none; /* Disabled by default - PWA manifest handles orientation */
+  }
+  
+  /* Adjust mobile bottom tabs for landscape */
+  .mobile-bottom-tabs {
+    height: 50px; /* Smaller in landscape */
+  }
+  
+  /* Adjust header for landscape */
+  .app-header {
+    height: 50px; /* Smaller in landscape */
   }
 }
 
