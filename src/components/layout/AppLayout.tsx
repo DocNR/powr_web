@@ -51,7 +51,7 @@ export function AppLayout() {
   }, [pubkey, isAuthenticated]);
 
   // Calculate header heights for proper spacing
-  const headerHeight = 64; // AppHeader height in pixels
+  const headerHeight = isMobile ? 48 : 64; // Reduced mobile header height from 64px to 48px
   const subNavHeight = 48; // SubNavigation height in pixels
   const totalFixedHeight = isMobile ? (
     headerHeight + (subNavItems ? subNavHeight : 0)

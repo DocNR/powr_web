@@ -149,8 +149,41 @@
   * {
     @apply border-border;
   }
-  body {
+  
+  /* Enhanced PWA zoom prevention and mobile optimization */
+  html, body {
     @apply bg-background text-foreground;
+    
+    /* Critical zoom prevention for iOS */
+    touch-action: manipulation;
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+    
+    /* Prevent double-tap zoom */
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    
+    /* Disable tap highlight */
+    -webkit-tap-highlight-color: transparent;
+    
+    /* Prevent bounce scrolling */
+    overscroll-behavior: none;
+    
+    /* Smooth scrolling */
+    scroll-behavior: smooth;
+  }
+  
+  /* Allow text selection on content areas */
+  .content-area, .text-selectable {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+  
+  /* Critical: Prevent zoom on input focus (iOS) */
+  input, textarea, select, button {
+    font-size: 16px !important; /* Prevents iOS zoom on focus */
+    touch-action: manipulation; /* Prevents gesture zoom */
   }
   
   /* Monospace utility class for techy elements */
@@ -344,5 +377,52 @@
   .content-area {
     -webkit-user-select: text;
     user-select: text;
+  }
+}
+
+/* Landscape orientation prevention for PWA */
+@media screen and (orientation: landscape) and (max-height: 500px) {
+  /* Force portrait-like layout in landscape */
+  body {
+    transform: rotate(90deg);
+    transform-origin: center center;
+    width: 100vh;
+    height: 100vw;
+    position: fixed;
+    top: 0;
+    left: 0;
+  }
+  
+  /* Alternative: Show landscape warning instead */
+  body::before {
+    content: "Please rotate your device to portrait mode for the best experience";
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 20px;
+    border-radius: 10px;
+    z-index: 9999;
+    text-align: center;
+    font-size: 18px;
+    display: none; /* Enable this if you prefer warning over rotation */
+  }
+}
+
+/* Enhanced zoom prevention for specific gestures */
+@layer utilities {
+  .no-zoom {
+    touch-action: manipulation !important;
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
+  }
+  
+  /* Prevent zoom on double-tap for specific elements */
+  .prevent-double-tap-zoom {
+    touch-action: manipulation;
+    -webkit-touch-callout: none;
   }
 }

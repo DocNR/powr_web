@@ -23,9 +23,9 @@ export function MobileBottomTabs({ activeTab, onTabChange, tabs }: MobileBottomT
       <div 
         className="flex items-center justify-around px-2"
         style={{ 
-          paddingTop: '0.75rem', // 12px - more breathing room at top
-          paddingBottom: `calc(0.75rem + env(safe-area-inset-bottom, 0px))`, // 12px + safe area
-          height: 'calc(64px + env(safe-area-inset-bottom, 0px))' // Ensure 64px + safe area total
+          paddingTop: '0.75rem', // 12px - balanced top padding
+          paddingBottom: `calc(1.5rem + env(safe-area-inset-bottom, 0px))`, // 24px + safe area - much more space from home indicator
+          height: 'calc(72px + env(safe-area-inset-bottom, 0px))' // Increased to 72px + safe area for proper spacing
         }}
       >
         {tabs.map((tab) => {
@@ -38,14 +38,14 @@ export function MobileBottomTabs({ activeTab, onTabChange, tabs }: MobileBottomT
               variant="ghost"
               size="sm"
               className={cn(
-                "flex items-center justify-center h-14 w-14 p-2 relative rounded-full flex-shrink-0",
+                "flex items-center justify-center h-12 w-12 p-2 relative rounded-full flex-shrink-0", // Reduced from h-14 w-14 to h-12 w-12
                 "transition-all duration-200 ease-out will-change-auto",
-                "min-h-[48px] min-w-[48px]", // Even larger touch targets for gym use
+                "min-h-[48px] min-w-[48px]", // Keep minimum touch targets for accessibility
                 "touch-manipulation", // Optimize for touch on mobile
                 "select-none", // Prevent text selection on buttons
                 isActive 
-                  ? "text-white bg-gradient-to-r from-orange-500 to-orange-600 shadow-lg shadow-orange-500/25" 
-                  : "text-muted-foreground hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-950/20 active:bg-orange-100 dark:active:bg-orange-950/30"
+                  ? "text-white bg-gradient-to-r from-orange-400 to-orange-500 shadow-md shadow-orange-400/20" // Softer orange (400-500 instead of 500-600) and lighter shadow
+                  : "text-muted-foreground hover:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-950/20 active:bg-orange-100 dark:active:bg-orange-950/30" // Softer hover color too
               )}
               onClick={() => onTabChange(tab.id)}
               aria-label={tab.label}
