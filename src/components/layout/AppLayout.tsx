@@ -224,6 +224,9 @@ export function AppLayout() {
             activeTab={activeTab}
             onTabChange={setActiveTab}
             tabs={navigationTabs}
+            subNavItems={subNavItems}
+            activeSubTab={activeSubTab}
+            onSubTabChange={handleSubTabChange}
           />
         )}
 
