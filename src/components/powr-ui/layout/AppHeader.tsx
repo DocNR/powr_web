@@ -47,7 +47,7 @@ export function AppHeader({
   };
 
   return (
-    <header className="flex items-center justify-between px-4 py-2 md:py-3 bg-background border-b min-w-0">
+    <header className="flex items-center justify-between px-4 py-2 md:py-3 min-w-0">
       {/* Left side - User Avatar (opens left drawer) */}
       <Sheet>
         <SheetTrigger asChild>

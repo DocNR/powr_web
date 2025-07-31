@@ -215,13 +215,13 @@ export function AppLayout() {
         {/* Main Content Area */}
         <div className={`flex-1 flex flex-col overflow-x-hidden max-w-full ${!isMobile ? 'ml-64' : ''}`}>
           {/* Header - show on both mobile and desktop */}
-          <div className={`${isMobile ? 'fixed top-0 left-0 right-0 z-40 bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60' : 'sticky top-0 z-40 bg-background'} border-b border-border`}>
+          <div className={`${isMobile ? 'fixed top-0 left-0 right-0 z-40' : 'sticky top-0 z-40'} bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60 border-b border-border`}>
             <AppHeaderWithWorkoutContext />
           </div>
 
           {/* Conditional Sub-Navigation - Fixed header for tabs that need it */}
           {isMobile && subNavItems && (
-            <div className="fixed top-16 left-0 right-0 z-30 bg-background border-b border-border">
+            <div className="fixed top-12 left-0 right-0 z-30 bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60 border-b border-border">
               <SubNavigation
                 items={subNavItems}
                 activeItem={activeSubTab || subNavItems[0]?.id || ''}

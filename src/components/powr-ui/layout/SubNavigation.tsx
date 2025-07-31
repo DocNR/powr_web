@@ -11,7 +11,7 @@ interface SubNavigationProps {
 
 export function SubNavigation({ items, activeItem, onItemChange }: SubNavigationProps) {
   return (
-    <div className="flex border-b border-border bg-background">
+    <div className="flex border-b border-border pt-2">
       {items.map((item) => (
         <button
           key={item.id}
