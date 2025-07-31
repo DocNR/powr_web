@@ -31,6 +31,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Landing Page Background Image and Dark Mode Enhancement COMPLETE (July 30, 2025) ✅**
+  
+  **User Impact**: Landing page now features a stunning blurred workout background image that creates visual depth and professional appeal. Dark mode is now the default theme, providing a modern, developer-friendly experience that aligns with the tech-forward Nostr community. POWR acronym is clearly explained as "Proof of Workout over Relays" and Nostr badges are clickable, linking to official resources for user education.
+  
+  **Developer Notes**: Added hero-background CSS class with backdrop-filter blur and darkening overlay. Set defaultTheme to "dark" in ThemeProvider configuration. Enhanced landing page with POWR acronym explanation in header and clickable Nostr badges linking to njump.me and nstart.me for seamless user education flow.
+  
+  **Architecture Changes**: Established visual design system with background image patterns and improved user onboarding flow through educational links to official Nostr resources. Dark mode default aligns with developer and crypto community preferences.
+
+### Added
 - **Landing Page Monospace Typography & Authentication Enhancement COMPLETE (July 30, 2025) ✅**
   
   **User Impact**: Landing page now features distinctive monospace typography for key tech elements (main slogan "Your Fitness, Your Rules", POWR logo, Nostr protocol badges) creating authentic developer/hacker credibility while maintaining readability for body text. Enhanced authentication system with simplified LoginDialog supporting NIP-07 browser extensions, NIP-46 remote signing, and ephemeral demo accounts. Honest messaging with "Join tens of athletes" reflects authentic early-stage community.

@@ -70,17 +70,29 @@ export default function Home() {
 
   // Show landing page when not authenticated
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20" suppressHydrationWarning>
+    <div className="min-h-screen hero-background" suppressHydrationWarning>
       {/* Header */}
       <header className="container mx-auto px-6 py-8">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Logo width={32} height={32} className="rounded-md" />
-            <span className="text-xl font-bold font-mono-tech">POWR</span>
+            <div className="flex flex-col">
+              <span className="text-xl font-bold font-mono-tech">POWR</span>
+              <span className="text-xs text-muted-foreground font-mono-tech hidden sm:block">
+                Proof of Workout over Relays
+              </span>
+            </div>
           </div>
-          <Badge variant="secondary" className="hidden sm:flex font-mono-tech">
-            Powered by Nostr
-          </Badge>
+          <a 
+            href="https://njump.me" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="hidden sm:flex"
+          >
+            <Badge variant="secondary" className="font-mono-tech hover:bg-secondary/80 transition-colors cursor-pointer">
+              Powered by Nostr
+            </Badge>
+          </a>
         </div>
       </header>
 
@@ -203,9 +215,15 @@ export default function Home() {
         <div className="max-w-4xl mx-auto text-center space-y-4">
           <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
             <span>Powered by</span>
-            <Badge variant="outline" className="text-xs font-mono-tech">
-              Nostr Protocol
-            </Badge>
+            <a 
+              href="https://nstart.me" 
+              target="_blank" 
+              rel="noopener noreferrer"
+            >
+              <Badge variant="outline" className="text-xs font-mono-tech hover:bg-muted/80 transition-colors cursor-pointer">
+                Nostr Protocol
+              </Badge>
+            </a>
           </div>
           <p className="text-xs text-muted-foreground">
             POWR never stores your private keys. Your data, your control.

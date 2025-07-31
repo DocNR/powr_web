@@ -447,23 +447,38 @@ export default function WorkoutsTab() {
         isLoading={workoutState.matches('setup')}
         templateData={{
           // ✅ IMPROVED UX: Better loading states with immediate feedback
-          title: (workoutState.context.resolvedTemplate as any)?.name || 
-                 (workoutState.context.workoutData as any)?.title || 
+          title: (workoutState.context.resolvedTemplate as { name?: string })?.name || 
+                 (workoutState.context.workoutData as { title?: string })?.title || 
                  (workoutState.matches('setup') ? 'Loading workout...' : 'Untitled Workout'),
-          description: (workoutState.context.resolvedTemplate as any)?.description || 
+          description: (workoutState.context.resolvedTemplate as { description?: string })?.description || 
                        (workoutState.matches('setup') ? 'Resolving workout details from Nostr network...' : 'Loading workout description...'),
-          content: (workoutState.context.resolvedTemplate as any)?.description || 
+          content: (workoutState.context.resolvedTemplate as { description?: string })?.description || 
                    (workoutState.matches('setup') ? 'Resolving workout details from Nostr network...' : 'Loading workout description...'),
           
           // ✅ CRITICAL FIX: Pass resolved data directly from machine context
-          resolvedTemplate: workoutState.context.resolvedTemplate as any,
-          resolvedExercises: workoutState.context.resolvedExercises as any,
+          resolvedTemplate: workoutState.context.resolvedTemplate as {
+            name?: string;
+            description?: string;
+            exercises?: Array<{
+              exerciseRef: string;
+              sets?: number;
+              reps?: number;
+              weight?: number;
+            }>;
+          },
+          resolvedExercises: workoutState.context.resolvedExercises as Array<{
+            id: string;
+            name: string;
+            equipment: string;
+            description: string;
+            muscleGroups: string[];
+          }>,
           
           // Also pass as loadedTemplate/loadedExercises for backward compatibility
           loadedTemplate: workoutState.context.resolvedTemplate as {
-            name: string;
-            description: string;
-            exercises: Array<{
+            name?: string;
+            description?: string;
+            exercises?: Array<{
               exerciseRef: string;
               sets?: number;
               reps?: number;
@@ -509,10 +524,10 @@ export default function WorkoutsTab() {
             endTime: workoutState.context.workoutData.endTime || Date.now(),
             completedSets: workoutState.context.workoutData.completedSets || [],
             notes: workoutState.context.workoutData.notes,
-            templateId: (workoutState.context.templateSelection as any)?.templateId,
-            templatePubkey: (workoutState.context.templateSelection as any)?.templatePubkey || workoutState.context.userInfo.pubkey,
-            templateReference: (workoutState.context.templateSelection as any)?.templateReference,
-            templateRelayUrl: (workoutState.context.templateSelection as any)?.templateRelayUrl || ''
+            templateId: (workoutState.context.templateSelection as { templateId?: string })?.templateId,
+            templatePubkey: (workoutState.context.templateSelection as { templatePubkey?: string })?.templatePubkey || workoutState.context.userInfo.pubkey,
+            templateReference: (workoutState.context.templateSelection as { templateReference?: string })?.templateReference,
+            templateRelayUrl: (workoutState.context.templateSelection as { templateRelayUrl?: string })?.templateRelayUrl || ''
           }}
           onShare={handleShareWorkout}
           onSkipSharing={handleSkipSharing}

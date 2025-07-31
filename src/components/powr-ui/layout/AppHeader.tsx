@@ -1,7 +1,7 @@
 'use client';
 
-import React from 'react';
-import { Sun, Moon } from 'lucide-react';
+import React, { useState } from 'react';
+import { Sun, Moon, LogOut } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Button } from '../primitives/Button';
 import { Avatar, AvatarFallback, AvatarImage } from '../primitives/Avatar';
@@ -12,7 +12,16 @@ import {
   SheetTitle, 
   SheetTrigger 
 } from '../primitives/Sheet';
-import { useAccount } from '@/lib/auth/hooks';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '../primitives/Dialog';
+import { useAccount, useLogout } from '@/lib/auth/hooks';
 import { useProfile, getDisplayName, getAvatarUrl } from '@/hooks/useProfile';
 import { GlobalWorkoutSearch } from '@/components/search/GlobalWorkoutSearch';
 
@@ -27,6 +36,9 @@ export function AppHeader({
 }: AppHeaderProps) {
   const { theme, setTheme } = useTheme();
   const account = useAccount();
+  const logout = useLogout();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   
   // Get user profile data using NDK
   const { profile } = useProfile(account?.pubkey);
@@ -46,12 +58,23 @@ export function AppHeader({
     return `${npub.slice(0, 8)}...${npub.slice(-8)}`;
   };
 
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await logout();
+      setShowLogoutDialog(false);
+    } catch (error) {
+      console.error('Logout failed:', error);
+      setIsLoggingOut(false);
+    }
+  };
+
   return (
     <header className="flex items-center justify-between px-4 py-2 md:py-3 min-w-0">
       {/* Left side - User Avatar (opens left drawer) */}
       <Sheet>
         <SheetTrigger asChild>
-          <Avatar className="h-10 w-10 ring-2 ring-[color:var(--workout-primary)] cursor-pointer hover:ring-[color:var(--workout-active)] transition-colors">
+          <Avatar className="h-10 w-10 ring-2 ring-[color:var(--workout-primary)] cursor-pointer hover:ring-[color:var(--workout-active)] transition-all duration-200 hover:scale-105 active:scale-95">
             <AvatarImage src={avatarUrl} alt={displayName} />
             <AvatarFallback className="bg-[color:var(--workout-primary)] text-white text-sm font-medium">
               {userInitials}
@@ -59,17 +82,18 @@ export function AppHeader({
           </Avatar>
         </SheetTrigger>
         <SheetContent side="left" className="flex flex-col">
-          <SheetHeader>
+          <SheetHeader className="pb-4">
             <SheetTitle>Settings</SheetTitle>
           </SheetHeader>
           
-          <div className="flex-1 overflow-y-auto py-6 space-y-6">
+          {/* Main content area - scrollable */}
+          <div className="flex-1 overflow-y-auto space-y-4">
             {/* User Profile Section */}
-            <div className="p-4 rounded-lg bg-[color:var(--workout-surface)]">
-              <div className="flex items-center gap-3 mb-3">
-                <Avatar className="h-12 w-12">
+            <div className="p-3 rounded-lg bg-[color:var(--workout-surface)]">
+              <div className="flex items-center gap-3 mb-2">
+                <Avatar className="h-10 w-10">
                   <AvatarImage src={avatarUrl} alt={displayName} />
-                  <AvatarFallback className="bg-[color:var(--workout-primary)] text-white">
+                  <AvatarFallback className="bg-[color:var(--workout-primary)] text-white text-sm">
                     {userInitials}
                   </AvatarFallback>
                 </Avatar>
@@ -97,7 +121,7 @@ export function AppHeader({
 
             {/* Theme Toggle Section */}
             <div>
-              <h3 className="text-sm font-medium mb-3 text-[color:var(--workout-text)]">Theme</h3>
+              <h3 className="text-sm font-medium mb-2 text-[color:var(--workout-text)]">Theme</h3>
               <div className="grid grid-cols-2 gap-2">
                 <Button
                   variant={theme === 'light' ? 'default' : 'outline'}
@@ -119,60 +143,61 @@ export function AppHeader({
                 </Button>
               </div>
             </div>
+          </div>
 
-            {/* Coming Soon Features */}
-            <div>
-              <h3 className="text-sm font-medium mb-3 text-[color:var(--workout-text)]">Features</h3>
-              <div className="space-y-2">
-                <div className="p-3 rounded-lg bg-muted/50 border-2 border-dashed border-muted-foreground/30">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Gym Personality Themes</span>
-                    <span className="text-xs px-2 py-1 bg-muted rounded-full text-muted-foreground">
-                      Coming Soon™
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Hardcore, Zen, Corporate & Boutique themes
-                  </p>
-                </div>
-                
-                <div className="p-3 rounded-lg bg-muted/50 border-2 border-dashed border-muted-foreground/30">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Relay Management</span>
-                    <span className="text-xs px-2 py-1 bg-muted rounded-full text-muted-foreground">
-                      Coming Soon™
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Configure your Nostr relays
-                  </p>
-                </div>
+          {/* Bottom section - fixed at bottom */}
+          <div className="mt-auto pt-4 border-t space-y-3">
+            {/* Logout Section - Only show if authenticated */}
+            {account && (
+              <Dialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
+                <DialogTrigger asChild>
+                  <Button 
+                    variant="destructive" 
+                    size="sm"
+                    className="w-full justify-start"
+                  >
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Sign Out
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Sign Out</DialogTitle>
+                    <DialogDescription>
+                      Are you sure you want to sign out? You&apos;ll need to authenticate again to access your workouts.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setShowLogoutDialog(false)}
+                      disabled={isLoggingOut}
+                      className="w-full sm:w-auto"
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      variant="destructive" 
+                      onClick={handleLogout}
+                      disabled={isLoggingOut}
+                      className="w-full sm:w-auto"
+                    >
+                      {isLoggingOut ? 'Signing Out...' : 'Sign Out'}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            )}
 
-                <div className="p-3 rounded-lg bg-muted/50 border-2 border-dashed border-muted-foreground/30">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Notification Settings</span>
-                    <span className="text-xs px-2 py-1 bg-muted rounded-full text-muted-foreground">
-                      Coming Soon™
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Workout reminders & social updates
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* App Info */}
-            <div className="mt-auto pt-6 border-t">
-              <div className="text-center space-y-2">
-                <h2 className="font-medium text-[color:var(--workout-primary)]">POWR</h2>
-                <p className="text-xs text-muted-foreground">
-                  Proof Of Workout / Relays
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Powered by Nostr
-                </p>
-              </div>
+            {/* App Info - POWR Footer */}
+            <div className="text-center space-y-1 pb-2">
+              <h2 className="font-medium text-[color:var(--workout-primary)] text-sm">POWR</h2>
+              <p className="text-xs text-muted-foreground">
+                Proof Of Workout / Relays
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Powered by Nostr
+              </p>
             </div>
           </div>
         </SheetContent>

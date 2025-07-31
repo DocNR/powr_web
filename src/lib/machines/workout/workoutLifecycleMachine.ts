@@ -470,7 +470,7 @@ export const workoutLifecycleMachine = setup({
         'logTransition',
         // Spawn publishing actor for optimistic background publishing
         assign({
-          publishingActor: ({ spawn, context }: { spawn: (src: string, options: { input: any }) => any; context: WorkoutLifecycleContext }) => {
+          publishingActor: ({ spawn, context }: { spawn: (src: string, options: { input: { workoutData: any; userPubkey: string } }) => any; context: WorkoutLifecycleContext }) => {
             console.log('[WorkoutLifecycle] 📤 PUBLISHING PHASE: Starting optimistic background publishing');
             console.log('[WorkoutLifecycle] 📊 Context workout data analysis:', {
               hasWorkoutData: !!context.workoutData,

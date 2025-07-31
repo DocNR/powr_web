@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, lazy, Suspense } from 'react';
+import React, { lazy, Suspense } from 'react';
 import { useNavigation } from '@/providers/NavigationProvider';
 import HomeTab from '@/components/tabs/HomeTab';
 import { LibraryTab } from '@/components/tabs/LibraryTab';
@@ -15,19 +15,6 @@ const TestTab = process.env.NODE_ENV !== 'production'
 
 export function TabRouter() {
   const { activeTab } = useNavigation();
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-
-  // Scroll to top when tab changes
-  useEffect(() => {
-    // Small delay to ensure DOM has updated
-    const timer = setTimeout(() => {
-      if (scrollContainerRef.current) {
-        scrollContainerRef.current.scrollTop = 0;
-      }
-    }, 0);
-
-    return () => clearTimeout(timer);
-  }, [activeTab]);
 
   const renderTab = () => {
     switch (activeTab) {
@@ -54,7 +41,7 @@ export function TabRouter() {
   };
 
   return (
-    <div ref={scrollContainerRef} className="flex-1 overflow-auto">
+    <div className="flex-1 overflow-auto">
       <div className="container mx-auto p-6 pb-20 md:pb-6 space-y-6">
         {renderTab()}
       </div>

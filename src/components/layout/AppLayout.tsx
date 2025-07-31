@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef, useEffect } from 'react';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { MobileBottomTabs } from '@/components/navigation/MobileBottomTabs';
 import { DesktopSidebar } from '@/components/navigation/DesktopSidebar';
@@ -23,6 +23,21 @@ export function AppLayout() {
   const isMobile = useMediaQuery('(max-width: 640px)');
   const { activeTab, setActiveTab } = useNavigation();
   const { getActiveSubTab, setActiveSubTab } = useSubNavigation();
+  const mainScrollRef = useRef<HTMLElement>(null);
+
+  // Reset scroll position when tab changes (mobile only)
+  useEffect(() => {
+    if (isMobile && mainScrollRef.current) {
+      // Small delay to ensure DOM has updated
+      const timer = setTimeout(() => {
+        if (mainScrollRef.current) {
+          mainScrollRef.current.scrollTop = 0;
+        }
+      }, 0);
+
+      return () => clearTimeout(timer);
+    }
+  }, [activeTab, isMobile]);
   
   // Authentication hooks
   const pubkey = usePubkey();
@@ -232,6 +247,7 @@ export function AppLayout() {
 
           {/* Main Content - Scrollable Container */}
           <main 
+            ref={mainScrollRef}
             className={`flex-1 flex flex-col ${isMobile ? 'overflow-y-auto overscroll-y-contain' : ''}`}
             style={isMobile ? { 
               paddingTop: `${totalFixedHeight}px`,

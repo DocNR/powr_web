@@ -19,6 +19,18 @@ export {
   SheetTitle, 
   SheetTrigger 
 } from './primitives/Sheet';
+export {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogOverlay,
+  DialogPortal,
+  DialogTitle,
+  DialogTrigger,
+} from './primitives/Dialog';
 export { Progress } from './primitives/Progress';
 export { Input } from './primitives/Input';
 export { Label } from './primitives/Label';
