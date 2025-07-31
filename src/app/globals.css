@@ -154,24 +154,37 @@
   html, body {
     @apply bg-background text-foreground;
     
-    /* Critical zoom prevention for iOS */
-    touch-action: manipulation;
-    -webkit-text-size-adjust: 100%;
-    -ms-text-size-adjust: 100%;
+    /* CRITICAL: Aggressive zoom prevention for iOS */
+    touch-action: manipulation !important;
+    -webkit-text-size-adjust: 100% !important;
+    -ms-text-size-adjust: 100% !important;
     
     /* Prevent double-tap zoom */
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    user-select: none;
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
     
     /* Disable tap highlight */
-    -webkit-tap-highlight-color: transparent;
+    -webkit-tap-highlight-color: transparent !important;
     
     /* Prevent bounce scrolling */
-    overscroll-behavior: none;
+    overscroll-behavior: none !important;
     
     /* Smooth scrolling */
     scroll-behavior: smooth;
+    
+    /* Additional zoom prevention */
+    -webkit-user-zoom: fixed !important;
+    -moz-user-zoom: fixed !important;
+    -ms-user-zoom: fixed !important;
+    user-zoom: fixed !important;
+  }
+  
+  /* Apply zoom prevention to all elements */
+  *, *::before, *::after {
+    touch-action: manipulation !important;
+    -webkit-touch-callout: none !important;
+    -webkit-tap-highlight-color: transparent !important;
   }
   
   /* Allow text selection on content areas */
@@ -416,34 +429,24 @@
   }
 }
 
-/* Landscape orientation prevention for PWA */
+/* Landscape orientation handling - Rely on PWA manifest orientation lock */
 @media screen and (orientation: landscape) and (max-height: 500px) {
-  /* Force portrait-like layout in landscape */
-  body {
-    transform: rotate(90deg);
-    transform-origin: center center;
-    width: 100vh;
-    height: 100vw;
+  /* Optional: Show subtle landscape notice without breaking viewport */
+  body::after {
+    content: "Rotate device for best experience";
     position: fixed;
-    top: 0;
-    left: 0;
-  }
-  
-  /* Alternative: Show landscape warning instead */
-  body::before {
-    content: "Please rotate your device to portrait mode for the best experience";
-    position: fixed;
-    top: 50%;
+    bottom: 20px;
     left: 50%;
-    transform: translate(-50%, -50%);
-    background: rgba(0, 0, 0, 0.9);
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.8);
     color: white;
-    padding: 20px;
-    border-radius: 10px;
-    z-index: 9999;
-    text-align: center;
-    font-size: 18px;
-    display: none; /* Enable this if you prefer warning over rotation */
+    padding: 8px 16px;
+    border-radius: 20px;
+    z-index: 1000;
+    font-size: 14px;
+    pointer-events: none;
+    opacity: 0.8;
+    display: none; /* Disabled by default - PWA manifest handles orientation */
   }
 }
 
