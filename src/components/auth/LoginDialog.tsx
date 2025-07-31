@@ -191,7 +191,7 @@ export function LoginDialog({ trigger, isCompact = false, onSuccess, defaultOpen
           <div className="flex flex-col gap-3">
             {/* Browser Extension */}
             <Button
-              variant={nip07Available ? "default" : "outline"}
+              variant={nip07Available ? "primary-gradient" : "outline"}
               disabled={isLoggingIn || !nip07Available}
               onClick={handleNip07Login}
               className="w-full h-12"
