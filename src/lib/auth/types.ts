@@ -7,7 +7,7 @@
  * NO private key management for maximum security.
  */
 
-export type LoginMethod = 'nip07' | 'nip46' | 'amber' | 'ephemeral';
+export type LoginMethod = 'nip07' | 'nip46' | 'amber' | 'ephemeral' | 'nostrconnect';
 
 export interface Account {
   method: LoginMethod;
@@ -32,7 +32,7 @@ export interface AuthenticationState {
 }
 
 export interface AuthenticationError {
-  code: 'NIP07_NOT_AVAILABLE' | 'NIP07_PERMISSION_DENIED' | 'NIP46_INVALID_URL' | 'NIP46_CONNECTION_FAILED' | 'AMBER_NOT_INSTALLED' | 'AMBER_CONNECTION_ERROR' | 'AMBER_INVALID_PUBKEY' | 'AMBER_LOGIN_FAILED' | 'EPHEMERAL_GENERATION_FAILED' | 'UNKNOWN_ERROR';
+  code: 'NIP07_NOT_AVAILABLE' | 'NIP07_PERMISSION_DENIED' | 'NIP46_INVALID_URL' | 'NIP46_CONNECTION_FAILED' | 'AMBER_NOT_INSTALLED' | 'AMBER_CONNECTION_ERROR' | 'AMBER_INVALID_PUBKEY' | 'AMBER_LOGIN_FAILED' | 'EPHEMERAL_GENERATION_FAILED' | 'NOSTRCONNECT_GENERATION_FAILED' | 'NOSTRCONNECT_CONNECTION_FAILED' | 'UNKNOWN_ERROR';
   message: string;
   details?: Record<string, unknown>;
 }
@@ -55,6 +55,17 @@ export interface EncryptedData {
   iv: string;
   salt: string;
   timestamp?: number;
+}
+
+// NostrConnect session persistence
+export interface NostrConnectSession {
+  nostrConnectURI: string;
+  clientPrivateKey: string;
+  clientPubkey: string;
+  secret: string;
+  userPubkey?: string; // Set after successful connection
+  lastConnected: number;
+  relays: string[];
 }
 
 // URL-based login support (bunker URLs only)

@@ -14,6 +14,7 @@ const DEFAULT_RELAYS = [
   'wss://nos.lol',             // Good performance  
   'wss://relay.primal.net',    // Nostr-native
   'wss://relay.nostr.band',    // Good search capabilities
+  'wss://relay.nsec.app',      // NostrConnect support
 ];
 
 // Global NDK instance - initialized immediately (official NDK pattern)
@@ -121,7 +122,6 @@ export const ensureRelaysConnected = async (): Promise<void> => {
     console.log('[NDK] Waiting for background relay connection...');
     await relayConnectionPromise;
     relayConnectionPromise = null; // Clear after completion
-    return;
   }
 
   // Check if we already have relay connections
@@ -133,9 +133,50 @@ export const ensureRelaysConnected = async (): Promise<void> => {
     return;
   }
 
-  // Force connection if not connected
-  console.log('[NDK] No relay connections found, connecting now...');
-  await connectWithTimeout(globalNDK, 3000);
+  // Force connection if not connected - with more aggressive retry
+  console.log('[NDK] No relay connections found, forcing connection...');
+  
+  // First try: standard connection
+  await connectWithTimeout(globalNDK, 5000);
+  
+  // Check again after first attempt
+  const connectedAfterFirst = Array.from(globalNDK.pool.relays.values())
+    .filter(relay => relay.connectivity.status === 1);
+    
+  if (connectedAfterFirst.length > 0) {
+    console.log(`[NDK] Connected to ${connectedAfterFirst.length} relays after first attempt`);
+    return;
+  }
+  
+  // Second try: force individual relay connections
+  console.log('[NDK] First attempt failed, forcing individual relay connections...');
+  const relayPromises = Array.from(globalNDK.pool.relays.values()).map(async (relay) => {
+    try {
+      if (relay.connectivity.status !== 1) {
+        console.log(`[NDK] Forcing connection to ${relay.url}`);
+        await relay.connect();
+      }
+    } catch (error) {
+      console.warn(`[NDK] Failed to connect to ${relay.url}:`, error);
+    }
+  });
+  
+  // Wait for all connection attempts (with timeout)
+  await Promise.race([
+    Promise.allSettled(relayPromises),
+    new Promise(resolve => setTimeout(resolve, 3000)) // 3s timeout
+  ]);
+  
+  // Final check
+  const finalConnected = Array.from(globalNDK.pool.relays.values())
+    .filter(relay => relay.connectivity.status === 1);
+    
+  console.log(`[NDK] Final connection status: ${finalConnected.length} relays connected`);
+  finalConnected.forEach(relay => console.log(`[NDK] ✅ Connected: ${relay.url}`));
+  
+  if (finalConnected.length === 0) {
+    console.warn('[NDK] Warning: No relay connections established after all attempts');
+  }
 };
 
 /**

@@ -25,7 +25,7 @@ import {
   pubkeyAtom,
   canSignAtom
 } from './atoms';
-import type { Account, LoginMethod, AuthenticationError, Nip46Settings, ValidationResult } from './types';
+import type { Account, LoginMethod, AuthenticationError, Nip46Settings, ValidationResult, NostrConnectSession } from './types';
 import { ensureNDKInitialized } from '../ndk';
 
 async function getNDK(): Promise<NDK> {
@@ -417,6 +417,7 @@ export function useNip07Available(): boolean {
 
 /**
  * Auto-login on app startup
+ * Prioritizes NostrConnect over other methods for better session persistence
  */
 export function useAutoLogin() {
   const [account] = useAtom(accountAtom);
@@ -424,18 +425,35 @@ export function useAutoLogin() {
   const [loginMethod] = useAtom(methodAtom);
   const nip07Login = useNip07Login();
   const nip46Login = useNip46Login();
+  const nostrConnectAutoLogin = useNostrConnectAutoLogin();
 
   return async (): Promise<boolean> => {
     // Skip if already authenticated
     if (account) return true;
 
-    // Skip if no stored login method
-    if (!loginMethod) return false;
-
     try {
+      // 1. PRIORITY: Try NostrConnect auto-login first (best session persistence)
+      console.log('[Auto Login] Checking NostrConnect session...');
+      const nostrConnectSuccess = await nostrConnectAutoLogin();
+      if (nostrConnectSuccess) {
+        console.log('[Auto Login] NostrConnect auto-login successful');
+        return true;
+      }
+
+      // 2. FALLBACK: Try stored login method
+      if (!loginMethod) {
+        console.log('[Auto Login] No stored login method found');
+        return false;
+      }
+
+      console.log('[Auto Login] Trying stored login method:', loginMethod);
+
       // Find the account for this login method
       const storedAccount = accounts.find(a => a.method === loginMethod);
-      if (!storedAccount) return false;
+      if (!storedAccount) {
+        console.log('[Auto Login] No stored account found for method:', loginMethod);
+        return false;
+      }
 
       if (loginMethod === 'nip07') {
         const result = await nip07Login();
@@ -594,8 +612,220 @@ export function useEphemeralLogin() {
   };
 }
 
+/**
+ * NostrConnect Session Persistence
+ * Generates nostrconnect:// URIs and manages persistent sessions
+ */
+
+// Generate random secret for NostrConnect
+function generateRandomSecret(): string {
+  return Array.from(crypto.getRandomValues(new Uint8Array(16)))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+// Generate nostrconnect:// URI
+function generateNostrConnectURI(clientPubkey: string, relays: string[]): { uri: string; secret: string } {
+  const secret = generateRandomSecret();
+  const params = new URLSearchParams({
+    relay: relays[0],
+    secret,
+    perms: 'sign_event,nip04_encrypt,nip04_decrypt,nip44_encrypt,nip44_decrypt',
+    name: 'POWR Workout PWA',
+    url: typeof window !== 'undefined' ? window.location.origin : 'https://powr.app'
+  });
+  
+  relays.slice(1).forEach(relay => params.append('relay', relay));
+  
+  return {
+    uri: `nostrconnect://${clientPubkey}?${params.toString()}`,
+    secret
+  };
+}
+
+/**
+ * NostrConnect Login Hook
+ * Generates persistent nostrconnect:// URI and manages session
+ */
+export function useNostrConnectLogin() {
+  const [, setAccount] = useAtom(accountAtom);
+  const [accounts, setAccounts] = useAtom(accountsAtom);
+  const [, setLoginMethod] = useAtom(methodAtom);
+
+  return {
+    // Generate new NostrConnect session
+    generateSession: async (): Promise<{ success: boolean; session?: NostrConnectSession; error?: AuthenticationError }> => {
+      try {
+        console.log('[NostrConnect] Generating new session...');
+        
+        // Generate client keypair for this session
+        const clientSigner = NDKPrivateKeySigner.generate();
+        const clientUser = await clientSigner.user();
+        
+        // Use production relay configuration
+        const relays = [
+          'wss://relay.nsec.app',
+          'wss://relay.damus.io', 
+          'wss://relay.nostr.band',
+          'wss://nos.lol'
+        ];
+        
+        const { uri, secret } = generateNostrConnectURI(clientUser.pubkey, relays);
+        
+        // Create session object
+        const session: NostrConnectSession = {
+          nostrConnectURI: uri,
+          clientPrivateKey: clientSigner.privateKey!,
+          clientPubkey: clientUser.pubkey,
+          secret,
+          lastConnected: Date.now(),
+          relays
+        };
+
+        // Store session for persistence
+        localStorage.setItem('nostr_connect_session', JSON.stringify(session));
+        
+        console.log('[NostrConnect] Session generated and stored');
+        
+        return { success: true, session };
+        
+      } catch (error) {
+        console.error('[NostrConnect] Session generation failed:', error);
+        return {
+          success: false,
+          error: {
+            code: 'NOSTRCONNECT_GENERATION_FAILED',
+            message: 'Failed to generate NostrConnect session',
+            details: { originalError: error }
+          }
+        };
+      }
+    },
+
+    // Attempt connection with existing session
+    connectWithSession: async (session: NostrConnectSession): Promise<{ success: boolean; error?: AuthenticationError }> => {
+      try {
+        console.log('[NostrConnect] Attempting connection with stored session...');
+        
+        const ndk = await getNDK();
+        
+        // Recreate client signer from stored private key
+        const clientSigner = new NDKPrivateKeySigner(session.clientPrivateKey);
+        
+        // Create NIP-46 signer using stored session
+        const signer = new NDKNip46Signer(
+          ndk, // Use main NDK instance
+          session.nostrConnectURI,
+          clientSigner
+        );
+        
+        // Wait for connection with timeout
+        const user = await Promise.race([
+          signer.blockUntilReady(),
+          new Promise<never>((_, reject) => {
+            setTimeout(() => reject(new Error('Connection timeout')), 20000);
+          })
+        ]);
+        
+        if (!user?.pubkey) {
+          return {
+            success: false,
+            error: {
+              code: 'NOSTRCONNECT_CONNECTION_FAILED',
+              message: 'Failed to connect with stored session'
+            }
+          };
+        }
+        
+        // Set signer on NDK
+        ndk.signer = signer;
+        
+        // Update session with user pubkey and timestamp
+        const updatedSession = {
+          ...session,
+          userPubkey: user.pubkey,
+          lastConnected: Date.now()
+        };
+        localStorage.setItem('nostr_connect_session', JSON.stringify(updatedSession));
+        
+        // Create account
+        const npub = nip19.npubEncode(user.pubkey);
+        const account: Account = {
+          method: 'nostrconnect' as LoginMethod,
+          pubkey: user.pubkey,
+          npub,
+          bunker: session.nostrConnectURI,
+          secret: session.clientPrivateKey,
+          relays: session.relays,
+        };
+
+        // Update state
+        setAccount(account);
+        setAccounts([account, ...accounts.filter(a => a.pubkey !== user.pubkey)]);
+        setLoginMethod('nostrconnect');
+
+        console.log('[NostrConnect] Successfully connected with session');
+        return { success: true };
+        
+      } catch (error) {
+        console.error('[NostrConnect] Connection failed:', error);
+        return {
+          success: false,
+          error: {
+            code: 'NOSTRCONNECT_CONNECTION_FAILED',
+            message: error instanceof Error ? error.message : 'Connection failed',
+            details: { originalError: error }
+          }
+        };
+      }
+    },
+
+    // Get stored session
+    getStoredSession: (): NostrConnectSession | null => {
+      try {
+        const stored = localStorage.getItem('nostr_connect_session');
+        return stored ? JSON.parse(stored) : null;
+      } catch {
+        return null;
+      }
+    },
+
+    // Clear stored session
+    clearSession: (): void => {
+      localStorage.removeItem('nostr_connect_session');
+    }
+  };
+}
+
+/**
+ * Check for NostrConnect auto-login on startup
+ */
+export function useNostrConnectAutoLogin() {
+  const nostrConnect = useNostrConnectLogin();
+
+  return async (): Promise<boolean> => {
+    try {
+      const session = nostrConnect.getStoredSession();
+      
+      if (!session || !session.userPubkey) {
+        return false;
+      }
+      
+      console.log('[NostrConnect Auto-Login] Attempting with stored session...');
+      const result = await nostrConnect.connectWithSession(session);
+      
+      return result.success;
+      
+    } catch (error) {
+      console.error('[NostrConnect Auto-Login] Error:', error);
+      return false;
+    }
+  };
+}
+
 // Export aliases for compatibility with page component
 export const useLoginWithNip07 = useNip07Login;
 export const useLoginWithNip46 = useNip46Login;
 export const useLoginWithAmber = useAmberLogin;
 export const useLoginWithEphemeral = useEphemeralLogin;
+export const useLoginWithNostrConnect = useNostrConnectLogin;

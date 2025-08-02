@@ -32,10 +32,11 @@ import {
   useNip07Login, 
   useNip46Login, 
   useEphemeralLogin,
+  useNostrConnectLogin,
   useNip07Available,
   useIsAuthenticated 
 } from '@/lib/auth/hooks';
-import type { AuthenticationError } from '@/lib/auth/types';
+import type { AuthenticationError, NostrConnectSession } from '@/lib/auth/types';
 
 interface LoginDialogProps {
   trigger?: ReactNode;
