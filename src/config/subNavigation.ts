@@ -15,8 +15,8 @@ export const subNavigationConfig: SubNavigationConfig = {
   ],
   library: [
     { id: 'exercises', label: 'Exercises' },
-    { id: 'templates', label: 'Templates' },
-    { id: 'programs', label: 'Programs' }
+    { id: 'workouts', label: 'Workouts' },
+    { id: 'collections', label: 'Collections' }
   ]
 };
 
