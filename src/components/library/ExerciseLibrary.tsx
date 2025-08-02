@@ -7,23 +7,24 @@
  * 
  * Features:
  * - Auto-creation of powr-exercise-list collection
- * - Exercise display using WorkoutCard compact variant
+ * - Exercise display using ExerciseCard component with click handling
  * - Filtering system (My Saved vs From Collections vs All)
  * - Search and sorting functionality
+ * - Exercise detail modal integration
  * - Simple add/remove exercise actions (append-only for now)
  */
 
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Search, Dumbbell, Plus, Trash2, Filter } from 'lucide-react';
+import { Search, Dumbbell, Plus, Filter } from 'lucide-react';
 import { Input } from '@/components/powr-ui/primitives/Input';
 import { Button } from '@/components/powr-ui/primitives/Button';
-import { Card, CardContent } from '@/components/powr-ui/primitives/Card';
-import { Badge } from '@/components/powr-ui/primitives/Badge';
 import { useLibraryCollections } from '@/hooks/useLibraryCollections';
 import { libraryManagementService } from '@/lib/services/libraryManagement';
 import { usePubkey } from '@/lib/auth/hooks';
+import { ExerciseCard } from '@/components/powr-ui/workout/ExerciseCard';
+import { ExerciseDetailModal } from './ExerciseDetailModal';
 import type { ExerciseLibraryItem } from '@/lib/services/libraryManagement';
 
 interface ExerciseLibraryProps {
@@ -42,6 +43,10 @@ export function ExerciseLibrary({ onShowOnboarding }: ExerciseLibraryProps) {
   const [filterType, setFilterType] = useState<FilterType>('all');
   const [sortType, setSortType] = useState<SortType>('name');
   const [isCreatingCollection, setIsCreatingCollection] = useState(false);
+  
+  // Exercise detail modal state
+  const [selectedExercise, setSelectedExercise] = useState<ExerciseLibraryItem | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Auto-create collection if it doesn't exist
   useEffect(() => {
@@ -77,10 +82,28 @@ export function ExerciseLibrary({ onShowOnboarding }: ExerciseLibraryProps) {
   }, [userPubkey, exerciseLibrary.isLoading, exerciseLibrary.content, error]);
 
 
-  // Handle remove exercise (placeholder - not implemented in service yet)
-  const handleRemoveExercise = async (exerciseRef: string) => {
-    console.log('[ExerciseLibrary] Remove exercise not implemented yet:', exerciseRef);
-    // TODO: Implement remove functionality when needed
+  // Handle exercise click to open detail modal
+  const handleExerciseClick = (exerciseId: string) => {
+    console.log('[ExerciseLibrary] Opening exercise detail modal for ID:', exerciseId);
+    
+    // Find the exercise item by ID
+    const exerciseItem = exerciseLibrary.content?.find(item => 
+      item.exercise.id === exerciseId || item.exerciseRef === exerciseId
+    );
+    
+    if (exerciseItem) {
+      console.log('[ExerciseLibrary] Found exercise:', exerciseItem.exercise.name);
+      setSelectedExercise(exerciseItem);
+      setIsModalOpen(true);
+    } else {
+      console.warn('[ExerciseLibrary] Exercise not found for ID:', exerciseId);
+    }
+  };
+
+  // Handle modal close
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    setSelectedExercise(null);
   };
 
   // Filter and sort exercises
@@ -284,103 +307,53 @@ export function ExerciseLibrary({ onShowOnboarding }: ExerciseLibraryProps) {
           {processedExercises.map((item) => (
             <ExerciseCard
               key={item.exerciseRef}
-              item={item}
-              onRemove={() => handleRemoveExercise(item.exerciseRef)}
+              variant="discovery"
+              exercise={{
+                id: item.exercise.id,
+                name: item.exercise.name,
+                description: item.exercise.description,
+                equipment: item.exercise.equipment,
+                muscleGroups: item.exercise.muscleGroups,
+                difficulty: item.exercise.difficulty as 'beginner' | 'intermediate' | 'advanced' | undefined,
+                author: item.exercise.authorPubkey ? {
+                  pubkey: item.exercise.authorPubkey,
+                  name: undefined,
+                  picture: undefined
+                } : undefined,
+                eventId: item.exercise.eventId,
+                eventTags: undefined,
+                eventContent: item.exercise.description,
+                eventKind: 33401
+              }}
+              onSelect={handleExerciseClick}
+              onMenuAction={(action, exerciseId) => {
+                console.log('[ExerciseLibrary] Menu action:', action, 'for exercise:', exerciseId);
+                if (action === 'details') {
+                  handleExerciseClick(exerciseId);
+                } else if (action === 'library') {
+                  // TODO: Implement add to library
+                } else if (action === 'copy') {
+                  // TODO: Implement copy naddr
+                } else if (action === 'share') {
+                  // TODO: Implement share
+                }
+              }}
+              showAuthor={true}
+              showEquipment={true}
             />
           ))}
         </div>
       )}
+
+      {/* Exercise Detail Modal */}
+      {selectedExercise && (
+        <ExerciseDetailModal
+          exercise={selectedExercise.exercise}
+          isOpen={isModalOpen}
+          onClose={handleModalClose}
+        />
+      )}
     </div>
-  );
-}
-
-/**
- * Individual Exercise Card Component
- */
-function ExerciseCard({ 
-  item, 
-  onRemove 
-}: { 
-  item: ExerciseLibraryItem; 
-  onRemove: () => void;
-}) {
-  const [showActions, setShowActions] = useState(false);
-
-  return (
-    <Card 
-      className="cursor-pointer hover:shadow-md transition-all duration-200 group"
-      onMouseEnter={() => setShowActions(true)}
-      onMouseLeave={() => setShowActions(false)}
-    >
-      <CardContent className="p-4">
-        <div className="space-y-3">
-          {/* Header with actions */}
-          <div className="flex items-start justify-between">
-            <h3 className="font-semibold text-lg line-clamp-1 group-hover:text-primary transition-colors">
-              {item.exercise.name}
-            </h3>
-            
-            {showActions && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onRemove();
-                }}
-                className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
-          
-          {/* Equipment badge */}
-          {item.exercise.equipment && (
-            <Badge variant="secondary" className="text-xs">
-              {item.exercise.equipment}
-            </Badge>
-          )}
-
-          {/* Description */}
-          {item.exercise.description && (
-            <p className="text-sm text-muted-foreground line-clamp-2">
-              {item.exercise.description}
-            </p>
-          )}
-
-          {/* Muscle groups */}
-          <div className="flex flex-wrap gap-1">
-            {item.exercise.muscleGroups.slice(0, 3).map((muscle) => (
-              <Badge key={muscle} variant="outline" className="text-xs">
-                {muscle}
-              </Badge>
-            ))}
-            {item.exercise.muscleGroups.length > 3 && (
-              <Badge variant="outline" className="text-xs text-muted-foreground">
-                +{item.exercise.muscleGroups.length - 3}
-              </Badge>
-            )}
-          </div>
-
-          {/* Difficulty indicator */}
-          {item.exercise.difficulty && (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span>Difficulty:</span>
-              <Badge 
-                variant={
-                  item.exercise.difficulty === 'beginner' ? 'default' :
-                  item.exercise.difficulty === 'intermediate' ? 'secondary' : 'destructive'
-                }
-                className="text-xs"
-              >
-                {item.exercise.difficulty}
-              </Badge>
-            </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
   );
 }
 

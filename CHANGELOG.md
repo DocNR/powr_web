@@ -30,6 +30,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Author Attribution for Exercise and Workout Detail Modals COMPLETE (August 2, 2025) ✅**
+  
+  **User Impact**: Users can now see who created exercises and workout templates with beautiful author attribution cards showing profile pictures, display names, and creation context. Exercise Detail Modal shows "Created by [Author]" with avatar and creation date, while Workout Detail Modal shows "Created by [Author]" with "Workout template" context. Enhances trust and discovery by connecting users with content creators across the Nostr network.
+  
+  **Developer Notes**: Enhanced both ExerciseDetailModal and WorkoutDetailModal with author attribution components using Avatar, AvatarImage, and AvatarFallback from POWR UI primitives. Added author pubkey extraction logic from templateRef format ("33402:pubkey:d-tag") and exerciseData.authorPubkey. Integrated useProfile hook with getDisplayName() and getAvatarUrl() helper functions for consistent profile data handling. Author attribution appears in overview tabs with consistent styling using bg-muted/50 backdrop-blur-sm rounded-lg p-4.
+  
+  **Architecture Changes**: Established consistent author attribution patterns across all detail modals using POWR UI Avatar components. Profile data fetching follows established useProfile hook patterns with proper fallbacks. Foundation ready for social features and content creator discovery throughout the library system.
+
 ### Fixed
 - **Library Onboarding Modal State Fix COMPLETE (August 1, 2025) ✅**
   

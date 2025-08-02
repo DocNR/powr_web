@@ -381,4 +381,226 @@ export class WorkoutAnalyticsService {
 }
 
 // Export singleton instance following service-layer-architecture.md
+/**
+ * Exercise Analytics Service
+ * 
+ * Provides analytics and performance tracking for individual exercises
+ * based on workout history data.
+ */
+export class ExerciseAnalyticsService {
+  /**
+   * Analyze exercise performance from workout history
+   */
+  analyzeExercisePerformance(exerciseId: string, workoutRecords: any[]): ExercisePerformanceAnalysis {
+    const exerciseHistory = this.extractExerciseHistory(exerciseId, workoutRecords);
+    
+    if (exerciseHistory.length === 0) {
+      return {
+        exerciseId,
+        totalSets: 0,
+        totalWorkouts: 0,
+        lastPerformed: null,
+        personalRecords: null,
+        averages: null,
+        recentHistory: [],
+        progressionTrend: 'insufficient_data'
+      };
+    }
+
+    const personalRecords = this.calculatePersonalRecords(exerciseHistory);
+    const averages = this.calculateAverages(exerciseHistory);
+    const progressionTrend = this.analyzeProgressionTrend(exerciseHistory);
+
+    return {
+      exerciseId,
+      totalSets: exerciseHistory.length,
+      totalWorkouts: new Set(exerciseHistory.map(h => h.workoutTitle)).size,
+      lastPerformed: exerciseHistory[0]?.date || null,
+      personalRecords,
+      averages,
+      recentHistory: exerciseHistory.slice(0, 10), // Last 10 sets
+      progressionTrend
+    };
+  }
+
+  /**
+   * Extract exercise usage history from workout records
+   */
+  private extractExerciseHistory(exerciseId: string, workoutRecords: any[]): ExerciseUsage[] {
+    const history: ExerciseUsage[] = [];
+    
+    workoutRecords.forEach((workout: any) => {
+      // Get workout title from tags
+      const titleTag = workout.tags?.find((tag: string[]) => tag[0] === 'title');
+      const workoutTitle = titleTag?.[1] || 'Untitled Workout';
+      
+      // Find exercise tags that match this exercise
+      const exerciseTags = workout.tags?.filter((tag: string[]) => 
+        tag[0] === 'exercise' && 
+        tag[1] && 
+        tag[1].includes(exerciseId)
+      ) || [];
+      
+      exerciseTags.forEach((exerciseTag: string[]) => {
+        history.push({
+          date: workout.created_at || 0,
+          weight: exerciseTag[3] || '0',
+          reps: exerciseTag[4] || '0',
+          rpe: exerciseTag[5],
+          setType: exerciseTag[6],
+          workoutTitle
+        });
+      });
+    });
+
+    // Sort by date (most recent first)
+    return history.sort((a, b) => b.date - a.date);
+  }
+
+  /**
+   * Calculate personal records from exercise history
+   */
+  private calculatePersonalRecords(history: ExerciseUsage[]): PersonalRecords {
+    const weights = history
+      .map(h => parseFloat(h.weight))
+      .filter(w => w > 0);
+    
+    const reps = history
+      .map(h => parseInt(h.reps))
+      .filter(r => r > 0);
+
+    return {
+      maxWeight: weights.length > 0 ? Math.max(...weights) : 0,
+      maxReps: reps.length > 0 ? Math.max(...reps) : 0,
+      maxVolume: this.calculateMaxVolume(history),
+      bestRPE: this.calculateBestRPE(history)
+    };
+  }
+
+  /**
+   * Calculate averages from exercise history
+   */
+  private calculateAverages(history: ExerciseUsage[]): ExerciseAverages {
+    const weights = history
+      .map(h => parseFloat(h.weight))
+      .filter(w => w > 0);
+    
+    const reps = history
+      .map(h => parseInt(h.reps))
+      .filter(r => r > 0);
+
+    const rpes = history
+      .map(h => parseFloat(h.rpe || '0'))
+      .filter(r => r > 0);
+
+    return {
+      averageWeight: weights.length > 0 ? weights.reduce((a, b) => a + b, 0) / weights.length : 0,
+      averageReps: reps.length > 0 ? reps.reduce((a, b) => a + b, 0) / reps.length : 0,
+      averageRPE: rpes.length > 0 ? rpes.reduce((a, b) => a + b, 0) / rpes.length : 0,
+      averageVolume: this.calculateAverageVolume(history)
+    };
+  }
+
+  /**
+   * Analyze progression trend over time
+   */
+  private analyzeProgressionTrend(history: ExerciseUsage[]): ProgressionTrend {
+    if (history.length < 3) return 'insufficient_data';
+
+    // Simple trend analysis based on recent vs older performance
+    const recent = history.slice(0, Math.ceil(history.length / 3));
+    const older = history.slice(-Math.ceil(history.length / 3));
+
+    const recentAvgWeight = this.calculateAverages(recent).averageWeight;
+    const olderAvgWeight = this.calculateAverages(older).averageWeight;
+
+    const recentAvgReps = this.calculateAverages(recent).averageReps;
+    const olderAvgReps = this.calculateAverages(older).averageReps;
+
+    // Calculate improvement percentage
+    const weightImprovement = olderAvgWeight > 0 ? (recentAvgWeight - olderAvgWeight) / olderAvgWeight : 0;
+    const repsImprovement = olderAvgReps > 0 ? (recentAvgReps - olderAvgReps) / olderAvgReps : 0;
+
+    const overallImprovement = (weightImprovement + repsImprovement) / 2;
+
+    if (overallImprovement > 0.05) return 'improving';
+    if (overallImprovement < -0.05) return 'declining';
+    return 'stable';
+  }
+
+  /**
+   * Calculate maximum volume (weight × reps) from history
+   */
+  private calculateMaxVolume(history: ExerciseUsage[]): number {
+    return Math.max(...history.map(h => {
+      const weight = parseFloat(h.weight) || 0;
+      const reps = parseInt(h.reps) || 0;
+      return weight * reps;
+    }), 0);
+  }
+
+  /**
+   * Calculate best RPE performance (lowest RPE for given weight/reps)
+   */
+  private calculateBestRPE(history: ExerciseUsage[]): number | null {
+    const validRPEs = history
+      .map(h => parseFloat(h.rpe || '0'))
+      .filter(r => r > 0);
+    
+    return validRPEs.length > 0 ? Math.min(...validRPEs) : null;
+  }
+
+  /**
+   * Calculate average volume from history
+   */
+  private calculateAverageVolume(history: ExerciseUsage[]): number {
+    const volumes = history.map(h => {
+      const weight = parseFloat(h.weight) || 0;
+      const reps = parseInt(h.reps) || 0;
+      return weight * reps;
+    }).filter(v => v > 0);
+
+    return volumes.length > 0 ? volumes.reduce((a, b) => a + b, 0) / volumes.length : 0;
+  }
+}
+
+// Types for exercise analytics
+export interface ExerciseUsage {
+  date: number;
+  weight: string;
+  reps: string;
+  rpe?: string;
+  setType?: string;
+  workoutTitle?: string;
+}
+
+export interface PersonalRecords {
+  maxWeight: number;
+  maxReps: number;
+  maxVolume: number;
+  bestRPE: number | null;
+}
+
+export interface ExerciseAverages {
+  averageWeight: number;
+  averageReps: number;
+  averageRPE: number;
+  averageVolume: number;
+}
+
+export type ProgressionTrend = 'improving' | 'stable' | 'declining' | 'insufficient_data';
+
+export interface ExercisePerformanceAnalysis {
+  exerciseId: string;
+  totalSets: number;
+  totalWorkouts: number;
+  lastPerformed: number | null;
+  personalRecords: PersonalRecords | null;
+  averages: ExerciseAverages | null;
+  recentHistory: ExerciseUsage[];
+  progressionTrend: ProgressionTrend;
+}
+
+// Export service instances
 export const workoutAnalyticsService = new WorkoutAnalyticsService();
+export const exerciseAnalyticsService = new ExerciseAnalyticsService();

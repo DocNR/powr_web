@@ -6,6 +6,7 @@
 
 export { CalendarBar } from './CalendarBar';
 export { WorkoutCard } from './WorkoutCard';
+export { ExerciseCard } from './ExerciseCard';
 export { WorkoutImageHandler, extractImagesFromEvent, isValidImageUrl } from './WorkoutImageHandler';
 export { 
   ScrollableGallery, 

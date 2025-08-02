@@ -12,13 +12,19 @@ import { Card, CardContent } from '@/components/powr-ui/primitives/Card';
 import { WorkoutCard } from '@/components/powr-ui/workout/WorkoutCard';
 import { WorkoutDetailModal } from '@/components/powr-ui/workout/WorkoutDetailModal';
 import { WorkoutSummaryModal } from '@/components/powr-ui/workout/WorkoutSummaryModal';
+import { ExerciseDetailModal } from '@/components/library/ExerciseDetailModal';
 import { SimpleLibraryOnboarding } from '@/components/library/SimpleLibraryOnboarding';
 import { useSimpleLibraryOnboarding } from '@/hooks/useSimpleLibraryOnboarding';
+import { cn } from '@/lib/utils';
 
 export function LibraryTab() {
   const { getActiveSubTab } = useSubNavigation();
   const activeSubTab = getActiveSubTab('library') || 'exercises';
   const [modalError, setModalError] = useState<string | undefined>();
+
+  // Exercise Detail Modal state
+  const [selectedExercise, setSelectedExercise] = useState<any>(null);
+  const [isExerciseModalOpen, setIsExerciseModalOpen] = useState(false);
 
   // Simple onboarding hook - no complex state synchronization
   const {
@@ -136,6 +142,19 @@ export function LibraryTab() {
     workoutSend({ type: 'CLOSE_SUMMARY' });
   };
 
+  // Exercise Detail Modal handlers
+  const handleExerciseSelect = (exerciseData: any) => {
+    console.log('🏋️ [LibraryTab] Selected exercise:', exerciseData.name);
+    setSelectedExercise(exerciseData);
+    setIsExerciseModalOpen(true);
+  };
+
+  const handleCloseExerciseModal = () => {
+    console.log('❌ [LibraryTab] Closing exercise detail modal');
+    setIsExerciseModalOpen(false);
+    setSelectedExercise(null);
+  };
+
   return (
     <>
       {/* Header */}
@@ -151,7 +170,7 @@ export function LibraryTab() {
 
       {/* Sub-tab content */}
       <div className="space-y-6">
-        {activeSubTab === 'exercises' && <ExercisesView onShowOnboarding={() => setIsModalOpen(true)} />}
+        {activeSubTab === 'exercises' && <ExercisesView onShowOnboarding={() => setIsModalOpen(true)} onExerciseSelect={handleExerciseSelect} />}
         {activeSubTab === 'workouts' && <WorkoutsView onShowOnboarding={() => setIsModalOpen(true)} onWorkoutSelect={handleWorkoutSelect} />}
         {activeSubTab === 'collections' && <CollectionsView onShowOnboarding={() => setIsModalOpen(true)} />}
       </div>
@@ -226,12 +245,22 @@ export function LibraryTab() {
           onSkipSharing={handleSkipSharing}
         />
       )}
+
+      {/* Exercise Detail Modal */}
+      <ExerciseDetailModal
+        isOpen={isExerciseModalOpen}
+        exercise={selectedExercise}
+        onClose={handleCloseExerciseModal}
+      />
     </>
   );
 }
 
 // Exercises View Component
-function ExercisesView({ onShowOnboarding }: { onShowOnboarding: () => void }) {
+function ExercisesView({ onShowOnboarding, onExerciseSelect }: { 
+  onShowOnboarding: () => void;
+  onExerciseSelect?: (exerciseData: any) => void;
+}) {
   const [searchTerm, setSearchTerm] = useState('');
   const userPubkey = usePubkey();
   const { exerciseLibrary, error } = useLibraryCollections(userPubkey);
@@ -298,7 +327,61 @@ function ExercisesView({ onShowOnboarding }: { onShowOnboarding: () => void }) {
       {/* Exercises Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {filteredExercises.map((item) => (
-          <Card key={item.exerciseRef} className="cursor-pointer hover:shadow-md transition-shadow">
+          <Card 
+            key={item.exerciseRef} 
+            className={cn(
+              "cursor-pointer transition-all duration-200",
+              "hover:shadow-lg hover:ring-2 hover:ring-ring",
+              "active:scale-[0.98] active:ring-2 active:ring-ring",
+              "focus:ring-2 focus:ring-ring focus:outline-none"
+            )}
+            onClick={() => {
+              console.log('🏋️ [LibraryTab] Selected exercise:', item.exercise.name);
+              if (onExerciseSelect) {
+                onExerciseSelect({
+                  id: item.exercise.id,
+                  name: item.exercise.name,
+                  description: item.exercise.description,
+                  equipment: item.exercise.equipment,
+                  difficulty: item.exercise.difficulty,
+                  muscleGroups: item.exercise.muscleGroups,
+                  format: item.exercise.format,
+                  formatUnits: item.exercise.format_units,
+                  authorPubkey: item.exercise.authorPubkey,
+                  createdAt: item.exercise.createdAt,
+                  eventId: item.exercise.eventId,
+                  eventTags: item.exercise.hashtags || [],
+                  eventContent: item.exercise.description,
+                  eventKind: 33401
+                });
+              }
+            }}
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                console.log('🏋️ [LibraryTab] Selected exercise via keyboard:', item.exercise.name);
+                if (onExerciseSelect) {
+                  onExerciseSelect({
+                    id: item.exercise.id,
+                    name: item.exercise.name,
+                    description: item.exercise.description,
+                    equipment: item.exercise.equipment,
+                    difficulty: item.exercise.difficulty,
+                    muscleGroups: item.exercise.muscleGroups,
+                    format: item.exercise.format,
+                    formatUnits: item.exercise.format_units,
+                    authorPubkey: item.exercise.authorPubkey,
+                    createdAt: item.exercise.createdAt,
+                    eventId: item.exercise.eventId,
+                    eventTags: item.exercise.hashtags || [],
+                    eventContent: item.exercise.description,
+                    eventKind: 33401
+                  });
+                }
+              }
+            }}
+          >
             <CardContent className="p-4">
               <div className="space-y-3">
                 <div className="flex items-start justify-between">

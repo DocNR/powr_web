@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Button } from '@/components/powr-ui/primitives/Button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/powr-ui/primitives/Tabs';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/powr-ui/primitives/Avatar';
 import { Play, ArrowLeft, AlertCircle } from 'lucide-react';
 import { 
   Dialog, 
@@ -11,6 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { WorkoutImageHandler } from './WorkoutImageHandler';
 import { ExpandableExerciseCard } from './ExpandableExerciseCard';
+import { useProfile, getDisplayName, getAvatarUrl } from '@/hooks/useProfile';
 
 interface PersonalRecord {
   oneRM?: number;
@@ -140,6 +142,24 @@ export const WorkoutDetailModal = ({
                      templateData?.description || 
                      templateData?.content || 
                      '';
+
+  // Extract author information from templateRef
+  const authorPubkey = useMemo(() => {
+    const templateRef = templateData?.templateRef;
+    if (templateRef) {
+      // Template ref format: "33402:pubkey:d-tag"
+      const parts = templateRef.split(':');
+      if (parts.length >= 2) {
+        return parts[1];
+      }
+    }
+    return null;
+  }, [templateData?.templateRef]);
+
+  // Get author profile data
+  const { profile: authorProfile } = useProfile(authorPubkey || undefined);
+  const authorDisplayName = getDisplayName(authorProfile, authorPubkey || undefined);
+  const authorAvatar = getAvatarUrl(authorProfile, authorPubkey || undefined);
   
   // QUICK FIX: Map resolved template data to Exercise interface for ExpandableExerciseCard
   const exercises = useMemo(() => {
@@ -331,6 +351,26 @@ export const WorkoutDetailModal = ({
                   <div className="flex-1 overflow-hidden">
                     <TabsContent value="overview" className="mt-0 h-full overflow-y-auto data-[state=inactive]:hidden">
                       <div className="px-6 pt-4 pb-6 space-y-3">
+                        {/* Author Attribution */}
+                        {authorPubkey && (
+                          <div className="bg-muted/50 backdrop-blur-sm rounded-lg p-4">
+                            <div className="flex items-center gap-3">
+                              <Avatar className="h-8 w-8">
+                                <AvatarImage src={authorAvatar} alt={authorDisplayName} />
+                                <AvatarFallback className="bg-muted text-muted-foreground text-sm">
+                                  {authorDisplayName[0]?.toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <p className="text-sm font-medium">Created by {authorDisplayName}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  Workout template
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
                         {description ? (
                           <div className="bg-muted/50 backdrop-blur-sm rounded-lg p-4">
                             <p className="text-foreground text-sm leading-relaxed">

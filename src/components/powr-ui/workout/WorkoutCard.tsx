@@ -440,17 +440,10 @@ export const WorkoutCard = memo(function WorkoutCard({
           )}
 
           {isTemplate && workout.description && (
-            <p className="text-sm text-gray-600 line-clamp-2 mb-4">
+            <p className="text-sm text-gray-600 line-clamp-2">
               {workout.description}
             </p>
           )}
-
-          <Button 
-            className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white"
-            size="sm"
-          >
-            Start Workout
-          </Button>
         </CardContent>
       </Card>
     );
