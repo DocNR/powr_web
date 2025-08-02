@@ -31,6 +31,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Modal Tab Orange Halo Styling Enhancement COMPLETE (August 2, 2025) ✅**
+  
+  **User Impact**: Exercise and workout detail modal tabs now feature the signature orange halo effect when selected, matching the consistent styling used throughout the app on workout cards and interactive elements. Tabs display with white text on black background in dark mode, and orange halo with white background and black text in light mode. The styling now works consistently with both mouse clicks and keyboard navigation, providing a polished and cohesive user experience.
+  
+  **Developer Notes**: Updated WorkoutDetailModal and ExerciseDetailModal tab styling to use semantic CSS variables (`workout-active-border`) with `data-[state=active]:ring-2 data-[state=active]:ring-workout-active-border` classes. Enhanced WorkoutCard hover states for consistency using the same semantic variables. Added semantic CSS variables to globals.css (`--workout-active-border: hsl(var(--orange))`) that adapt automatically to light/dark themes. Fixed ESLint error by removing unused `handleAuthorClick` function.
+  
+  **Architecture Changes**: Established consistent semantic styling patterns across all modal tabs and interactive elements. Theme-aware CSS variables ensure proper adaptation between light and dark modes. Foundation ready for white label gym personality theming with unified orange accent color system throughout the application.
+
 - **Author Attribution for Exercise and Workout Detail Modals COMPLETE (August 2, 2025) ✅**
   
   **User Impact**: Users can now see who created exercises and workout templates with beautiful author attribution cards showing profile pictures, display names, and creation context. Exercise Detail Modal shows "Created by [Author]" with avatar and creation date, while Workout Detail Modal shows "Created by [Author]" with "Workout template" context. Enhances trust and discovery by connecting users with content creators across the Nostr network.

@@ -304,9 +304,24 @@ export const ExerciseDetailModal = ({
                 {/* Fixed Tab Headers */}
                 <div className="px-6 flex-shrink-0 pt-4">
                   <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="overview">Overview</TabsTrigger>
-                    <TabsTrigger value="parameters">Parameters</TabsTrigger>
-                    <TabsTrigger value="history">History</TabsTrigger>
+                    <TabsTrigger 
+                      value="overview"
+                      className="data-[state=active]:ring-2 data-[state=active]:ring-workout-active-border data-[state=active]:bg-background data-[state=active]:text-foreground"
+                    >
+                      Overview
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="parameters"
+                      className="data-[state=active]:ring-2 data-[state=active]:ring-workout-active-border data-[state=active]:bg-background data-[state=active]:text-foreground"
+                    >
+                      Parameters
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="history"
+                      className="data-[state=active]:ring-2 data-[state=active]:ring-workout-active-border data-[state=active]:bg-background data-[state=active]:text-foreground"
+                    >
+                      History
+                    </TabsTrigger>
                   </TabsList>
                 </div>
 

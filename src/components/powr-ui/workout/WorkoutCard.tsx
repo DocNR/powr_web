@@ -167,23 +167,15 @@ export const WorkoutCard = memo(function WorkoutCard({
     onSelect?.(workout.id);
   };
 
-  const handleAuthorClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const author = isRecord ? workout.author : workout.author;
-    if (author) {
-      onAuthorClick?.(author.pubkey);
-    }
-  };
-
   // Hero variant - large featured card matching mockup
   if (variant === 'hero') {
     return (
       <Card 
         className={cn(
           "relative overflow-hidden cursor-pointer transition-all duration-300",
-          "hover:shadow-lg hover:scale-[1.02] hover:ring-2 hover:ring-ring",
-          "active:scale-[0.98] active:ring-2 active:ring-ring",
-          "focus:ring-2 focus:ring-ring focus:outline-none",
+          "hover:shadow-lg hover:scale-[1.02] hover:ring-2 hover:ring-workout-active-border",
+          "active:scale-[0.98] active:ring-2 active:ring-workout-active-border",
+          "focus:ring-2 focus:ring-workout-active-border focus:outline-none",
           "w-full",
           className
         )}
