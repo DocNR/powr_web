@@ -45,9 +45,9 @@ export default function NostrConnectTestPage() {
   const generateNostrConnectURI = (clientPubkey: string, relays: string[]): { uri: string; secret: string } => {
     const secret = generateRandomSecret();
     
-    // Use production URL instead of localhost for testing
+    // Use the actual deployment URL for testing
     const appUrl = window.location.hostname === 'localhost' 
-      ? 'https://powr-kappa.vercel.app'  // Use correct production URL for localhost testing
+      ? 'https://powr-git-feature-nostrconnect-session-pe-2725ba-docnrs-projects.vercel.app'  // Use actual branch deployment URL
       : window.location.origin;
     
     const params = new URLSearchParams({
