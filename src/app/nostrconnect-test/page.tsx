@@ -86,8 +86,26 @@ export default function NostrConnectTestPage() {
       ];
       addLog(`Using relays: ${relays.join(', ')}`);
       
+      // Debug URL detection
+      const hostname = window.location.hostname;
+      const origin = window.location.origin;
+      const isLocalhost = hostname === 'localhost';
+      
+      addLog(`🌐 URL Detection Debug:`);
+      addLog(`  hostname: ${hostname}`);
+      addLog(`  origin: ${origin}`);
+      addLog(`  isLocalhost: ${isLocalhost}`);
+      
       const { uri, secret } = generateNostrConnectURI(clientUser.pubkey, relays);
-      addLog(`Generated URI (${uri.length} chars)`);
+      
+      // Extract and log the URL parameter from the URI
+      const uriParams = new URLSearchParams(uri.split('?')[1]);
+      const urlParam = uriParams.get('url');
+      
+      addLog(`🔗 NostrConnect URI Details:`);
+      addLog(`  Total length: ${uri.length} chars`);
+      addLog(`  URL parameter: ${urlParam}`);
+      addLog(`  Full URI: ${uri}`);
 
       // Store session for persistence
       const session: NostrConnectSession = {
