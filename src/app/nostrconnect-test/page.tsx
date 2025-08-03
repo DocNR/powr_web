@@ -98,9 +98,16 @@ export default function NostrConnectTestPage() {
       
       const { uri, secret } = generateNostrConnectURI(clientUser.pubkey, relays);
       
+      // CRITICAL DEBUG: Force console output that can't be missed
+      console.log('🚨 CRITICAL DEBUG - URI Generated:', uri.length, 'chars');
+      console.log('🚨 CRITICAL DEBUG - Full URI:', uri);
+      
       // Extract and log the URL parameter from the URI
       const uriParams = new URLSearchParams(uri.split('?')[1]);
       const urlParam = uriParams.get('url');
+      
+      console.log('🚨 CRITICAL DEBUG - URL Parameter:', urlParam);
+      console.log('🚨 CRITICAL DEBUG - Window Location:', window.location.href);
       
       addLog(`🔗 NostrConnect URI Details:`);
       addLog(`  Total length: ${uri.length} chars`);
