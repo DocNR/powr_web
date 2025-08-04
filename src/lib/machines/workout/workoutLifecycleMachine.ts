@@ -448,6 +448,116 @@ export const workoutLifecycleMachine = setup({
             'logTransition'
           ]
         },
+        
+        // NEW: Handle exercise resolution from activeWorkoutMachine
+        RESOLVE_AND_SUBSTITUTE_EXERCISE: {
+          actions: [
+            // Resolve exercise name and send back to activeWorkoutMachine
+            ({ context, event }: { 
+              context: WorkoutLifecycleContext; 
+              event: { type: 'RESOLVE_AND_SUBSTITUTE_EXERCISE'; exerciseIndex: number; newExerciseRef: string } 
+            }) => {
+              console.log('[WorkoutLifecycle] 🔍 RESOLVE_AND_SUBSTITUTE_EXERCISE: Resolving exercise name for', event.newExerciseRef);
+              
+              // Use dependencyResolutionService to resolve exercise name
+              import('@/lib/services/dependencyResolution').then(({ dependencyResolutionService }) => {
+                // Use resolveExerciseReferences method for single exercise
+                dependencyResolutionService.resolveExerciseReferences([event.newExerciseRef])
+                  .then((resolvedExercises) => {
+                    console.log('[WorkoutLifecycle] ✅ Resolved substitute exercise name:', resolvedExercises);
+                    
+                    // Transform to the format expected by activeWorkoutMachine
+                    const transformedExercise = resolvedExercises[0] ? {
+                      exerciseRef: `33401:${resolvedExercises[0].authorPubkey}:${resolvedExercises[0].id}`,
+                      name: resolvedExercises[0].name
+                    } : {
+                      exerciseRef: event.newExerciseRef,
+                      name: 'Unknown Exercise'
+                    };
+                    
+                    // Send resolved data back to activeWorkoutMachine
+                    if (context.activeWorkoutActor && typeof context.activeWorkoutActor === 'object' && context.activeWorkoutActor !== null && 'send' in context.activeWorkoutActor) {
+                      (context.activeWorkoutActor as { send: (event: { type: string; exerciseIndex: number; resolvedExercise: { exerciseRef: string; name: string } }) => void }).send({
+                        type: 'UPDATE_SUBSTITUTED_EXERCISE_WITH_RESOLVED_DATA',
+                        exerciseIndex: event.exerciseIndex,
+                        resolvedExercise: transformedExercise
+                      });
+                    }
+                  })
+                  .catch((error) => {
+                    console.error('[WorkoutLifecycle] ❌ Error resolving substitute exercise:', error);
+                    
+                    // Send fallback data to activeWorkoutMachine
+                    if (context.activeWorkoutActor && typeof context.activeWorkoutActor === 'object' && context.activeWorkoutActor !== null && 'send' in context.activeWorkoutActor) {
+                      (context.activeWorkoutActor as { send: (event: { type: string; exerciseIndex: number; resolvedExercise: { exerciseRef: string; name: string } }) => void }).send({
+                        type: 'UPDATE_SUBSTITUTED_EXERCISE_WITH_RESOLVED_DATA',
+                        exerciseIndex: event.exerciseIndex,
+                        resolvedExercise: {
+                          exerciseRef: event.newExerciseRef,
+                          name: 'Unknown Exercise'
+                        }
+                      });
+                    }
+                  });
+              });
+            },
+            'logTransition'
+          ]
+        },
+
+        RESOLVE_AND_ADD_EXERCISES: {
+          actions: [
+            // Resolve exercise names and send back to activeWorkoutMachine
+            ({ context, event }: { 
+              context: WorkoutLifecycleContext; 
+              event: { type: 'RESOLVE_AND_ADD_EXERCISES'; exerciseRefs: string[]; insertIndex?: number } 
+            }) => {
+              console.log('[WorkoutLifecycle] 🔍 RESOLVE_AND_ADD_EXERCISES: Resolving exercise names for', event.exerciseRefs);
+              
+              // Use dependencyResolutionService to resolve exercise names
+              import('@/lib/services/dependencyResolution').then(({ dependencyResolutionService }) => {
+                // Use resolveExerciseReferences method which exists in the service
+                dependencyResolutionService.resolveExerciseReferences(event.exerciseRefs)
+                  .then((resolvedExercises) => {
+                    console.log('[WorkoutLifecycle] ✅ Resolved exercise names:', resolvedExercises);
+                    
+                    // Transform to the format expected by activeWorkoutMachine
+                    const transformedExercises = resolvedExercises.map(exercise => ({
+                      exerciseRef: `33401:${exercise.authorPubkey}:${exercise.id}`,
+                      name: exercise.name
+                    }));
+                    
+                    // Send resolved data back to activeWorkoutMachine
+                    if (context.activeWorkoutActor && typeof context.activeWorkoutActor === 'object' && context.activeWorkoutActor !== null && 'send' in context.activeWorkoutActor) {
+                      (context.activeWorkoutActor as { send: (event: { type: string; resolvedExercises: Array<{ exerciseRef: string; name: string }>; insertIndex?: number }) => void }).send({
+                        type: 'UPDATE_EXERCISES_WITH_RESOLVED_DATA',
+                        resolvedExercises: transformedExercises,
+                        insertIndex: event.insertIndex
+                      });
+                    }
+                  })
+                  .catch((error) => {
+                    console.error('[WorkoutLifecycle] ❌ Error resolving exercises:', error);
+                    
+                    // Send fallback data to activeWorkoutMachine
+                    if (context.activeWorkoutActor && typeof context.activeWorkoutActor === 'object' && context.activeWorkoutActor !== null && 'send' in context.activeWorkoutActor) {
+                      const fallbackExercises = event.exerciseRefs.map((exerciseRef: string) => ({
+                        exerciseRef,
+                        name: 'Unknown Exercise'
+                      }));
+                      
+                      (context.activeWorkoutActor as { send: (event: { type: string; resolvedExercises: Array<{ exerciseRef: string; name: string }>; insertIndex?: number }) => void }).send({
+                        type: 'UPDATE_EXERCISES_WITH_RESOLVED_DATA',
+                        resolvedExercises: fallbackExercises,
+                        insertIndex: event.insertIndex
+                      });
+                    }
+                  });
+              });
+            },
+            'logTransition'
+          ]
+        },
         START_SETUP: {
           target: 'setup',
           actions: [
@@ -470,7 +580,7 @@ export const workoutLifecycleMachine = setup({
         'logTransition',
         // Spawn publishing actor for optimistic background publishing
         assign({
-          publishingActor: ({ spawn, context }: { spawn: (src: string, options: { input: { workoutData: any; userPubkey: string } }) => any; context: WorkoutLifecycleContext }) => {
+          publishingActor: ({ spawn, context }: { spawn: (src: string, options: { input: { workoutData: WorkoutData; userPubkey: string } }) => unknown; context: WorkoutLifecycleContext }) => {
             console.log('[WorkoutLifecycle] 📤 PUBLISHING PHASE: Starting optimistic background publishing');
             console.log('[WorkoutLifecycle] 📊 Context workout data analysis:', {
               hasWorkoutData: !!context.workoutData,

@@ -8,6 +8,7 @@
 // Core workout data types
 export interface CompletedSet {
   exerciseRef: string; // 33401:pubkey:exercise-d-tag format
+  exerciseIndex: number; // ✅ ADD: Index of exercise in workout array (for duplicate exercise support)
   setNumber: number;
   reps: number;
   weight: number; // kg, 0 for bodyweight

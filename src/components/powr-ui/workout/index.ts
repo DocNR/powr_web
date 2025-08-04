@@ -19,6 +19,8 @@ export { FilterButton } from './FilterButton';
 export { default as SearchableWorkoutDiscovery } from './SearchableWorkoutDiscovery';
 export { WorkoutDetailModal } from './WorkoutDetailModal';
 export { ActiveWorkoutInterface } from './ActiveWorkoutInterface';
+export { ExercisePicker } from './ExercisePicker';
+export { ExerciseMenuDropdown } from './ExerciseMenuDropdown';
 export { SetRow } from './SetRow';
 export { ExerciseSection } from './ExerciseSection';
 export { WorkoutMiniBar } from './WorkoutMiniBar';

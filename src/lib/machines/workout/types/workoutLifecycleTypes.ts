@@ -71,7 +71,11 @@ export type WorkoutLifecycleEvent =
   | { type: 'SHOW_SUMMARY' }
   | { type: 'SHARE_WORKOUT'; content: string }
   | { type: 'SKIP_SHARING' }
-  | { type: 'CLOSE_SUMMARY' };
+  | { type: 'CLOSE_SUMMARY' }
+  
+  // NEW: Exercise resolution events from activeWorkoutMachine
+  | { type: 'RESOLVE_AND_ADD_EXERCISES'; exerciseRefs: string[]; insertIndex?: number }
+  | { type: 'RESOLVE_AND_SUBSTITUTE_EXERCISE'; exerciseIndex: number; newExerciseRef: string };
 
 // Setup machine input (for invoked setup machine)
 export interface SetupMachineInput {

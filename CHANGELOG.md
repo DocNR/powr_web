@@ -31,6 +31,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Active Workout CRUD Operations Implementation COMPLETE (August 3, 2025) ✅**
+  
+  **User Impact**: Users can now fully customize active workouts with complete exercise-level CRUD operations. Add new exercises from the library during workouts, remove unwanted exercises, substitute exercises with alternatives, and reorder workout structure in real-time. Enhanced ExercisePicker with muscle group filtering (All, Push, Pull, Legs, Core, Cardio) and search functionality enables quick exercise discovery. Professional UI with dropdown menus, confirmation dialogs, and seamless integration maintains workout flow while providing complete customization control.
+  
+  **Developer Notes**: Implemented comprehensive CRUD system with new XState events (ADD_EXERCISES, REMOVE_EXERCISE, SUBSTITUTE_EXERCISE) in activeWorkoutMachine.ts. Created ExercisePicker component with NIP-51 library integration, muscle group filtering using exerciseFilters constants, and search functionality. Enhanced ExerciseMenuDropdown with remove/substitute actions and confirmation dialogs. Built ExerciseCRUDInterface as centralized control system with proper state management and error handling. All components follow POWR UI standards with Radix primitives and semantic styling.
+  
+  **Architecture Changes**: Extended XState machine architecture with CRUD event handling while maintaining workout state integrity. Established exercise filtering patterns with semantic muscle group categorization. Enhanced library integration patterns using useLibraryCollections hook for real-time exercise discovery. Foundation ready for Phase 1B template management and advanced workout customization features.
+
+- **Duplicate Exercise Instance Tracking Fix Task Documentation COMPLETE (August 3, 2025) ✅**
+  
+  **User Impact**: Comprehensive task document created for fixing duplicate exercise tracking bug that creates malformed NIP-101e events when users add the same exercise multiple times during active workouts. Task provides complete solution design with continuous set numbering (1,2,3 → 4,5,6) and UI instance differentiation ("Round 2" labeling) to prevent cross-instance interference and ensure proper workout event publishing.
+  
+  **Developer Notes**: Created detailed task document (`docs/tasks/duplicate-exercise-instance-tracking-fix-task.md`) with hybrid solution approach combining order index maintenance with continuous set numbering enhancement. Documented root cause analysis showing current `exerciseRef` collision issues, comprehensive 4-phase implementation plan (Core Fix → UI Enhancement → NIP-101e Compliance → Documentation), and established testing strategy with manual scenarios. Added task reference to BACKLOG.md under Normal Priority Active Workout Enhancements section.
+  
+  **Architecture Changes**: Clarified dual-field architecture where `exerciseRef` identifies WHAT exercise (for NIP-101e events and continuous numbering) while `exerciseIndex` identifies WHICH instance in workout array (for UI targeting and duplicate differentiation). Task follows .clinerules standards with comprehensive technical approach, risk assessment, and 2-3 day timeline estimate. Foundation ready for future implementation when duplicate exercise scenarios become more common in user workflows.
+
+### Added
 - **Modal Tab Orange Halo Styling Enhancement COMPLETE (August 2, 2025) ✅**
   
   **User Impact**: Exercise and workout detail modal tabs now feature the signature orange halo effect when selected, matching the consistent styling used throughout the app on workout cards and interactive elements. Tabs display with white text on black background in dark mode, and orange halo with white background and black text in light mode. The styling now works consistently with both mouse clicks and keyboard navigation, providing a polished and cohesive user experience.

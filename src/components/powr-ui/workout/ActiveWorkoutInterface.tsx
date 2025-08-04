@@ -4,10 +4,17 @@ import React, { useState, useEffect } from 'react';
 import { useSelector } from '@xstate/react';
 import { Button, WorkoutTimer } from '@/components/powr-ui';
 import { ExerciseSection } from './ExerciseSection';
-import { ArrowLeft, Square } from 'lucide-react';
+import { ExercisePicker } from './ExercisePicker';
+import { ArrowLeft, Square, Plus } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+import type { 
+  CompletedSet, 
+  WorkoutData, 
+  WorkoutExercise 
+} from '@/lib/machines/workout/types/workoutTypes';
 
+// Local UI-specific interfaces (not duplicating core types)
 interface SetData {
   weight: number;
   reps: number;
@@ -18,6 +25,7 @@ interface SetData {
 
 interface ExerciseData {
   id: string;
+  exerciseRef: string;
   name: string;
   equipment?: string;
   notes?: string;
@@ -25,38 +33,6 @@ interface ExerciseData {
   prescribedSets?: number;
   prescribedReps?: number;
   prescribedWeight?: number;
-}
-
-interface WorkoutData {
-  workoutId: string;
-  title: string;
-  startTime: number;
-  completedSets: CompletedSet[];
-  workoutType: string;
-  exercises: WorkoutExercise[];
-}
-
-interface CompletedSet {
-  exerciseRef: string;
-  setNumber: number;
-  weight: number;
-  reps: number;
-  rpe?: number;
-  setType: 'warmup' | 'normal' | 'drop' | 'failure';
-  completedAt: number;
-}
-
-interface WorkoutExercise {
-  exerciseRef: string;
-  name?: string;
-  exerciseName?: string; // ✅ ADD: Field added by active workout machine
-  sets: number;
-  reps: number;
-  weight?: number;
-  rpe?: number;
-  setType?: string;
-  equipment?: string;
-  notes?: string;
 }
 
 interface ActiveWorkoutInterfaceProps {
@@ -79,6 +55,7 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
 }) => {
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [showFinishDialog, setShowFinishDialog] = useState(false);
+  const [showAddExercisePicker, setShowAddExercisePicker] = useState(false);
   
   // ✅ OPTIMIZED: Use fewer, more specific selectors to reduce re-renders
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -107,8 +84,8 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const actorSend = (event: any) => {
     // Only log important events to reduce console spam
-    if (event.type === 'COMPLETE_SET' || event.type === 'COMPLETE_WORKOUT' || event.type === 'CANCEL_WORKOUT') {
-      console.log('🔧 ActiveWorkoutInterface: Sending event:', event.type);
+    if (event.type === 'COMPLETE_SET' || event.type === 'COMPLETE_SPECIFIC_SET' || event.type === 'COMPLETE_WORKOUT' || event.type === 'CANCEL_WORKOUT') {
+      console.log('🔧 ActiveWorkoutInterface: Sending event:', event.type, event);
     }
     activeWorkoutActor.send(event);
   };
@@ -134,8 +111,9 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
 
   // ✅ FIXED: Create exercises from workout data with extraSetsRequested support
   const exercises: ExerciseData[] = workoutData?.exercises?.map((exercise: WorkoutExercise, index: number) => {
+    // ✅ FIXED: Filter by exerciseIndex instead of exerciseRef (for duplicate exercise support)
     const completedSetsForExercise = workoutData.completedSets?.filter(
-      (set: CompletedSet) => set.exerciseRef === exercise.exerciseRef
+      (set: CompletedSet) => set.exerciseIndex === index
     ) || [];
 
     // ✅ FIXED: Handle user-requested extra sets properly (ported from ActiveWorkoutContainer)
@@ -150,10 +128,11 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
     // Removed repetitive exercise logging to reduce console spam
 
     return {
-      id: exercise.exerciseRef || `exercise-${index}`,
+      id: `exercise-${index}`, // ✅ FIXED: Use unique index-based ID
+      exerciseRef: exercise.exerciseRef, // ✅ FIXED: Keep the actual exercise reference
       name: exercise.exerciseName || `Exercise ${index + 1}`, // ✅ FIXED: Use exerciseName from active workout machine
-      equipment: exercise.equipment,
-      notes: exercise.notes,
+      equipment: undefined, // WorkoutExercise doesn't have equipment field
+      notes: undefined, // WorkoutExercise doesn't have notes field
       sets: Array.from({ length: totalSets }, (_, setIndex) => {  // ✅ Use totalSets instead of exercise.sets
         const completedSet = completedSetsForExercise.find(
           (set: CompletedSet) => set.setNumber === setIndex + 1
@@ -162,8 +141,8 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
         return {
           weight: completedSet?.weight || exercise.weight || 0,
           reps: completedSet?.reps || exercise.reps || 0,
-          rpe: completedSet?.rpe || exercise.rpe || 7,
-          setType: completedSet?.setType || (exercise.setType as 'warmup' | 'normal' | 'drop' | 'failure') || 'normal',
+          rpe: completedSet?.rpe || 7, // WorkoutExercise doesn't have rpe field
+          setType: completedSet?.setType || 'normal', // WorkoutExercise doesn't have setType field
           completed: !!completedSet
         };
       }),
@@ -203,10 +182,30 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
 
   // Event handlers that send events to the actor
   const handleSetComplete = (exerciseId: string, setIndex: number, setData: SetData) => {
-    // NEW: Use flexible set interaction - complete specific set directly
+    // ✅ FIXED: Find exerciseIndex from exerciseId and use exerciseIndex for events
+    const exerciseIndex = exercises.findIndex(ex => ex.id === exerciseId);
+    if (exerciseIndex === -1) {
+      console.error('🔧 ActiveWorkoutInterface: Exercise not found for ID:', exerciseId, {
+        availableExercises: exercises.map(ex => ({ id: ex.id, name: ex.name, ref: ex.exerciseRef }))
+      });
+      return; // Exercise not found
+    }
+    
+    const exercise = exercises[exerciseIndex];
+    console.log('🔧 ActiveWorkoutInterface: handleSetComplete DEBUG:', {
+      exerciseId,
+      exerciseIndex,
+      setIndex,
+      setNumber: setIndex + 1,
+      exerciseName: exercise.name,
+      exerciseRef: exercise.exerciseRef,
+      setData,
+      totalExercises: exercises.length
+    });
+    
     actorSend({ 
       type: 'COMPLETE_SPECIFIC_SET',
-      exerciseRef: exerciseId,
+      exerciseIndex, // ✅ FIXED: Use exerciseIndex instead of exerciseRef
       setNumber: setIndex + 1, // Convert 0-based index to 1-based set number
       setData: {
         weight: setData.weight,
@@ -219,10 +218,13 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
 
   // ✅ FIXED: Add set functionality
   const handleAddSet = (exerciseId: string) => {
-    // Send ADD_SET event to activeWorkoutActor
+    // ✅ FIXED: Find exerciseIndex from exerciseId and use exerciseIndex for events
+    const exerciseIndex = exercises.findIndex(ex => ex.id === exerciseId);
+    if (exerciseIndex === -1) return; // Exercise not found
+    
     actorSend({ 
       type: 'ADD_SET',
-      exerciseRef: exerciseId
+      exerciseIndex // ✅ FIXED: Use exerciseIndex instead of exerciseRef
     });
   };
 
@@ -244,47 +246,56 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
     });
     
     // Then send a SELECT_SET event for future flexible set interaction
-    const exercise = exercises[exerciseIndex];
-    if (exercise) {
+    actorSend({
+      type: 'SELECT_SET',
+      exerciseIndex, // ✅ FIXED: Use exerciseIndex instead of exerciseRef
+      setNumber: setIndex + 1 // Convert 0-based index to 1-based set number
+    });
+  };
+
+
+  // CRUD Interface Handlers
+  const handleAddExercises = (exerciseRefs: string[], insertIndex?: number) => {
+    exerciseRefs.forEach(exerciseRef => {
       actorSend({
-        type: 'SELECT_SET',
-        exerciseRef: exercise.id,
-        setNumber: setIndex + 1 // Convert 0-based index to 1-based set number
+        type: 'ADD_EXERCISES',
+        exerciseRefs: [exerciseRef],
+        insertIndex
+      });
+    });
+  };
+
+  const handleRemoveExercise = (exerciseIndex: number) => {
+    actorSend({
+      type: 'REMOVE_EXERCISE',
+      exerciseIndex
+    });
+  };
+
+  const handleSubstituteExercise = (exerciseIndex: number, newExerciseRef: string) => {
+    actorSend({
+      type: 'SUBSTITUTE_EXERCISE',
+      exerciseIndex,
+      newExerciseRef
+    });
+  };
+
+  const handleMoveExerciseUp = (exerciseIndex: number) => {
+    if (exerciseIndex > 0) {
+      actorSend({
+        type: 'MOVE_EXERCISE_UP',
+        exerciseIndex: exerciseIndex
       });
     }
   };
 
-  // NEW: Flexible set interaction handlers
-  const handleCompleteSpecific = (exerciseRef: string, setNumber: number, setData: SetData) => {
-    actorSend({ 
-      type: 'COMPLETE_SPECIFIC_SET',
-      exerciseRef,
-      setNumber,
-      setData: {
-        weight: setData.weight,
-        reps: setData.reps,
-        rpe: setData.rpe,
-        setType: setData.setType
-      }
-    });
-  };
-
-  const handleUncompleteSpecific = (exerciseRef: string, setNumber: number) => {
-    actorSend({ 
-      type: 'UNCOMPLETE_SET',
-      exerciseRef,
-      setNumber
-    });
-  };
-
-  const handleEditCompleted = (exerciseRef: string, setNumber: number, field: string, value: string | number) => {
-    actorSend({ 
-      type: 'EDIT_COMPLETED_SET',
-      exerciseRef,
-      setNumber,
-      field,
-      value
-    });
+  const handleMoveExerciseDown = (exerciseIndex: number) => {
+    if (exerciseIndex < exercises.length - 1) {
+      actorSend({
+        type: 'MOVE_EXERCISE_DOWN',
+        exerciseIndex: exerciseIndex
+      });
+    }
   };
 
   const handleCancelConfirm = () => {
@@ -385,7 +396,7 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
 
                 return (
                   <ExerciseSection
-                    key={exercise.id}
+                    key={`${exercise.id}-${exerciseIndex}`}
                     exercise={exercise}
                     shouldHighlightAddSet={shouldHighlightAddSet} // NEW PROP for Add Set highlighting
                     onSetComplete={(exerciseId: string, setIndex: number, setData: SetData) => 
@@ -395,13 +406,27 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
                     onExerciseSelect={() => handleExerciseSelect(exerciseIndex)}
                     onSelectSet={handleSetSelect} // NEW: Pass set selection handler
                     exerciseIndex={exerciseIndex} // NEW: Pass exercise index
-                    // NEW: Flexible set interaction handlers
-                    onCompleteSpecific={handleCompleteSpecific}
-                    onUncompleteSpecific={handleUncompleteSpecific}
-                    onEditCompleted={handleEditCompleted}
+                    // CRUD operation handlers
+                    onRemoveExercise={handleRemoveExercise}
+                    onSubstituteExercise={handleSubstituteExercise}
+                    onMoveExerciseUp={handleMoveExerciseUp}
+                    onMoveExerciseDown={handleMoveExerciseDown}
+                    totalExercises={exercises.length}
                   />
                 );
               })}
+              
+              {/* Add Exercise Button */}
+              <div className="pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowAddExercisePicker(true)}
+                  className="w-full h-12 border-dashed border-primary/30 text-primary hover:text-primary/80 hover:border-primary/50 bg-transparent hover:bg-primary/5"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Exercise
+                </Button>
+              </div>
             </div>
 
             {/* Bottom Action Bar */}
@@ -496,6 +521,21 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Add Exercise Picker */}
+      <ExercisePicker
+        isOpen={showAddExercisePicker}
+        onClose={() => setShowAddExercisePicker(false)}
+        onSelectExercise={() => {}} // Not used in multiple mode
+        onSelectMultipleExercises={(exerciseRefs) => {
+          handleAddExercises(exerciseRefs);
+          setShowAddExercisePicker(false);
+        }}
+        mode="multiple"
+        title="Add Exercises"
+        description="Select exercises to add to your workout"
+      />
+
     </>
   );
 };

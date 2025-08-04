@@ -65,6 +65,36 @@ export interface ActiveWorkoutContext extends BaseMachineContext {
     plannedSets: number;          // Required - defaults to 3 if not specified
   }>;
   
+  // NEW: Workout modification tracking for Phase 1B template evolution
+  workoutModifications: {
+    exercisesAdded: Array<{
+      exerciseRef: string;
+      insertIndex: number;
+      timestamp: number;
+    }>;
+    exercisesRemoved: Array<{
+      exerciseRef: string;
+      exerciseIndex: number;
+      hadCompletedSets: boolean;
+      timestamp: number;
+    }>;
+    exercisesSubstituted: Array<{
+      originalRef: string;
+      replacementRef: string;
+      exerciseIndex: number;
+      hadCompletedSets: boolean;
+      timestamp: number;
+    }>;
+    exercisesReordered: Array<{
+      fromIndex: number;
+      toIndex: number;
+      exerciseRef: string;
+      timestamp: number;
+    }>;
+    modifiedAt: number;
+    totalModifications: number;
+  };
+  
   // Error handling
   error?: ErrorInfo;
   
@@ -89,7 +119,7 @@ export type ActiveWorkoutEvent =
   | { type: 'SKIP_EXERCISE' }
   | { type: 'SKIP_EXERCISE' }
   | { type: 'NAVIGATE_TO_EXERCISE'; exerciseIndex: number }
-  | { type: 'ADD_SET'; exerciseRef: string }
+  | { type: 'ADD_SET'; exerciseIndex: number }
 
   // Set completion events (existing)
   | { type: 'START_SET'; setNumber: number }
@@ -98,11 +128,19 @@ export type ActiveWorkoutEvent =
   | { type: 'REDO_SET'; setNumber: number }
   | { type: 'END_REST_PERIOD' }
   
-  // NEW: Flexible set interaction events (Phase 1)
-  | { type: 'COMPLETE_SPECIFIC_SET'; exerciseRef: string; setNumber: number; setData?: Partial<CompletedSet> }
-  | { type: 'UNCOMPLETE_SET'; exerciseRef: string; setNumber: number }
-  | { type: 'EDIT_COMPLETED_SET'; exerciseRef: string; setNumber: number; field: keyof CompletedSet; value: string | number }
-  | { type: 'SELECT_SET'; exerciseRef: string; setNumber: number }
+  // NEW: Flexible set interaction events (Phase 1) - ✅ FIXED to use exerciseIndex
+  | { type: 'COMPLETE_SPECIFIC_SET'; exerciseIndex: number; setNumber: number; setData?: Partial<CompletedSet> }
+  | { type: 'UNCOMPLETE_SET'; exerciseIndex: number; setNumber: number }
+  | { type: 'EDIT_COMPLETED_SET'; exerciseIndex: number; setNumber: number; field: keyof CompletedSet; value: string | number }
+  | { type: 'SELECT_SET'; exerciseIndex: number; setNumber: number }
+  
+  // NEW: Exercise CRUD events (Phase 1A)
+  | { type: 'ADD_EXERCISES'; exerciseRefs: string[]; insertIndex?: number }
+  | { type: 'REMOVE_EXERCISE'; exerciseIndex: number; forceRemove?: boolean }
+  | { type: 'SUBSTITUTE_EXERCISE'; exerciseIndex: number; newExerciseRef: string; confirmed?: boolean }
+  | { type: 'MOVE_EXERCISE_UP'; exerciseIndex: number }
+  | { type: 'MOVE_EXERCISE_DOWN'; exerciseIndex: number }
+  | { type: 'REORDER_EXERCISES'; fromIndex: number; toIndex: number }
   
   // Publishing events
   | { type: 'PUBLISH_WORKOUT' }
@@ -120,7 +158,11 @@ export type ActiveWorkoutEvent =
   
   // Activity events
   | { type: 'UPDATE_ACTIVITY' }
-  | { type: 'HEARTBEAT' };
+  | { type: 'HEARTBEAT' }
+  
+  // NEW: Exercise resolution response from parent
+  | { type: 'UPDATE_EXERCISES_WITH_RESOLVED_DATA'; resolvedExercises: Array<{ exerciseRef: string; name: string }>; insertIndex?: number }
+  | { type: 'UPDATE_SUBSTITUTED_EXERCISE_WITH_RESOLVED_DATA'; exerciseIndex: number; resolvedExercise: { exerciseRef: string; name: string } };
 
 // Active workout state values
 export type ActiveWorkoutState = 
@@ -214,6 +256,14 @@ export const defaultActiveWorkoutContext: Omit<ActiveWorkoutContext, 'userInfo' 
   },
   exerciseSetCounters: new Map<string, number>(),
   templateExercises: [],
+  workoutModifications: {
+    exercisesAdded: [],
+    exercisesRemoved: [],
+    exercisesSubstituted: [],
+    exercisesReordered: [],
+    modifiedAt: Date.now(),
+    totalModifications: 0
+  },
   lastUpdated: Date.now(),
   lastActivityAt: Date.now()
 };

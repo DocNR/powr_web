@@ -31,6 +31,13 @@ export function useLibraryCollection(userPubkey: string | undefined, collectionT
 
   const dTag = POWR_COLLECTION_DTAGS[collectionType];
 
+  // Memoize filter to prevent unnecessary re-subscriptions
+  const filter = useMemo((): NDKFilter => ({
+    kinds: [30003],
+    authors: userPubkey ? [userPubkey] : [],
+    '#d': [dTag]
+  }), [userPubkey, dTag]);
+
   // Real-time subscription following WorkoutHistoryProvider pattern
   useEffect(() => {
     if (!userPubkey) {
@@ -44,21 +51,20 @@ export function useLibraryCollection(userPubkey: string | undefined, collectionT
       return;
     }
 
-    console.log(`[useLibraryCollection] Setting up ${collectionType} subscription for user:`, userPubkey.slice(0, 8));
+    // Reduce console spam - only log in development
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[useLibraryCollection] Setting up ${collectionType} subscription for user:`, userPubkey.slice(0, 8));
+    }
     setIsLoading(true);
     setError(null);
-
-    const filter: NDKFilter = {
-      kinds: [30003],
-      authors: [userPubkey],
-      '#d': [dTag]
-    };
 
     // Use NDK singleton subscribe method (following WorkoutHistoryProvider pattern)
     const subscription = ndk.subscribe([filter]);
 
     subscription.on('event', (event) => {
-      console.log(`[useLibraryCollection] ${collectionType} collection event received:`, event.id);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[useLibraryCollection] ${collectionType} collection event received:`, event.id);
+      }
       
       const parsedCollection = dataParsingService.parseCollection(event);
       
@@ -84,16 +90,20 @@ export function useLibraryCollection(userPubkey: string | undefined, collectionT
     });
 
     subscription.on('eose', () => {
-      console.log(`[useLibraryCollection] ${collectionType} collection EOSE received`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[useLibraryCollection] ${collectionType} collection EOSE received`);
+      }
       setIsLoading(false);
     });
 
     // Cleanup function
     return () => {
-      console.log(`[useLibraryCollection] Cleaning up ${collectionType} subscription`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[useLibraryCollection] Cleaning up ${collectionType} subscription`);
+      }
       subscription.stop();
     };
-  }, [userPubkey, collectionType, dTag]);
+  }, [userPubkey, collectionType, filter]);
 
   // Add item to collection
   const addItem = useCallback(async (contentRef: string) => {

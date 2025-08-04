@@ -21,13 +21,9 @@ interface SetRowProps {
   isActive?: boolean;
   onComplete: (setData: SetData) => void;
   className?: string;
-  // NEW: Flexible set interaction props
-  exerciseRef?: string;
+  // Keep only the props that are actually used
   exerciseIndex?: number;
   setIndex?: number;
-  onCompleteSpecific?: (exerciseRef: string, setNumber: number, setData: SetData) => void;
-  onUncompleteSpecific?: (exerciseRef: string, setNumber: number) => void;
-  onEditCompleted?: (exerciseRef: string, setNumber: number, field: string, value: string | number) => void;
   onSelectSet?: (exerciseIndex: number, setIndex: number) => void;
 }
 
@@ -39,13 +35,9 @@ export const SetRow: React.FC<SetRowProps> = ({
   isActive = false,
   onComplete,
   className,
-  // NEW: Flexible set interaction props
-  exerciseRef,
+  // Keep only used props
   exerciseIndex,
   setIndex,
-  onCompleteSpecific,
-  onUncompleteSpecific,
-  onEditCompleted,
   onSelectSet
 }) => {
   // Initialize with default data or previous set data
@@ -102,7 +94,7 @@ export const SetRow: React.FC<SetRowProps> = ({
     }
   };
 
-  // NEW: Flexible set interaction handlers
+  // Simplified completion handler - single path only
   const handleComplete = () => {
     const setData: SetData = {
       weight: parseFloat(weight) || 0,
@@ -112,12 +104,18 @@ export const SetRow: React.FC<SetRowProps> = ({
       completed: true
     };
 
-    // Use flexible interaction if available, otherwise fallback to legacy
-    if (onCompleteSpecific && exerciseRef) {
-      onCompleteSpecific(exerciseRef, setNumber, setData);
-    } else {
-      onComplete(setData);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔧 SetRow: handleComplete - using onComplete path', {
+        setNumber,
+        setData,
+        weight,
+        reps,
+        rpe
+      });
     }
+
+    // Always use the working completion path
+    onComplete(setData);
   };
 
   // NEW: Handle clicking on the set row to select it
@@ -127,19 +125,6 @@ export const SetRow: React.FC<SetRowProps> = ({
     }
   };
 
-  // NEW: Handle uncompleting a set
-  const handleUncomplete = () => {
-    if (onUncompleteSpecific && exerciseRef) {
-      onUncompleteSpecific(exerciseRef, setNumber);
-    }
-  };
-
-  // NEW: Handle direct editing of completed set fields
-  const handleFieldEdit = (field: string, value: string | number) => {
-    if (onEditCompleted && exerciseRef) {
-      onEditCompleted(exerciseRef, setNumber, field, value);
-    }
-  };
 
   // IMPROVED: More forgiving validation logic
   const isWeightValid = () => {
@@ -190,75 +175,32 @@ export const SetRow: React.FC<SetRowProps> = ({
           }
         </div>
 
-        {/* Editable Weight - Compact */}
-        <div className="flex-1 min-w-0">
-          <Input
-            id={`completed-weight-${setNumber}`}
-            type="number"
-            inputMode="decimal"
-            value={weight}
-            onChange={(e) => {
-              handleWeightChange(e);
-              if (onEditCompleted && exerciseRef) {
-                handleFieldEdit('weight', parseFloat(e.target.value) || 0);
-              }
-            }}
-            onFocus={handleSetClick}
-            className="h-10 text-base font-medium text-center bg-transparent border-0 focus:ring-1 focus:ring-workout-success rounded"
-          />
+        {/* Completed Weight - Display Only */}
+        <div className="flex-1 min-w-0 flex items-center justify-center">
+          <span className="text-base font-medium text-workout-text">
+            {parseFloat(weight) > 0 ? weight : 'BW'}
+          </span>
         </div>
 
-        {/* Editable Reps - Compact */}
-        <div className="flex-1 min-w-0">
-          <Input
-            id={`completed-reps-${setNumber}`}
-            type="number"
-            inputMode="numeric"
-            value={reps}
-            onChange={(e) => {
-              handleRepsChange(e);
-              if (onEditCompleted && exerciseRef) {
-                handleFieldEdit('reps', parseInt(e.target.value) || 0);
-              }
-            }}
-            onFocus={handleSetClick}
-            className="h-10 text-base font-medium text-center bg-transparent border-0 focus:ring-1 focus:ring-workout-success rounded"
-          />
+        {/* Completed Reps - Display Only */}
+        <div className="flex-1 min-w-0 flex items-center justify-center">
+          <span className="text-base font-medium text-workout-text">
+            {reps}
+          </span>
         </div>
 
-        {/* Editable RPE - Compact */}
-        <div className="w-12 flex-shrink-0">
-          <Input
-            id={`completed-rpe-${setNumber}`}
-            type="number"
-            inputMode="decimal"
-            value={rpe}
-            onChange={(e) => {
-              handleRpeChange(e);
-              if (onEditCompleted && exerciseRef) {
-                handleFieldEdit('rpe', parseFloat(e.target.value) || 7);
-              }
-            }}
-            onFocus={handleSetClick}
-            min="1"
-            max="10"
-            step="0.5"
-            className="h-10 text-base font-medium text-center bg-transparent border-0 focus:ring-1 focus:ring-workout-success rounded"
-          />
+        {/* Completed RPE - Display Only */}
+        <div className="w-12 flex-shrink-0 flex items-center justify-center">
+          <span className="text-base font-medium text-workout-text">
+            {rpe}
+          </span>
         </div>
 
-        {/* Filled Checkbox for Completed Sets - Compact */}
+        {/* Completed Checkbox - Display Only */}
         <div className="flex-shrink-0">
-          <button
-            onClick={(e) => {
-              e.stopPropagation(); // Prevent triggering handleSetClick
-              handleUncomplete();
-            }}
-            className="h-10 w-10 flex items-center justify-center rounded border border-workout-success bg-workout-success text-white hover:bg-workout-success/90 transition-colors"
-            title="Click to uncomplete set"
-          >
+          <div className="h-10 w-10 flex items-center justify-center rounded border border-workout-success bg-workout-success text-white">
             <Check className="h-4 w-4" />
-          </button>
+          </div>
         </div>
       </div>
     );

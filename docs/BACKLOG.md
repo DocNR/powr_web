@@ -80,6 +80,16 @@ formatting_rules:
 
 ## 🟢 Normal Priority
 
+### Active Workout Enhancements
+- [ ] **Duplicate Exercise Instance Tracking Fix** (M)
+  - **Issue**: Adding same exercise multiple times causes set completion interference
+  - **Impact**: Creates malformed NIP-101e events with incorrect set numbering
+  - **Solution**: Implement continuous set numbering + UI instance differentiation
+  - **Features**: "Round 2" labeling, set ranges ("Sets 1-3" vs "Sets 4-6"), independent tracking
+  - **Timeline**: 2-3 days implementation
+  - **Related**: `docs/tasks/duplicate-exercise-instance-tracking-fix-task.md`
+  - **Context**: Discovered during CRUD operations testing, affects workout event publishing
+
 ### Technical Improvements
 - [ ] **Authentication/Publishing Separation Architecture Enhancement** (M)
   - **Context**: Current fix reduces NIP-07 auth from 10s to instant by separating auth from relay connections

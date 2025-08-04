@@ -2,9 +2,10 @@
 
 import React from 'react';
 import { Button } from '@/components/powr-ui/primitives/Button';
-import { Plus, MoreHorizontal } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SetRow } from './SetRow';
+import { ExerciseMenuDropdown } from './ExerciseMenuDropdown';
 
 interface SetData {
   weight: number;
@@ -34,10 +35,12 @@ interface ExerciseSectionProps {
   onExerciseSelect?: () => void;
   onSelectSet?: (exerciseIndex: number, setIndex: number) => void; // NEW: Set selection handler
   exerciseIndex?: number; // NEW: Exercise index for set selection
-  // NEW: Flexible set interaction props
-  onCompleteSpecific?: (exerciseRef: string, setNumber: number, setData: SetData) => void;
-  onUncompleteSpecific?: (exerciseRef: string, setNumber: number) => void;
-  onEditCompleted?: (exerciseRef: string, setNumber: number, field: string, value: string | number) => void;
+  // CRUD operation props
+  onRemoveExercise?: (exerciseIndex: number) => void;
+  onSubstituteExercise?: (exerciseIndex: number, newExerciseRef: string) => void;
+  onMoveExerciseUp?: (exerciseIndex: number) => void;
+  onMoveExerciseDown?: (exerciseIndex: number) => void;
+  totalExercises?: number; // For determining if move up/down should be disabled
   className?: string;
 }
 
@@ -49,10 +52,12 @@ export const ExerciseSection: React.FC<ExerciseSectionProps> = ({
   onExerciseSelect,
   onSelectSet, // NEW: Set selection handler
   exerciseIndex, // NEW: Exercise index for set selection
-  // NEW: Flexible set interaction props
-  onCompleteSpecific,
-  onUncompleteSpecific,
-  onEditCompleted,
+  // CRUD operation props
+  onRemoveExercise,
+  onSubstituteExercise,
+  onMoveExerciseUp,
+  onMoveExerciseDown,
+  totalExercises,
   className
 }) => {
   const completedSets = exercise.sets.filter(set => set.completed).length;
@@ -79,12 +84,16 @@ export const ExerciseSection: React.FC<ExerciseSectionProps> = ({
           {exercise.name} {exercise.equipment && `(${exercise.equipment})`}
         </button>
         
-        <button
-          onClick={onExerciseSelect}
-          className="text-primary hover:text-primary/80 transition-colors p-1 -m-1 cursor-pointer hover:bg-primary/10 rounded"
-        >
-          <MoreHorizontal className="h-4 w-4" />
-        </button>
+        <ExerciseMenuDropdown
+          exerciseIndex={exerciseIndex!}
+          exerciseName={exercise.name}
+          exerciseId={exercise.id}
+          totalExercises={totalExercises!}
+          onSubstituteExercise={onSubstituteExercise}
+          onRemoveExercise={onRemoveExercise}
+          onMoveExerciseUp={onMoveExerciseUp}
+          onMoveExerciseDown={onMoveExerciseDown}
+        />
       </div>
 
       {/* Prescribed Sets Info - Compact */}
@@ -131,12 +140,8 @@ export const ExerciseSection: React.FC<ExerciseSectionProps> = ({
               isCompleted={isSetCompleted}
               isActive={false}
               onComplete={(setData) => handleSetComplete(index, setData)}
-              exerciseRef={exercise.id}
               exerciseIndex={exerciseIndex}
               setIndex={index}
-              onCompleteSpecific={onCompleteSpecific}
-              onUncompleteSpecific={onUncompleteSpecific}
-              onEditCompleted={onEditCompleted}
               onSelectSet={onSelectSet}
             />
           );
@@ -161,6 +166,7 @@ export const ExerciseSection: React.FC<ExerciseSectionProps> = ({
           </Button>
         </div>
       )}
+
     </div>
   );
 };
