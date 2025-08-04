@@ -80,6 +80,13 @@ formatting_rules:
 
 ## 🟢 Normal Priority
 
+### User Experience Improvements
+- **Smart Workout Confirmations** - Context-aware confirmation dialogs for CRUD operations that prevent accidental data loss while reducing confirmation fatigue
+  - Priority: Medium
+  - Effort: 7-10 hours (M)
+  - Dependencies: None (builds on existing CRUD functionality)
+  - Task: `docs/tasks/smart-workout-confirmations-implementation-task.md`
+
 ### Active Workout Enhancements
 - [ ] **Duplicate Exercise Instance Tracking Fix** (M)
   - **Issue**: Adding same exercise multiple times causes set completion interference

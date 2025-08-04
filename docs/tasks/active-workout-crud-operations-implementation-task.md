@@ -1,8 +1,9 @@
 # Active Workout CRUD Operations Implementation Task
 
-## Status: ✅ CORE FUNCTIONALITY COMPLETE
+## Status: ✅ COMPLETE - READY FOR ARCHIVE
 **Last Updated**: 2025-08-03  
 **Phase**: 1A - Active Workout Modifications (Phase 1B: Template Management - Future)
+**Enhancement Task Created**: `docs/tasks/smart-workout-confirmations-implementation-task.md`
 
 ## Objective
 Implement comprehensive CRUD (Create, Read, Update, Delete) operations for exercises during active workouts, enabling users to add, remove, substitute, and reorder exercises with a streamlined NIP-51 library picker interface.
@@ -47,10 +48,11 @@ Implement comprehensive CRUD (Create, Read, Update, Delete) operations for exerc
 - [ ] Optimize for gym environments
 - [ ] Test responsive behavior across devices
 
-### Priority 2: Smart Confirmations (Optional Enhancement)
-- [ ] Context-aware removal confirmations based on completed sets
-- [ ] Smart substitution confirmations when sets are already completed
-- [ ] Combined search scope across personal library and subscribed collections
+### Priority 2: Smart Confirmations ✅ MOVED TO SEPARATE TASK
+- [x] Context-aware removal confirmations based on completed sets → **Enhancement Task Created**
+- [x] Smart substitution confirmations when sets are already completed → **Enhancement Task Created**  
+- [x] Combined search scope across personal library and subscribed collections → **Enhancement Task Created**
+- **See**: `docs/tasks/smart-workout-confirmations-implementation-task.md` for full implementation plan
 
 ### Priority 3: Performance & Testing (Future)
 - [ ] Performance testing during active workouts
