@@ -63,13 +63,13 @@ export const ExerciseCard = memo(function ExerciseCard({
   const authorDisplayName = getDisplayName(authorProfile, author?.pubkey);
   const authorAvatar = getAvatarUrl(authorProfile, author?.pubkey);
 
-  // Get difficulty color
+  // Get difficulty color - using semantic colors for dark mode compatibility
   const getDifficultyColor = (difficulty?: string) => {
     switch (difficulty) {
-      case 'beginner': return 'bg-green-100 text-green-800';
-      case 'intermediate': return 'bg-yellow-100 text-yellow-800';
-      case 'advanced': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'beginner': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
+      case 'intermediate': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300';
+      case 'advanced': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
+      default: return 'bg-muted text-muted-foreground';
     }
   };
 
@@ -168,7 +168,7 @@ export const ExerciseCard = memo(function ExerciseCard({
       <Card 
         className={cn(
           "cursor-pointer transition-all duration-200",
-          "hover:bg-gray-50 hover:border-orange-200 hover:ring-2 hover:ring-ring",
+          "hover:bg-muted hover:ring-2 hover:ring-ring",
           "active:ring-2 active:ring-ring",
           "focus:ring-2 focus:ring-ring focus:outline-none",
           className
@@ -182,14 +182,14 @@ export const ExerciseCard = memo(function ExerciseCard({
           }
         }}
       >
-        <CardContent className="p-4">
-          <div className="flex items-center gap-4">
+        <CardContent className="p-3">
+          <div className="flex items-center gap-3">
             <div className="flex-1 min-w-0">
-              <h4 className="font-semibold text-base line-clamp-1 mb-1">
+              <h4 className="font-medium text-sm line-clamp-1 mb-1">
                 {exercise.name}
               </h4>
               
-              <div className="flex items-center gap-3 text-sm text-gray-600 mb-1">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 {showEquipment && (
                   <>
                     <span>{exercise.equipment}</span>
@@ -198,38 +198,30 @@ export const ExerciseCard = memo(function ExerciseCard({
                 )}
                 <span>{exercise.muscleGroups.slice(0, 2).join(', ')}</span>
                 {exercise.muscleGroups.length > 2 && (
-                  <span className="text-muted-foreground">+{exercise.muscleGroups.length - 2}</span>
+                  <span>+{exercise.muscleGroups.length - 2}</span>
+                )}
+                {showAuthor && author && (
+                  <>
+                    <span>•</span>
+                    <span>by {authorDisplayName}</span>
+                  </>
                 )}
               </div>
-
-              {showAuthor && author && (
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Avatar className="h-3 w-3">
-                    <AvatarImage src={authorAvatar} alt={authorDisplayName} />
-                    <AvatarFallback className="bg-muted text-muted-foreground text-xs">
-                      {authorDisplayName[0]?.toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span>by {authorDisplayName}</span>
-                </div>
-              )}
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-shrink-0">
               {exercise.difficulty && (
                 <span className={cn(
-                  "px-2 py-1 rounded text-xs font-medium",
+                  "px-1.5 py-0.5 rounded text-xs font-medium",
                   getDifficultyColor(exercise.difficulty)
                 )}>
                   {exercise.difficulty}
                 </span>
               )}
               
-              <div className="flex-shrink-0">
-                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </div>
+              <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
             </div>
           </div>
         </CardContent>

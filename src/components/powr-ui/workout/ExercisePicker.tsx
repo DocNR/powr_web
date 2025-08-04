@@ -10,12 +10,12 @@
 
 import { memo, useState, useMemo, useCallback } from 'react';
 import { 
-  Sheet, 
-  SheetContent, 
-  SheetHeader, 
-  SheetTitle, 
-  SheetDescription 
-} from '@/components/powr-ui/primitives/Sheet';
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription
+} from '@/components/powr-ui/primitives/Dialog';
 import { Button } from '@/components/powr-ui/primitives/Button';
 import { Input } from '@/components/powr-ui/primitives/Input';
 import { Badge } from '@/components/powr-ui/primitives/Badge';
@@ -216,23 +216,21 @@ export const ExercisePicker = memo(function ExercisePicker({
   }, [onClose]);
 
   return (
-    <Sheet open={isOpen} onOpenChange={handleClose}>
-      <SheetContent 
-        side="bottom" 
+    <Dialog open={isOpen} onOpenChange={handleClose}>
+      <DialogContent 
         className={cn(
-          // Override the default bottom sheet positioning
-          "!inset-x-4 !bottom-4 !left-1/2 !-translate-x-1/2 !w-auto !max-w-md",
-          "max-h-[60vh] sm:max-h-[50vh] flex flex-col",
-          "modal-scrollable-content rounded-t-2xl border-t-2 border-border",
+          // Consistent modal centering like onboarding modal
+          "w-[95vw] max-w-md sm:w-full sm:max-w-lg",
+          "max-h-[80vh] flex flex-col",
           className
         )}
       >
-        <SheetHeader className="flex-shrink-0 pb-3">
-          <SheetTitle className="text-workout-text">{title}</SheetTitle>
-          <SheetDescription className="text-muted-foreground">
+        <DialogHeader className="flex-shrink-0 pb-3">
+          <DialogTitle className="text-foreground">{title}</DialogTitle>
+          <DialogDescription className="text-muted-foreground">
             {description}
-          </SheetDescription>
-        </SheetHeader>
+          </DialogDescription>
+        </DialogHeader>
 
         {/* Search and Compact Filters */}
         <div className="flex-shrink-0 space-y-3 pb-3 border-b border-border">
@@ -411,8 +409,8 @@ export const ExercisePicker = memo(function ExercisePicker({
             </div>
           </div>
         )}
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   );
 });
 

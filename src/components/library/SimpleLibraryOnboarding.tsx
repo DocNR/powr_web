@@ -4,9 +4,11 @@
  * Simplified onboarding modal that works with the new useSimpleLibraryOnboarding hook.
  * Follows the "simple solutions first" principle - no complex state management,
  * just straightforward onboarding flow.
+ * 
+ * Updated with semantic styling from globals.css for consistent dark mode support.
  */
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/powr-ui/primitives/Dialog';
 import { Button } from '@/components/powr-ui/primitives/Button';
 import { Badge } from '@/components/powr-ui/primitives/Badge';
@@ -41,6 +43,25 @@ export function SimpleLibraryOnboarding({
   error,
   result 
 }: SimpleLibraryOnboardingProps) {
+  // Animated progress bar state
+  const [progress, setProgress] = useState(0);
+
+  // Animate progress bar when loading
+  useEffect(() => {
+    if (isLoading) {
+      setProgress(0);
+      const interval = setInterval(() => {
+        setProgress(prev => {
+          if (prev >= 85) return prev; // Stop at 85% until completion
+          return prev + Math.random() * 15;
+        });
+      }, 200);
+      return () => clearInterval(interval);
+    } else if (result) {
+      // Complete the progress bar when done
+      setProgress(100);
+    }
+  }, [isLoading, result]);
   const handleGetStarted = async () => {
     try {
       await onComplete();
@@ -61,10 +82,10 @@ export function SimpleLibraryOnboarding({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="mx-4 w-[calc(100vw-2rem)] max-w-md sm:mx-0 sm:w-full">
+      <DialogContent className="w-[95vw] max-w-md sm:w-full sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <BookOpen className="h-5 w-5 text-blue-500" />
+          <DialogTitle className="flex items-center gap-2 text-foreground">
+            <BookOpen className="h-5 w-5 text-workout-primary" />
             Ready to start working out?
           </DialogTitle>
         </DialogHeader>
@@ -74,11 +95,14 @@ export function SimpleLibraryOnboarding({
           {isLoading && (
             <div className="space-y-3">
               <div className="flex items-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
-                <span className="text-sm text-gray-600">Setting up your library...</span>
+                <Loader2 className="h-4 w-4 animate-spin text-workout-primary" />
+                <span className="text-sm text-muted-foreground">Setting up your library...</span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-blue-500 h-2 rounded-full animate-pulse" style={{ width: '60%' }} />
+              <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+                <div 
+                  className="bg-workout-primary h-2 rounded-full transition-all duration-300 ease-out" 
+                  style={{ width: `${progress}%` }} 
+                />
               </div>
             </div>
           )}
@@ -86,13 +110,13 @@ export function SimpleLibraryOnboarding({
           {/* Error State */}
           {error && !isLoading && (
             <div className="space-y-4">
-              <div className="flex items-center gap-2 text-red-600">
+              <div className="flex items-center gap-2 text-destructive">
                 <AlertCircle className="h-5 w-5" />
                 <span className="font-medium">Setup Failed</span>
               </div>
               
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                <p className="text-sm text-red-700">{error}</p>
+              <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3">
+                <p className="text-sm text-destructive">{error}</p>
               </div>
               
               <div className="flex gap-2">
@@ -110,31 +134,31 @@ export function SimpleLibraryOnboarding({
           {result && !isLoading && !error && (
             <div className="space-y-4">
               <div className="text-center space-y-2">
-                <div className="flex items-center justify-center gap-2 text-green-600">
+                <div className="flex items-center justify-center gap-2 text-workout-success">
                   <CheckCircle className="h-6 w-6" />
-                  <span className="font-medium text-lg">Library Setup Complete!</span>
+                  <span className="font-medium text-lg text-foreground">Library Setup Complete!</span>
                 </div>
                 
-                <p className="text-gray-600">
+                <p className="text-muted-foreground">
                   Your workout library has been created with curated content from POWR&apos;s fitness experts.
                 </p>
               </div>
 
               {/* Success Summary */}
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <h4 className="font-medium text-green-900 mb-3">What was added:</h4>
+              <div className="bg-workout-success-bg border border-workout-success-border rounded-lg p-4">
+                <h4 className="font-medium text-workout-success mb-3">What was added:</h4>
                 <div className="grid grid-cols-3 gap-3">
                   <div className="text-center">
-                    <div className="text-xl font-bold text-green-700">{result.exerciseLibrary.itemCount}</div>
-                    <div className="text-xs text-green-600">Exercises</div>
+                    <div className="text-xl font-bold text-workout-success">{result.exerciseLibrary.itemCount}</div>
+                    <div className="text-xs text-workout-success/80">Exercises</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-xl font-bold text-green-700">{result.workoutLibrary.itemCount}</div>
-                    <div className="text-xs text-green-600">Workouts</div>
+                    <div className="text-xl font-bold text-workout-success">{result.workoutLibrary.itemCount}</div>
+                    <div className="text-xs text-workout-success/80">Workouts</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-xl font-bold text-green-700">{result.collectionSubscriptions.itemCount}</div>
-                    <div className="text-xs text-green-600">Collections</div>
+                    <div className="text-xl font-bold text-workout-success">{result.collectionSubscriptions.itemCount}</div>
+                    <div className="text-xs text-workout-success/80">Collections</div>
                   </div>
                 </div>
                 
@@ -161,7 +185,7 @@ export function SimpleLibraryOnboarding({
           {!result && !isLoading && !error && (
             <div className="space-y-4">
               <div className="text-center space-y-2">
-                <p className="text-gray-600">
+                <p className="text-muted-foreground">
                   We&apos;ll create a few POWR lists and add some curated exercises, workouts, and collections to your Library to get you started.
                 </p>
                 
@@ -173,20 +197,20 @@ export function SimpleLibraryOnboarding({
               </div>
 
               {/* Starter Content Preview */}
-              <div className="space-y-3">
-                <h4 className="font-medium text-gray-900">What you&apos;ll get:</h4>
-                <div className="grid grid-cols-3 gap-2">
+              <div className="bg-muted/50 border border-border rounded-lg p-4 space-y-3">
+                <h4 className="font-medium text-foreground">What you&apos;ll get:</h4>
+                <div className="grid grid-cols-3 gap-3">
                   <div className="text-center">
-                    <div className="text-lg font-semibold text-blue-600">~12</div>
-                    <div className="text-xs text-gray-500">Exercises</div>
+                    <div className="text-lg font-semibold text-workout-primary">~12</div>
+                    <div className="text-xs text-muted-foreground">Exercises</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-lg font-semibold text-green-600">~3</div>
-                    <div className="text-xs text-gray-500">Workouts</div>
+                    <div className="text-lg font-semibold text-workout-success">~3</div>
+                    <div className="text-xs text-muted-foreground">Workouts</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-lg font-semibold text-purple-600">~2</div>
-                    <div className="text-xs text-gray-500">Collections</div>
+                    <div className="text-lg font-semibold text-workout-timer">~2</div>
+                    <div className="text-xs text-muted-foreground">Collections</div>
                   </div>
                 </div>
               </div>
@@ -212,7 +236,7 @@ export function SimpleLibraryOnboarding({
 
               {/* Additional Info */}
               <div className="text-center">
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-muted-foreground">
                   You can always add more content later or create your own collections.
                 </p>
               </div>

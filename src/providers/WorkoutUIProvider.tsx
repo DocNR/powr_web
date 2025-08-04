@@ -154,6 +154,15 @@ export const WorkoutUIProvider: React.FC<WorkoutUIProviderProps> = ({ children }
               console.log('[WorkoutUIProvider] Canceling workout');
               workoutSend({ type: 'WORKOUT_CANCELLED' });
             }}
+            // NEW: Pass template data for desktop backdrop
+            templateData={{
+              tags: (workoutState.context.resolvedTemplate as { tags?: string[][] })?.tags,
+              content: (workoutState.context.resolvedTemplate as { description?: string })?.description,
+              description: (workoutState.context.resolvedTemplate as { description?: string })?.description,
+              eventKind: 33402, // Workout template event kind
+              title: (workoutState.context.resolvedTemplate as { name?: string })?.name || 
+                     (workoutState.context.workoutData as { title?: string })?.title
+            }}
           />,
           document.body
         )

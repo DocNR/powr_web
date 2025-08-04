@@ -13,6 +13,7 @@ import {
 import { WorkoutImageHandler } from './WorkoutImageHandler';
 import { ExpandableExerciseCard } from './ExpandableExerciseCard';
 import { useProfile, getDisplayName, getAvatarUrl } from '@/hooks/useProfile';
+import { cn } from '@/lib/utils';
 
 interface PersonalRecord {
   oneRM?: number;
@@ -213,9 +214,9 @@ export const WorkoutDetailModal = ({
 
   return (
     <>
-      {/* Full-screen background image */}
+      {/* Desktop-only background image - matches ActiveWorkoutInterface */}
       {isOpen && (
-        <div className="fixed inset-0 z-40 opacity-100">
+        <div className="fixed inset-0 z-40 opacity-100 hidden md:block">
           <WorkoutImageHandler
             tags={templateData?.tags}
             content={templateData?.content || templateData?.description}
@@ -225,8 +226,8 @@ export const WorkoutDetailModal = ({
             fill={true}
             priority={true}
           />
-          {/* Responsive overlay - lighter for desktop, darker for mobile */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-black/50 md:from-black/40 md:via-black/15 md:to-black/25" />
+          {/* Enhanced overlay with frosted glass effect for readability - matches ActiveWorkoutInterface */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/50 to-black/65 backdrop-blur-sm md:backdrop-blur-md" />
         </div>
       )}
 
@@ -243,9 +244,12 @@ export const WorkoutDetailModal = ({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="relative h-full bg-background overflow-hidden pb-[env(safe-area-inset-bottom)] flex flex-col frosted-glass-gradient">
+          <div className={cn(
+            "relative h-full bg-background/90 backdrop-blur-md overflow-hidden pb-[env(safe-area-inset-bottom)] flex flex-col",
+            "md:bg-background/80 md:backdrop-blur-lg"
+          )}>
             {/* Header - Matches ActiveWorkoutInterface pattern with back button */}
-            <div className="flex items-center justify-between p-4 bg-background/80 backdrop-blur-sm border-b border-border flex-shrink-0">
+            <div className="flex items-center justify-between p-4 bg-background border-b border-border flex-shrink-0">
               {/* Back Button - Matches ActiveWorkoutInterface */}
               <Button
                 variant="ghost"

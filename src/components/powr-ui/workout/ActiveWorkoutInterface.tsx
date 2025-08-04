@@ -5,6 +5,8 @@ import { useSelector } from '@xstate/react';
 import { Button, WorkoutTimer } from '@/components/powr-ui';
 import { ExerciseSection } from './ExerciseSection';
 import { ExercisePicker } from './ExercisePicker';
+import { WorkoutImageHandler } from './WorkoutImageHandler';
+import { ExerciseDetailModal } from '@/components/library/ExerciseDetailModal';
 import { ArrowLeft, Square, Plus } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
@@ -43,6 +45,14 @@ interface ActiveWorkoutInterfaceProps {
   onWorkoutComplete?: (workoutData: WorkoutData) => void;
   onWorkoutCancel?: () => void;
   className?: string;
+  // NEW: Template data for backdrop
+  templateData?: {
+    tags?: string[][];
+    content?: string;
+    description?: string;
+    eventKind?: number;
+    title?: string;
+  };
 }
 
 export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
@@ -51,11 +61,14 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
   onMinimize,
   onWorkoutComplete,
   onWorkoutCancel,
-  className
+  className,
+  templateData
 }) => {
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [showFinishDialog, setShowFinishDialog] = useState(false);
   const [showAddExercisePicker, setShowAddExercisePicker] = useState(false);
+  const [showExerciseDetail, setShowExerciseDetail] = useState(false);
+  const [selectedExerciseRef, setSelectedExerciseRef] = useState<string | null>(null);
   
   // ✅ OPTIMIZED: Use fewer, more specific selectors to reduce re-renders
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -237,6 +250,12 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
     });
   };
 
+  // NEW: Exercise detail modal handler
+  const handleExerciseNameClick = (exerciseRef: string) => {
+    setSelectedExerciseRef(exerciseRef);
+    setShowExerciseDetail(true);
+  };
+
   // NEW: Set selection handler for input focus following
   const handleSetSelect = (exerciseIndex: number, setIndex: number) => {
     // First navigate to the exercise
@@ -337,6 +356,23 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
 
   return (
     <>
+      {/* Desktop-only backdrop for better performance */}
+      {isOpen && (
+        <div className="fixed inset-0 z-40 opacity-100 hidden md:block">
+          <WorkoutImageHandler
+            tags={templateData?.tags}
+            content={templateData?.content || templateData?.description}
+            eventKind={templateData?.eventKind || 33402}
+            alt={workoutData?.title || 'Active Workout'}
+            className="w-full h-full object-cover"
+            fill={true}
+            priority={true}
+          />
+          {/* Enhanced overlay with frosted glass effect for readability */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/50 to-black/65 backdrop-blur-sm md:backdrop-blur-md" />
+        </div>
+      )}
+
       {/* Responsive Modal Workout Interface - Consistent with WorkoutDetailModal */}
       <Dialog open={isOpen} onOpenChange={() => onMinimize()}>
         <DialogContent 
@@ -348,7 +384,8 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
           </DialogHeader>
           
           <div className={cn(
-            "relative h-full bg-background overflow-hidden pb-[env(safe-area-inset-bottom)] flex flex-col",
+            "relative h-full bg-background/90 backdrop-blur-md overflow-hidden pb-[env(safe-area-inset-bottom)] flex flex-col",
+            "md:bg-background/80 md:backdrop-blur-lg", // More transparency on desktop with backdrop
             className
           )}>
             {/* Clean 3-Element Header */}
@@ -404,6 +441,7 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
                     }
                     onAddSet={(exerciseId: string) => handleAddSet(exerciseId)}
                     onExerciseSelect={() => handleExerciseSelect(exerciseIndex)}
+                    onExerciseNameClick={() => handleExerciseNameClick(exercise.exerciseRef)} // NEW: Exercise detail modal handler
                     onSelectSet={handleSetSelect} // NEW: Pass set selection handler
                     exerciseIndex={exerciseIndex} // NEW: Pass exercise index
                     // CRUD operation handlers
@@ -416,15 +454,15 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
                 );
               })}
               
-              {/* Add Exercise Button */}
+              {/* Add Exercise Button - Enhanced with semantic styling */}
               <div className="pt-4">
                 <Button
                   variant="outline"
                   onClick={() => setShowAddExercisePicker(true)}
-                  className="w-full h-12 border-dashed border-primary/30 text-primary hover:text-primary/80 hover:border-primary/50 bg-transparent hover:bg-primary/5"
+                  className="w-full h-14 border-2 border-dashed border-workout-active-border bg-workout-active-bg hover:bg-workout-active-border/10 text-workout-active hover:text-workout-active transition-all duration-200 hover:scale-[1.02] hover:shadow-lg group"
                 >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Exercise
+                  <Plus className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform duration-200" />
+                  <span className="font-medium">Add Exercise</span>
                 </Button>
               </div>
             </div>
@@ -432,11 +470,11 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
             {/* Bottom Action Bar */}
             <div className="p-4 border-t border-border bg-background flex-shrink-0">
               <div className="flex items-center justify-between gap-4">
-                {/* Cancel Button */}
+                {/* Cancel Button - Fixed for dark mode with semantic styling */}
                 <Button
                   variant="outline"
                   onClick={() => setShowCancelDialog(true)}
-                  className="flex-1 text-red-600 border-red-200 hover:bg-red-50"
+                  className="flex-1 text-destructive border-destructive/20 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-colors"
                 >
                   <Square className="h-4 w-4 mr-2" />
                   Cancel
@@ -459,13 +497,14 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
       {/* Cancel Confirmation Dialog */}
       <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
         <DialogContent
+          className="w-[95vw] max-w-md sm:w-full sm:max-w-lg"
           onPointerDownOutside={(e) => e.preventDefault()}
           onEscapeKeyDown={(e) => e.preventDefault()}
         >
           <DialogHeader>
             <DialogTitle>Cancel Workout?</DialogTitle>
           </DialogHeader>
-          <p className="text-gray-600">
+          <p className="text-muted-foreground">
             Are you sure you want to cancel this workout? All progress will be lost.
           </p>
           <DialogFooter>
@@ -492,13 +531,14 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
       {/* Finish Confirmation Dialog */}
       <Dialog open={showFinishDialog} onOpenChange={setShowFinishDialog}>
         <DialogContent
+          className="w-[95vw] max-w-md sm:w-full sm:max-w-lg"
           onPointerDownOutside={(e) => e.preventDefault()}
           onEscapeKeyDown={(e) => e.preventDefault()}
         >
           <DialogHeader>
             <DialogTitle>Finish Workout?</DialogTitle>
           </DialogHeader>
-          <p className="text-gray-600">
+          <p className="text-muted-foreground">
             Are you sure you want to finish this workout? This will save your progress and publish to Nostr.
           </p>
           <DialogFooter>
@@ -535,6 +575,28 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
         title="Add Exercises"
         description="Select exercises to add to your workout"
       />
+
+      {/* Exercise Detail Modal */}
+      {selectedExerciseRef && (
+        <ExerciseDetailModal
+          isOpen={showExerciseDetail}
+          onClose={() => {
+            setShowExerciseDetail(false);
+            setSelectedExerciseRef(null);
+          }}
+          hideBackground={true} // Hide background to keep parent ActiveWorkout background
+          exercise={{
+            id: selectedExerciseRef.split(':')[2] || selectedExerciseRef,
+            name: exercises.find(ex => ex.exerciseRef === selectedExerciseRef)?.name || 'Exercise',
+            description: 'Exercise details will be loaded from Nostr',
+            equipment: 'Unknown',
+            difficulty: 'intermediate',
+            muscleGroups: [],
+            authorPubkey: selectedExerciseRef.split(':')[1] || '',
+            eventId: selectedExerciseRef
+          }}
+        />
+      )}
 
     </>
   );

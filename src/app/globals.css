@@ -235,6 +235,16 @@
     z-index: 1;
   }
   
+  /* Light mode - use the same dark overlay to maintain consistent appearance */
+  :root .hero-background::before {
+    background: rgba(0, 0, 0, 0.8);
+  }
+  
+  /* Dark mode - keep the same dark overlay for consistency */
+  .dark .hero-background::before {
+    background: rgba(0, 0, 0, 0.8);
+  }
+  
   .hero-background > * {
     position: relative;
     z-index: 2;

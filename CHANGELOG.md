@@ -31,6 +31,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Exercise Detail Modal Integration COMPLETE (August 3, 2025) ✅**
+  
+  **User Impact**: Users can now click on exercise names during active workouts to view detailed exercise information, parameters, and personal history without losing their workout context.
+  
+  **Developer Notes**: Added `onExerciseNameClick` handler to ExerciseSection, integrated ExerciseDetailModal with `hideBackground` prop to preserve parent workout styling. Modal maintains full functionality while respecting visual hierarchy.
+  
+  **Architecture Changes**: Enhanced modal system with conditional background rendering for nested modal contexts. Established pattern for context-aware modal integration.
 - **Active Workout CRUD Operations Implementation COMPLETE (August 3, 2025) ✅**
   
   **User Impact**: Users can now fully customize active workouts with complete exercise-level CRUD operations. Add new exercises from the library during workouts, remove unwanted exercises, substitute exercises with alternatives, and reorder workout structure in real-time. Enhanced ExercisePicker with muscle group filtering (All, Push, Pull, Legs, Core, Cardio) and search functionality enables quick exercise discovery. Professional UI with dropdown menus, confirmation dialogs, and seamless integration maintains workout flow while providing complete customization control.

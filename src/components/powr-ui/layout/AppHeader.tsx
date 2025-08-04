@@ -191,7 +191,7 @@ export function AppHeader({
 
             {/* App Info - POWR Footer */}
             <div className="text-center space-y-1 pb-2">
-              <h2 className="font-medium text-[color:var(--workout-primary)] text-sm">POWR</h2>
+              <h2 className="font-medium text-[color:var(--workout-primary)] text-sm font-mono-tech">POWR</h2>
               <p className="text-xs text-muted-foreground">
                 Proof Of Workout / Relays
               </p>
@@ -204,7 +204,7 @@ export function AppHeader({
       </Sheet>
       
       {/* Centered title */}
-      <h1 className="text-xl font-bold text-foreground truncate mx-4 flex-1 text-center">{title}</h1>
+      <h1 className="text-xl font-bold text-foreground truncate mx-4 flex-1 text-center font-mono-tech">{title}</h1>
       
       {/* Right side - Global Search */}
       <GlobalWorkoutSearch 

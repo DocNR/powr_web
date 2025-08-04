@@ -33,6 +33,7 @@ interface ExerciseSectionProps {
   onSetComplete: (exerciseId: string, setIndex: number, setData: SetData) => void;
   onAddSet?: (exerciseId: string) => void;
   onExerciseSelect?: () => void;
+  onExerciseNameClick?: () => void; // NEW: Exercise name click handler for detail modal
   onSelectSet?: (exerciseIndex: number, setIndex: number) => void; // NEW: Set selection handler
   exerciseIndex?: number; // NEW: Exercise index for set selection
   // CRUD operation props
@@ -50,6 +51,7 @@ export const ExerciseSection: React.FC<ExerciseSectionProps> = ({
   onSetComplete,
   onAddSet,
   onExerciseSelect,
+  onExerciseNameClick, // NEW: Exercise name click handler for detail modal
   onSelectSet, // NEW: Set selection handler
   exerciseIndex, // NEW: Exercise index for set selection
   // CRUD operation props
@@ -78,7 +80,7 @@ export const ExerciseSection: React.FC<ExerciseSectionProps> = ({
       {/* Exercise Header - Compact */}
       <div className="flex items-center justify-between mb-3">
         <button
-          onClick={onExerciseSelect}
+          onClick={onExerciseNameClick}
           className="text-base font-semibold text-primary hover:text-primary/80 transition-colors underline-offset-4 hover:underline text-left cursor-pointer"
         >
           {exercise.name} {exercise.equipment && `(${exercise.equipment})`}

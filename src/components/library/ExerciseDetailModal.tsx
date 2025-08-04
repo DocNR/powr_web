@@ -42,6 +42,7 @@ interface ExerciseDetailModalProps {
   isOpen: boolean;
   exercise?: ExerciseData;
   onClose: () => void;
+  hideBackground?: boolean; // NEW: Option to hide the background image
 }
 
 interface ExerciseUsage {
@@ -57,6 +58,7 @@ export const ExerciseDetailModal = ({
   isOpen,
   exercise,
   onClose,
+  hideBackground = false,
 }: ExerciseDetailModalProps) => {
   const [activeTab, setActiveTab] = useState('overview');
   const userPubkey = usePubkey();
@@ -233,8 +235,8 @@ export const ExerciseDetailModal = ({
 
   return (
     <>
-      {/* Full-screen background image */}
-      {isOpen && (
+      {/* Full-screen background image - only show if not hidden */}
+      {isOpen && !hideBackground && (
         <div className="fixed inset-0 z-40 opacity-100">
           <WorkoutImageHandler
             tags={exercise.eventTags}
