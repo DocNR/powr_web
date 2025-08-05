@@ -10,10 +10,10 @@
  * Enhanced with NIP-101e validation for strict compliance.
  */
 
-import { getNDKInstance, WORKOUT_EVENT_KINDS } from '@/lib/ndk';
+import { WORKOUT_EVENT_KINDS } from '@/lib/ndk';
 import type { NDKEvent, NDKFilter } from '@nostr-dev-kit/ndk';
-import { NDKSubscriptionCacheUsage } from '@nostr-dev-kit/ndk';
 import { dataParsingService } from './dataParsingService';
+import { universalNDKCacheService } from './ndkCacheService';
 
 // Types for dependency resolution
 export interface WorkoutTemplate {
@@ -276,33 +276,43 @@ export class DependencyResolutionService {
   }
 
   /**
-   * Optimized event fetching with configurable cache strategy
-   * Enhanced to support ONLY_CACHE for true offline functionality
-   * Extracted from WorkoutListManager lines 200-210
+   * Optimized event fetching using Universal NDK Cache Service
+   * Enhanced to support all caching strategies including true offline functionality
+   * Migrated from direct NDK calls to Universal NDK Cache Service
    */
   private async fetchEventsOptimized(
     filter: NDKFilter, 
-    cacheUsage: NDKSubscriptionCacheUsage = NDKSubscriptionCacheUsage.CACHE_FIRST
+    cacheUsage: 'ONLY_CACHE' | 'CACHE_FIRST' | 'PARALLEL' | 'ONLY_RELAY' = 'CACHE_FIRST'
   ): Promise<Set<NDKEvent>> {
     const startTime = Date.now();
     
-    const ndk = getNDKInstance();
-    if (!ndk) {
-      throw new Error('NDK not initialized');
-    }
-
     console.log(`[DependencyResolutionService] Fetching events with ${cacheUsage} strategy:`, filter);
 
-    // ENHANCED PATTERN: Configurable cache strategy following NDK best practices
-    const events = await ndk.fetchEvents(filter, {
-      cacheUsage,
-      closeOnEose: true
-    });
+    // ENHANCED PATTERN: Use Universal NDK Cache Service with proper interface
+    let events: NDKEvent[];
+    
+    switch (cacheUsage) {
+      case 'ONLY_CACHE':
+        events = await universalNDKCacheService.fetchFromCacheOnly([filter], { timeout: 10000 });
+        break;
+      case 'CACHE_FIRST':
+        events = await universalNDKCacheService.fetchCacheFirst([filter], { timeout: 10000 });
+        break;
+      case 'PARALLEL':
+        events = await universalNDKCacheService.fetchParallel([filter], { timeout: 10000 });
+        break;
+      case 'ONLY_RELAY':
+        events = await universalNDKCacheService.fetchFromRelaysOnly([filter], { timeout: 10000 });
+        break;
+      default:
+        events = await universalNDKCacheService.fetchCacheFirst([filter], { timeout: 10000 });
+    }
 
     const fetchTime = Date.now() - startTime;
-    console.log(`[DependencyResolutionService] ✅ Fetched ${events.size} events in ${fetchTime}ms using ${cacheUsage}`);
+    console.log(`[DependencyResolutionService] ✅ Fetched ${events.length} events in ${fetchTime}ms using ${cacheUsage}`);
 
-    return events;
+    // Convert array back to Set for backward compatibility
+    return new Set(events);
   }
 
   /**
@@ -310,7 +320,7 @@ export class DependencyResolutionService {
    * Uses ONLY_CACHE strategy to prevent network requests
    */
   private async fetchFromCacheOnly(filter: NDKFilter): Promise<Set<NDKEvent>> {
-    return this.fetchEventsOptimized(filter, NDKSubscriptionCacheUsage.ONLY_CACHE);
+    return this.fetchEventsOptimized(filter, 'ONLY_CACHE');
   }
 
   /**
@@ -318,7 +328,7 @@ export class DependencyResolutionService {
    * Uses CACHE_FIRST strategy (existing behavior)
    */
   private async fetchCacheFirst(filter: NDKFilter): Promise<Set<NDKEvent>> {
-    return this.fetchEventsOptimized(filter, NDKSubscriptionCacheUsage.CACHE_FIRST);
+    return this.fetchEventsOptimized(filter, 'CACHE_FIRST');
   }
 
   /**

@@ -5,7 +5,7 @@
  * works correctly with ONLY_CACHE strategy for true offline functionality.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNDKDataWithCaching, useCacheAvailability } from '@/hooks/useNDKDataWithCaching';
 import { dependencyResolutionService } from '@/lib/services/dependencyResolution';
 import { WORKOUT_EVENT_KINDS } from '@/lib/ndk';
@@ -15,18 +15,18 @@ const NDKCacheTest: React.FC = () => {
   const [testResults, setTestResults] = useState<string[]>([]);
   const [isRunning, setIsRunning] = useState(false);
 
-  // Test filters for different event types
-  const exerciseFilters: NDKFilter[] = [{
+  // ✅ FIXED: Stabilize filter arrays to prevent infinite loops
+  const exerciseFilters: NDKFilter[] = useMemo(() => [{
     kinds: [WORKOUT_EVENT_KINDS.EXERCISE_TEMPLATE as number],
     '#t': ['fitness'],
     limit: 5
-  }];
+  }], []); // Empty dependency array since these are static
 
-  const templateFilters: NDKFilter[] = [{
+  const templateFilters: NDKFilter[] = useMemo(() => [{
     kinds: [WORKOUT_EVENT_KINDS.WORKOUT_TEMPLATE as number],
     '#t': ['fitness'],
     limit: 3
-  }];
+  }], []); // Empty dependency array since these are static
 
   // Test cache availability
   const { availability: exerciseAvailability } = useCacheAvailability(exerciseFilters);

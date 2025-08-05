@@ -5,7 +5,7 @@
  * 
  * Modal exercise picker for adding/substituting exercises during active workouts.
  * Uses Sheet primitive for mobile-optimized interface with search and filtering.
- * Integrates with useLibraryCollections for exercise data access.
+ * Integrates with useLibraryDataWithCollections for exercise data access.
  */
 
 import { memo, useState, useMemo, useCallback } from 'react';
@@ -20,7 +20,7 @@ import { Button } from '@/components/powr-ui/primitives/Button';
 import { Input } from '@/components/powr-ui/primitives/Input';
 import { Badge } from '@/components/powr-ui/primitives/Badge';
 import { ExerciseCard } from './ExerciseCard';
-import { useLibraryCollections } from '@/hooks/useLibraryCollections';
+import { useLibraryDataWithCollections } from '@/hooks/useLibraryDataWithCollections';
 import { usePubkey } from '@/lib/auth/hooks';
 import { cn } from '@/lib/utils';
 import { 
@@ -77,7 +77,7 @@ export const ExercisePicker = memo(function ExercisePicker({
   className
 }: ExercisePickerProps) {
   const userPubkey = usePubkey();
-  const { exerciseLibrary } = useLibraryCollections(userPubkey);
+  const { exerciseLibrary } = useLibraryDataWithCollections(userPubkey);
   
   // Local state
   const [searchQuery, setSearchQuery] = useState('');

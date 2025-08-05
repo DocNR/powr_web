@@ -6,9 +6,10 @@ import { GlobalWorkoutStatePersistenceValidationTest } from '@/components/test/G
 import DataParsingServiceTest from '@/components/test/DataParsingServiceTest';
 import WorkoutDetailModalDataTest from '@/components/test/WorkoutDetailModalDataTest';
 import NDKDeduplicationTest from '@/components/test/NDKDeduplicationTest';
+import NDKCacheTest from '@/components/test/NDKCacheTest';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { TestTube, Target, List, Database } from 'lucide-react';
+import { TestTube, Target, List, Database, Zap } from 'lucide-react';
 
 /**
  * Test Tab - Essential Testing
@@ -42,6 +43,7 @@ export default function TestTab() {
           <div className="space-y-2">
             <p><strong>Current Focus:</strong></p>
             <ol className="list-decimal list-inside space-y-1 text-sm">
+              <li>🚀 Universal NDK Caching Integration - Performance & offline functionality</li>
               <li>WorkoutListManager - NIP-51 lists implementation (next feature)</li>
               <li>Global Workout State Persistence - Architecture validation</li>
               <li>Authenticate with NIP-07 extension for full functionality</li>
@@ -52,6 +54,24 @@ export default function TestTab() {
 
       {/* Test Components */}
       <div className="space-y-6">
+        {/* 🚀 ACTIVE: Universal NDK Caching Integration Test */}
+        <div className="w-full">
+          <Card className="border-yellow-200 bg-yellow-50">
+            <CardHeader>
+              <CardTitle className="text-yellow-800 flex items-center gap-2">
+                <Zap className="h-5 w-5" />
+                🚀 ACTIVE: Universal NDK Caching Integration Test
+              </CardTitle>
+              <CardDescription className="text-yellow-700">
+                Test the Universal NDK Caching Architecture for offline functionality, 70%+ network reduction, and sub-100ms performance.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <NDKCacheTest />
+            </CardContent>
+          </Card>
+        </div>
+
         {/* 🎯 NEXT: NIP-51 Lists & Collections Test */}
         <div className="w-full">
           <Card className="border-green-200 bg-green-50">
@@ -155,6 +175,16 @@ export default function TestTab() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
+            <div>
+              <h4 className="font-medium text-yellow-800 mb-2">🚀 Active Implementation: Universal NDK Caching</h4>
+              <ul className="text-sm space-y-1 text-muted-foreground">
+                <li>• Phase 1: Testing infrastructure validation (current)</li>
+                <li>• Phase 2: Library, History, Discovery integration</li>
+                <li>• Phase 3: Performance validation & testing</li>
+                <li>• Phase 4: Legacy code cleanup</li>
+              </ul>
+            </div>
+            
             <div>
               <h4 className="font-medium text-green-800 mb-2">🎯 Next Implementation: NIP-51 Lists</h4>
               <ul className="text-sm space-y-1 text-muted-foreground">

@@ -315,17 +315,23 @@ const performance = exerciseAnalyticsService.analyzePerformance(sets);
 
 ## NDK-Specific Optimizations
 
-### Pattern 1: Leverage NDK Cache Automatically
+### Pattern 1: Universal NDK Cache Service Integration
 ```typescript
-// ✅ CORRECT: Let NDK handle caching and optimization
+// ✅ ENHANCED: Universal NDK Cache Service with smart caching strategies
+import { useNDKDataWithCaching } from '@/hooks/useNDKDataWithCaching';
+import { exerciseAnalyticsService } from '@/lib/services';
+
 const ExerciseLibrary = () => {
-  // NDK automatically:
-  // - Caches in IndexedDB
-  // - Deduplicates subscriptions
-  // - Optimizes network requests
-  const { events: exerciseEvents } = useSubscribe({
+  // Universal NDK Cache Service with intelligent strategies
+  const { 
+    events: exerciseEvents, 
+    isFromCache, 
+    checkOfflineAvailability 
+  } = useNDKDataWithCaching({
     filters: [{ kinds: [33401], '#t': ['fitness'] }],
-    opts: { cacheUsage: NDKSubscriptionCacheUsage.CACHE_FIRST }
+    strategy: 'CACHE_FIRST', // Offline-first for library content
+    cacheTimeout: 300000, // 5 minutes
+    enableRealTime: true
   });
   
   const exercises = useMemo(() => 
@@ -333,11 +339,60 @@ const ExerciseLibrary = () => {
     [exerciseEvents]
   );
   
-  // Service handles business logic only
+  // Service handles business logic only - no data fetching
   const categorized = exerciseAnalyticsService.categorizeExercises(exercises);
   
-  return <ExerciseGrid exercises={categorized} />;
+  return (
+    <div>
+      <ExerciseGrid exercises={categorized} />
+      {isFromCache && <div className="text-sm text-gray-500">Loaded from cache</div>}
+    </div>
+  );
 };
+```
+
+### Pattern 2: Service + Cache Service Collaboration
+```typescript
+// ✅ ENHANCED: Services can use cache service for data operations while maintaining "no direct NDK" rule
+import { ndkCacheService } from '@/lib/services/ndkCacheService';
+
+export class WorkoutAnalyticsService {
+  // Pure business logic - no direct NDK access
+  calculateWorkoutStats(workouts: ParsedWorkoutEvent[]): WorkoutStats {
+    // ... existing logic
+  }
+
+  // Services can use cache service for data operations
+  async getOfflineWorkoutCount(userPubkey: string): Promise<number> {
+    // Cache service handles NDK operations, service handles logic
+    const cachedWorkouts = await ndkCacheService.getCachedEvents({
+      filters: [{ kinds: [1301], authors: [userPubkey] }],
+      strategy: 'ONLY_CACHE'
+    });
+    
+    return cachedWorkouts.length;
+  }
+
+  // Enhanced analytics with cache-aware operations
+  async generateOfflineReport(userPubkey: string): Promise<OfflineReport> {
+    const cachedWorkouts = await ndkCacheService.getCachedEvents({
+      filters: [{ kinds: [1301], authors: [userPubkey] }],
+      strategy: 'ONLY_CACHE'
+    });
+    
+    const cachedExercises = await ndkCacheService.getCachedEvents({
+      filters: [{ kinds: [33401], '#t': ['fitness'] }],
+      strategy: 'ONLY_CACHE'
+    });
+    
+    return {
+      availableWorkouts: cachedWorkouts.length,
+      availableExercises: cachedExercises.length,
+      offlineCapable: cachedWorkouts.length > 0,
+      lastSync: ndkCacheService.getLastSyncTime()
+    };
+  }
+}
 ```
 
 ### Pattern 2: Offline-First with NDK
@@ -715,7 +770,8 @@ This NDK-first service architecture eliminates database complexity while maintai
 
 ---
 
-**Last Updated**: 2025-06-26
+**Last Updated**: 2025-08-05
 **Project**: POWR Workout PWA / NDK-First Architecture
 **Environment**: Web Browser + React Native Ready
 **XState Compliance**: Validated against official XState v5 documentation
+**Enhanced**: Universal NDK Cache Service Integration

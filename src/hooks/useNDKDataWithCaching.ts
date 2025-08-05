@@ -8,7 +8,7 @@
  * Based on research findings and the Universal NDK Cache Service architecture.
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import type { NDKEvent, NDKFilter } from '@nostr-dev-kit/ndk';
 import { NDKSubscriptionCacheUsage } from '@nostr-dev-kit/ndk';
 import { WORKOUT_EVENT_KINDS } from '@/lib/ndk';
@@ -231,11 +231,14 @@ export function useWorkoutHistory(
   /** Get offline workout count */
   getOfflineCount: () => Promise<number>;
 } {
-  const filters: NDKFilter[] = userPubkey ? [{
-    kinds: [WORKOUT_EVENT_KINDS.WORKOUT_RECORD as number], // Workout records
-    authors: [userPubkey],
-    limit
-  }] : [];
+  // ✅ FIXED: Memoize filters to prevent infinite loops
+  const filters = useMemo<NDKFilter[]>(() => {
+    return userPubkey ? [{
+      kinds: [WORKOUT_EVENT_KINDS.WORKOUT_RECORD as number], // Workout records
+      authors: [userPubkey],
+      limit
+    }] : [];
+  }, [userPubkey, limit]);
 
   const result = useNDKDataWithCaching(filters, {
     ...options,
@@ -279,9 +282,15 @@ export function useCacheAvailability(filters: NDKFilter[]) {
   } | null>(null);
   const [isChecking, setIsChecking] = useState(false);
 
+  // ✅ FIXED: Use JSON.stringify for stable filter comparison and prevent concurrent calls
   const checkAvailability = useCallback(async () => {
     if (filters.length === 0) {
       setAvailability({ available: false, count: 0, events: [] });
+      return;
+    }
+
+    // Prevent concurrent calls
+    if (isChecking) {
       return;
     }
 
@@ -295,7 +304,7 @@ export function useCacheAvailability(filters: NDKFilter[]) {
     } finally {
       setIsChecking(false);
     }
-  }, [filters]);
+  }, [JSON.stringify(filters), isChecking]); // Use JSON.stringify for deep comparison
 
   useEffect(() => {
     checkAvailability();

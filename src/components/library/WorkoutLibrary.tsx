@@ -22,10 +22,10 @@ import { Input } from '@/components/powr-ui/primitives/Input';
 import { Button } from '@/components/powr-ui/primitives/Button';
 import { Card, CardContent } from '@/components/powr-ui/primitives/Card';
 import { Badge } from '@/components/powr-ui/primitives/Badge';
-import { useLibraryCollections } from '@/hooks/useLibraryCollections';
+import { useLibraryDataWithCollections } from '@/hooks/useLibraryDataWithCollections';
 import { libraryManagementService } from '@/lib/services/libraryManagement';
 import { usePubkey } from '@/lib/auth/hooks';
-import type { WorkoutLibraryItem } from '@/lib/services/libraryManagement';
+import type { WorkoutLibraryItem } from '@/hooks/useLibraryDataWithCollections';
 
 interface WorkoutLibraryProps {
   onShowOnboarding?: () => void;
@@ -37,7 +37,7 @@ type SortType = 'name' | 'recent' | 'duration' | 'difficulty';
 
 export function WorkoutLibrary({ onShowOnboarding, onStartWorkout }: WorkoutLibraryProps) {
   const userPubkey = usePubkey();
-  const { workoutLibrary, error } = useLibraryCollections(userPubkey);
+  const { workoutLibrary, error } = useLibraryDataWithCollections(userPubkey);
   
   // Local state
   const [searchTerm, setSearchTerm] = useState('');
@@ -375,13 +375,8 @@ function WorkoutCard({
             )}
           </div>
           
-          {/* Workout type and duration */}
+          {/* Duration */}
           <div className="flex items-center gap-2">
-            {item.template.type && (
-              <Badge variant="secondary" className="text-xs">
-                {item.template.type}
-              </Badge>
-            )}
             <Badge variant="outline" className="text-xs">
               {formatDuration(item.template.estimatedDuration)}
             </Badge>

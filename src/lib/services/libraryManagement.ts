@@ -14,10 +14,11 @@
  */
 
 import { getNDKInstance } from '@/lib/ndk';
-import { NDKEvent, NDKSubscriptionCacheUsage } from '@nostr-dev-kit/ndk';
+import { NDKEvent } from '@nostr-dev-kit/ndk';
 import type { NDKFilter } from '@nostr-dev-kit/ndk';
 import { dependencyResolutionService } from './dependencyResolution';
 import { dataParsingService } from './dataParsingService';
+import { universalNDKCacheService } from './ndkCacheService';
 import type { Collection, WorkoutTemplate, Exercise } from './dependencyResolution';
 
 // Standardized POWR collection d-tags - consistent across all users
@@ -99,31 +100,6 @@ const PHASE_1_TEST_PUBKEY = '55127fc9e1c03c6b459a3bab72fdb99def1644c5f239bdd09f3
  */
 export class LibraryManagementService {
 
-  /**
-   * Optimized event fetching with CACHE_FIRST strategy
-   * Extracted from WorkoutListManager lines 200-210
-   */
-  private async fetchEventsOptimized(filter: NDKFilter, description: string): Promise<Set<NDKEvent>> {
-    const startTime = Date.now();
-    
-    const ndk = getNDKInstance();
-    if (!ndk) {
-      throw new Error('NDK not initialized');
-    }
-
-    console.log(`[LibraryManagementService] ${description} - using CACHE_FIRST strategy...`);
-    
-    // PROVEN PATTERN: CACHE_FIRST with closeOnEose for optimal performance
-    const events = await ndk.fetchEvents(filter, {
-      cacheUsage: NDKSubscriptionCacheUsage.CACHE_FIRST,
-      closeOnEose: true
-    });
-
-    const fetchTime = Date.now() - startTime;
-    console.log(`[LibraryManagementService] ${description} - found ${events.size} events in ${fetchTime}ms ✅`);
-
-    return events;
-  }
 
   /**
    * Get user's library collection by type
@@ -140,15 +116,15 @@ export class LibraryManagementService {
         '#d': [dTag]
       };
 
-      const events = await this.fetchEventsOptimized(filter, `${collectionType} collection`);
+      const events = await universalNDKCacheService.fetchCacheFirst([filter], { timeout: 3000 });
       
-      if (events.size === 0) {
+      if (events.length === 0) {
         console.log(`[LibraryManagementService] No ${collectionType} collection found for user`);
         return null;
       }
 
       // Get the most recent collection (should only be one due to replaceable event)
-      const collectionEvent = Array.from(events)[0];
+      const collectionEvent = events[0];
       const parsedCollection = dataParsingService.parseCollection(collectionEvent);
       
       if (!parsedCollection) {
@@ -360,8 +336,8 @@ export class LibraryManagementService {
         '#t': ['fitness']
       };
 
-      const collectionEvents = await this.fetchEventsOptimized(filter, 'Phase 1 test collections');
-      const collections = dataParsingService.parseCollectionsBatch(Array.from(collectionEvents));
+      const collectionEvents = await universalNDKCacheService.fetchCacheFirst([filter], { timeout: 3000 });
+      const collections = dataParsingService.parseCollectionsBatch(collectionEvents);
 
       console.log(`[LibraryManagementService] Found ${collections.length} test collections`);
 

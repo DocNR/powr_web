@@ -20,12 +20,12 @@ import React, { useState, useEffect } from 'react';
 import { Search, Dumbbell, Plus, Filter } from 'lucide-react';
 import { Input } from '@/components/powr-ui/primitives/Input';
 import { Button } from '@/components/powr-ui/primitives/Button';
-import { useLibraryCollections } from '@/hooks/useLibraryCollections';
+import { useLibraryDataWithCollections } from '@/hooks/useLibraryDataWithCollections';
 import { libraryManagementService } from '@/lib/services/libraryManagement';
 import { usePubkey } from '@/lib/auth/hooks';
 import { ExerciseCard } from '@/components/powr-ui/workout/ExerciseCard';
 import { ExerciseDetailModal } from './ExerciseDetailModal';
-import type { ExerciseLibraryItem } from '@/lib/services/libraryManagement';
+import type { ExerciseLibraryItem } from '@/hooks/useLibraryDataWithCollections';
 
 interface ExerciseLibraryProps {
   onShowOnboarding?: () => void;
@@ -36,7 +36,7 @@ type SortType = 'name' | 'recent' | 'muscle-group';
 
 export function ExerciseLibrary({ onShowOnboarding }: ExerciseLibraryProps) {
   const userPubkey = usePubkey();
-  const { exerciseLibrary, error } = useLibraryCollections(userPubkey);
+  const { exerciseLibrary, error } = useLibraryDataWithCollections(userPubkey);
   
   // Local state
   const [searchTerm, setSearchTerm] = useState('');

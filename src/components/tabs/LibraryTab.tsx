@@ -3,8 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import { Library, Search, BookOpen, Dumbbell, Calendar } from 'lucide-react';
 import { useSubNavigation } from '@/providers/SubNavigationProvider';
-import { useLibraryCollections } from '@/hooks/useLibraryCollections';
+import { useLibraryDataWithCollections } from '@/hooks/useLibraryDataWithCollections';
 import { usePubkey } from '@/lib/auth/hooks';
+import { useMemo } from 'react';
 import { useWorkoutContext } from '@/hooks/useWorkoutContext';
 import { Input } from '@/components/powr-ui/primitives/Input';
 import { Button } from '@/components/powr-ui/primitives/Button';
@@ -263,24 +264,28 @@ function ExercisesView({ onShowOnboarding, onExerciseSelect }: {
 }) {
   const [searchTerm, setSearchTerm] = useState('');
   const userPubkey = usePubkey();
-  const { exerciseLibrary, error } = useLibraryCollections(userPubkey);
+  
+  // ✅ ENHANCED: Use Universal NDK Caching + NIP-51 collection filtering
+  const { exerciseLibrary } = useLibraryDataWithCollections(userPubkey);
 
   if (exerciseLibrary.isLoading || exerciseLibrary.isResolving) {
     return (
       <div className="flex items-center justify-center py-8">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-          <p className="text-sm text-muted-foreground">Loading exercise library...</p>
+          <p className="text-sm text-muted-foreground">
+            {exerciseLibrary.isResolving ? 'Resolving exercise references...' : 'Loading exercise library...'}
+          </p>
         </div>
       </div>
     );
   }
 
-  if (error) {
+  if (exerciseLibrary.error) {
     return (
       <div className="p-4 bg-destructive/10 rounded border border-destructive/20">
         <h3 className="font-medium mb-2 text-destructive">⚠️ Error Loading Library</h3>
-        <p className="text-sm text-destructive/80">{error}</p>
+        <p className="text-sm text-destructive/80">{exerciseLibrary.error}</p>
       </div>
     );
   }
@@ -425,24 +430,28 @@ function WorkoutsView({ onShowOnboarding, onWorkoutSelect }: {
 }) {
   const [searchTerm, setSearchTerm] = useState('');
   const userPubkey = usePubkey();
-  const { workoutLibrary, error } = useLibraryCollections(userPubkey);
+  
+  // ✅ ENHANCED: Use Universal NDK Caching + NIP-51 collection filtering
+  const { workoutLibrary } = useLibraryDataWithCollections(userPubkey);
 
   if (workoutLibrary.isLoading || workoutLibrary.isResolving) {
     return (
       <div className="flex items-center justify-center py-8">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-          <p className="text-sm text-muted-foreground">Loading workout library...</p>
+          <p className="text-sm text-muted-foreground">
+            {workoutLibrary.isResolving ? 'Resolving workout references...' : 'Loading workout library...'}
+          </p>
         </div>
       </div>
     );
   }
 
-  if (error) {
+  if (workoutLibrary.error) {
     return (
       <div className="p-4 bg-destructive/10 rounded border border-destructive/20">
         <h3 className="font-medium mb-2 text-destructive">⚠️ Error Loading Library</h3>
-        <p className="text-sm text-destructive/80">{error}</p>
+        <p className="text-sm text-destructive/80">{workoutLibrary.error}</p>
       </div>
     );
   }
@@ -539,24 +548,28 @@ function WorkoutsView({ onShowOnboarding, onWorkoutSelect }: {
 function CollectionsView({ onShowOnboarding }: { onShowOnboarding: () => void }) {
   const [searchTerm, setSearchTerm] = useState('');
   const userPubkey = usePubkey();
-  const { collectionSubscriptions, error } = useLibraryCollections(userPubkey);
+  
+  // ✅ ENHANCED: Use Universal NDK Caching + NIP-51 collection filtering
+  const { collectionSubscriptions } = useLibraryDataWithCollections(userPubkey);
 
   if (collectionSubscriptions.isLoading || collectionSubscriptions.isResolving) {
     return (
       <div className="flex items-center justify-center py-8">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-          <p className="text-sm text-muted-foreground">Loading collections...</p>
+          <p className="text-sm text-muted-foreground">
+            {collectionSubscriptions.isResolving ? 'Resolving collection references...' : 'Loading collections...'}
+          </p>
         </div>
       </div>
     );
   }
 
-  if (error) {
+  if (collectionSubscriptions.error) {
     return (
       <div className="p-4 bg-destructive/10 rounded border border-destructive/20">
         <h3 className="font-medium mb-2 text-destructive">⚠️ Error Loading Collections</h3>
-        <p className="text-sm text-destructive/80">{error}</p>
+        <p className="text-sm text-destructive/80">{collectionSubscriptions.error}</p>
       </div>
     );
   }

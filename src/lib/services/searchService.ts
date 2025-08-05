@@ -1,6 +1,7 @@
 // lib/services/searchService.ts
 import { NDKFilter, NDKEvent, NDKSubscriptionCacheUsage } from '@nostr-dev-kit/ndk';
 import { getNDKInstance, WORKOUT_EVENT_KINDS } from '@/lib/ndk';
+import { universalNDKCacheService } from './ndkCacheService';
 
 export interface SearchOptions {
   searchTerm: string;
@@ -52,55 +53,55 @@ export class SearchService {
   }
 
   /**
-   * Search workout templates using cached NDK data + fallback network search
-   * Much more efficient than pure network searching
+   * Enhanced search workout templates using Universal NDK Cache Service
+   * Cache-first approach with intelligent network fallback
    */
   async searchWorkoutTemplates(searchTerm: string, maxResults = 50): Promise<WorkoutTemplate[]> {
     const startTime = Date.now();
-    console.log(`[SearchService] Searching workout templates for: "${searchTerm}"`);
+    console.log(`[SearchService] 🔍 Enhanced cache-first search for: "${searchTerm}"`);
     
-    const ndk = getNDKInstance();
-    if (!ndk) {
-      throw new Error('NDK not initialized');
-    }
-
     try {
-      // Strategy 1: Search cached data first (fast)
-      const cachedResults = await this.searchCachedTemplates(searchTerm, maxResults);
+      // Use Universal NDK Cache Service with cache-first strategy
+      const searchFilters: NDKFilter[] = [{
+        kinds: [WORKOUT_EVENT_KINDS.WORKOUT_TEMPLATE as number],
+        limit: maxResults * 2 // Get more to filter from
+      }];
+
+      const events = await universalNDKCacheService.fetchCacheFirst(searchFilters, {
+        timeout: 3000
+      });
+
+      console.log(`[SearchService] 📊 Fetched ${events.length} events from cache-first strategy`);
       
-      // Strategy 2: If not enough results, do targeted network search
-      if (cachedResults.length < Math.min(maxResults, 10)) {
-        console.log(`[SearchService] Only found ${cachedResults.length} cached results, searching network...`);
-        const networkResults = await this.searchNetworkTemplates(searchTerm, maxResults - cachedResults.length);
-        
-        // Merge results, avoiding duplicates using full template reference (kind:pubkey:dtag)
-        const allResults = new Map<string, WorkoutTemplate>();
-        cachedResults.forEach(template => {
-          const uniqueKey = `33402:${template.author}:${template.id}`;
-          allResults.set(uniqueKey, template);
-        });
-        networkResults.forEach(template => {
-          const uniqueKey = `33402:${template.author}:${template.id}`;
-          allResults.set(uniqueKey, template);
-        });
-        
-        const finalResults = Array.from(allResults.values())
-          .slice(0, maxResults)
-          .sort((a, b) => b.created_at - a.created_at);
-        
-        const searchTime = Date.now() - startTime;
-        console.log(`[SearchService] Found ${finalResults.length} templates total (${cachedResults.length} cached + ${networkResults.length} network) in ${searchTime}ms`);
-        
-        return finalResults;
+      if (events.length === 0) {
+        console.log(`[SearchService] ❌ No events found for search`);
+        return [];
+      }
+      
+      // Enhanced client-side filtering with better matching
+      const searchLower = searchTerm.toLowerCase();
+      const matchingTemplates: WorkoutTemplate[] = [];
+      
+      for (const event of events) {
+        const template = this.parseWorkoutTemplate(event);
+        if (template && this.matchesSearchTerm(template, event, searchLower)) {
+          matchingTemplates.push(template);
+        }
       }
       
       const searchTime = Date.now() - startTime;
-      console.log(`[SearchService] Found ${cachedResults.length} templates from cache in ${searchTime}ms`);
+      console.log(`[SearchService] ✅ Found ${matchingTemplates.length} matching templates in ${searchTime}ms (cache-enhanced)`);
       
-      return cachedResults;
+      if (matchingTemplates.length > 0) {
+        console.log(`[SearchService] 📝 Sample matches:`, matchingTemplates.slice(0, 3).map(t => t.name));
+      }
       
+      return matchingTemplates
+        .sort((a, b) => b.created_at - a.created_at)
+        .slice(0, maxResults);
+        
     } catch (error) {
-      console.error('[SearchService] Search failed:', error);
+      console.error('[SearchService] ❌ Enhanced search failed:', error);
       return [];
     }
   }
@@ -436,28 +437,93 @@ export class SearchService {
   }
 
   /**
-   * Search exercises across relays
+   * Enhanced search exercises using Universal NDK Cache Service
    */
   async searchExercises(searchTerm: string, maxResults = 30): Promise<Exercise[]> {
-    const ndk = getNDKInstance();
-    if (!ndk) return [];
+    const startTime = Date.now();
+    console.log(`[SearchService] 🔍 Enhanced exercise search for: "${searchTerm}"`);
     
-    console.log(`[SearchService] Searching exercises for: "${searchTerm}"`);
-    
-    const filter: NDKFilter = {
-      kinds: [WORKOUT_EVENT_KINDS.EXERCISE_TEMPLATE as number],
-      '#title': [searchTerm.toLowerCase()],
-      limit: maxResults
+    try {
+      // Use Universal NDK Cache Service with cache-first strategy
+      const searchFilters: NDKFilter[] = [{
+        kinds: [WORKOUT_EVENT_KINDS.EXERCISE_TEMPLATE as number],
+        limit: maxResults * 2 // Get more to filter from
+      }];
+
+      const events = await universalNDKCacheService.fetchCacheFirst(searchFilters, {
+        timeout: 3000
+      });
+
+      console.log(`[SearchService] 📊 Fetched ${events.length} exercise events from cache-first strategy`);
+      
+      // Enhanced client-side filtering
+      const searchLower = searchTerm.toLowerCase();
+      const matchingExercises: Exercise[] = [];
+      
+      for (const event of events) {
+        const exercise = this.parseExercise(event);
+        if (exercise && this.matchesExerciseSearchTerm(exercise, searchLower)) {
+          matchingExercises.push(exercise);
+        }
+      }
+      
+      const searchTime = Date.now() - startTime;
+      console.log(`[SearchService] ✅ Found ${matchingExercises.length} matching exercises in ${searchTime}ms`);
+      
+      return matchingExercises
+        .sort((a, b) => b.created_at - a.created_at)
+        .slice(0, maxResults);
+        
+    } catch (error) {
+      console.error('[SearchService] ❌ Enhanced exercise search failed:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Enhanced matching logic for exercise search terms
+   */
+  private matchesExerciseSearchTerm(exercise: Exercise, searchLower: string): boolean {
+    // 1. Match exercise name/title
+    if (exercise.name.toLowerCase().includes(searchLower)) {
+      return true;
+    }
+
+    // 2. Match description
+    if (exercise.description.toLowerCase().includes(searchLower)) {
+      return true;
+    }
+
+    // 3. Match muscle groups
+    if (exercise.muscle_groups.some(group => group.toLowerCase().includes(searchLower))) {
+      return true;
+    }
+
+    // 4. Match equipment
+    if (exercise.equipment.some(equip => equip.toLowerCase().includes(searchLower))) {
+      return true;
+    }
+
+    // 5. Match muscle group aliases
+    const muscleGroupAliases: Record<string, string[]> = {
+      'chest': ['chest', 'pecs', 'pectoral', 'push'],
+      'back': ['back', 'lats', 'latissimus', 'rhomboids', 'pull'],
+      'legs': ['legs', 'quads', 'hamstrings', 'glutes', 'calves', 'leg'],
+      'arms': ['arms', 'biceps', 'triceps', 'forearms', 'arm'],
+      'shoulders': ['shoulders', 'delts', 'deltoids', 'shoulder'],
+      'core': ['core', 'abs', 'abdominals', 'obliques']
     };
-    
-    const events = await ndk.fetchEvents(filter, {
-      closeOnEose: true,
-      cacheUsage: NDKSubscriptionCacheUsage.CACHE_FIRST
-    });
-    
-    const exercises = Array.from(events).map(event => this.parseExercise(event));
-    console.log(`[SearchService] Found ${exercises.length} exercises`);
-    return exercises;
+
+    for (const [, aliases] of Object.entries(muscleGroupAliases)) {
+      if (aliases.includes(searchLower)) {
+        // Check if any muscle groups match this category
+        if (exercise.muscle_groups.some(group => aliases.includes(group.toLowerCase()))) {
+          return true;
+        }
+      }
+    }
+
+    return false;
   }
 
   /**

@@ -1,11 +1,10 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, ReactNode, useMemo, useEffect, useRef } from 'react';
-import { getNDKInstance, WORKOUT_EVENT_KINDS } from '@/lib/ndk';
+import React, { createContext, useContext, useState, useCallback, ReactNode, useMemo, useEffect } from 'react';
 import { useIsAuthenticated, useAccount } from '@/lib/auth/hooks';
 import { dataParsingService, type ParsedWorkoutEvent } from '@/lib/services/dataParsingService';
 import { dependencyResolutionService, type Exercise } from '@/lib/services/dependencyResolution';
-import type { NDKEvent, NDKFilter, NDKSubscription } from '@nostr-dev-kit/ndk';
+import { useWorkoutHistory as useWorkoutHistoryHook } from '@/hooks/useNDKDataWithCaching';
 
 interface WorkoutHistoryContextType {
   workoutRecords: ParsedWorkoutEvent[];
@@ -16,6 +15,9 @@ interface WorkoutHistoryContextType {
   loadMoreRecords: () => Promise<void>;
   hasMoreRecords: boolean;
   isLoadingMore: boolean;
+  // New caching features
+  getOfflineCount: () => Promise<number>;
+  lastFetched: number | null;
 }
 
 const WorkoutHistoryContext = createContext<WorkoutHistoryContextType | undefined>(undefined);
@@ -33,90 +35,38 @@ interface WorkoutHistoryProviderProps {
 }
 
 export function WorkoutHistoryProvider({ children }: WorkoutHistoryProviderProps) {
-  // State management following WorkoutDataProvider patterns
-  const [workoutEvents, setWorkoutEvents] = useState<NDKEvent[]>([]);
+  // State management with caching integration
   const [resolvedExercises, setResolvedExercises] = useState<Map<string, Exercise>>(new Map());
-  const [isLoading, setIsLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [recordLimit, setRecordLimit] = useState(20);
 
   const isAuthenticated = useIsAuthenticated();
   const user = useAccount();
   
-  // Subscription refs for cleanup
-  const subscriptionRef = useRef<NDKSubscription | null>(null);
-  
-  // Event map for deduplication (NDK best practice)
-  const eventsMapRef = useRef<Map<string, NDKEvent>>(new Map());
-
-  // Setup subscription for workout records (Kind 1301)
-  const setupWorkoutRecordsSubscription = useCallback((limit: number) => {
-    const ndk = getNDKInstance();
-    if (!ndk || !isAuthenticated || !user?.pubkey) return;
-
-    console.log('[WorkoutHistoryProvider] Setting up workout records subscription, limit:', limit);
-
-    // Clean up existing subscription
-    if (subscriptionRef.current) {
-      subscriptionRef.current.stop();
+  // ✅ NEW: Use caching hook instead of direct NDK subscription
+  const {
+    events: workoutEvents,
+    isLoading,
+    error: hookError,
+    refetch,
+    lastFetched,
+    getOfflineCount
+  } = useWorkoutHistoryHook(
+    user?.pubkey || '',
+    recordLimit,
+    {
+      enabled: isAuthenticated && !!user?.pubkey,
+      onSuccess: (events) => {
+        console.log('[WorkoutHistoryProvider] ✅ Cache-first fetch completed:', events.length, 'events');
+      },
+      onError: (error) => {
+        console.error('[WorkoutHistoryProvider] ❌ Cache-first fetch failed:', error);
+      }
     }
+  );
 
-    // Clear events map
-    eventsMapRef.current.clear();
-
-    const filters: NDKFilter[] = [{
-      kinds: [WORKOUT_EVENT_KINDS.WORKOUT_RECORD as number], // 1301 - workout records
-      authors: [user.pubkey], // Only user's own workout records
-      limit
-    }];
-
-    // Use NDK singleton subscribe method
-    const subscription = ndk.subscribe(filters);
-    subscriptionRef.current = subscription;
-
-    subscription.on('event', (event: NDKEvent) => {
-      console.log('[WorkoutHistoryProvider] Workout record received:', event.id);
-      
-      // NDK automatic deduplication using Map
-      eventsMapRef.current.set(event.id, event);
-      
-      // Update state with sorted events (newest first)
-      const sortedEvents = Array.from(eventsMapRef.current.values())
-        .sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
-      
-      setWorkoutEvents(sortedEvents);
-    });
-
-    subscription.on('eose', () => {
-      console.log('[WorkoutHistoryProvider] Workout records EOSE received');
-      setIsLoading(false);
-    });
-
-  }, [isAuthenticated, user?.pubkey]);
-
-  // Initial subscription setup
-  useEffect(() => {
-    if (!isAuthenticated || !user?.pubkey) {
-      // Clean up when not authenticated
-      if (subscriptionRef.current) subscriptionRef.current.stop();
-      setWorkoutEvents([]);
-      setResolvedExercises(new Map());
-      return;
-    }
-
-    console.log('[WorkoutHistoryProvider] Setting up initial subscription');
-    setIsLoading(true);
-    setError(null);
-
-    setupWorkoutRecordsSubscription(recordLimit);
-
-    // Cleanup function
-    return () => {
-      console.log('[WorkoutHistoryProvider] Cleaning up subscription');
-      if (subscriptionRef.current) subscriptionRef.current.stop();
-    };
-  }, [isAuthenticated, user?.pubkey, recordLimit, setupWorkoutRecordsSubscription]);
+  // Convert hook error to string for compatibility
+  const error = hookError?.message || null;
 
   // Parse workout events using dataParsingService
   const workoutRecords = useMemo(() => {
@@ -169,14 +119,13 @@ export function WorkoutHistoryProvider({ children }: WorkoutHistoryProviderProps
         setResolvedExercises(exerciseMap);
       } catch (error) {
         console.error('[WorkoutHistoryProvider] Failed to resolve exercises:', error);
-        setError('Failed to load exercise details');
       }
     };
 
     resolveExercises();
   }, [workoutRecords]);
 
-  // Load more records
+  // Load more records - update limit to trigger new fetch
   const loadMoreRecords = useCallback(async () => {
     if (isLoadingMore || !isAuthenticated) return;
     
@@ -186,26 +135,26 @@ export function WorkoutHistoryProvider({ children }: WorkoutHistoryProviderProps
     try {
       const newLimit = recordLimit + 20;
       setRecordLimit(newLimit);
-      // Subscription will automatically update with new limit
+      // The useWorkoutHistoryHook will automatically refetch with new limit
     } catch (error) {
       console.error('[WorkoutHistoryProvider] Failed to load more records:', error);
-      setError('Failed to load more workout records');
     } finally {
       setIsLoadingMore(false);
     }
   }, [isLoadingMore, isAuthenticated, recordLimit]);
 
-  // Refresh data
+  // Refresh data - use the hook's refetch function
   const refreshData = useCallback(async () => {
     if (!isAuthenticated || !user?.pubkey) return;
     
     console.log('[WorkoutHistoryProvider] Manual refresh requested');
-    setError(null);
-    setIsLoading(true);
     
-    // Reset limit and restart subscription
-    setRecordLimit(20);
-  }, [isAuthenticated, user?.pubkey]);
+    try {
+      await refetch();
+    } catch (error) {
+      console.error('[WorkoutHistoryProvider] Refresh failed:', error);
+    }
+  }, [isAuthenticated, user?.pubkey, refetch]);
 
   // Simple hasMore logic - assume there's more if we got the full limit
   const hasMoreRecords = workoutEvents.length >= recordLimit;
@@ -218,7 +167,9 @@ export function WorkoutHistoryProvider({ children }: WorkoutHistoryProviderProps
     refreshData,
     loadMoreRecords,
     hasMoreRecords,
-    isLoadingMore
+    isLoadingMore,
+    getOfflineCount,
+    lastFetched
   };
 
   return (

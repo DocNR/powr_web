@@ -1,10 +1,11 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, ReactNode, useMemo, useEffect, useRef } from 'react';
-import { getNDKInstance, WORKOUT_EVENT_KINDS } from '@/lib/ndk';
+import React, { createContext, useContext, useState, useCallback, ReactNode, useMemo, useEffect } from 'react';
+import { WORKOUT_EVENT_KINDS } from '@/lib/ndk';
 import { useIsAuthenticated } from '@/lib/auth/hooks';
 import { dataParsingService } from '@/lib/services/dataParsingService';
-import type { NDKEvent, NDKFilter, NDKSubscription } from '@nostr-dev-kit/ndk';
+import { useDiscoveryData } from '@/hooks/useNDKDataWithCaching';
+import type { NDKEvent, NDKFilter } from '@nostr-dev-kit/ndk';
 
 // Updated SocialWorkout interface - now template-focused with social proof
 interface SocialWorkout {
@@ -100,32 +101,71 @@ interface WorkoutDataProviderProps {
 }
 
 export function WorkoutDataProvider({ children }: WorkoutDataProviderProps) {
-  // Simple state management following NDK best practices
-  const [socialEvents, setSocialEvents] = useState<NDKEvent[]>([]);
-  const [discoveryEvents, setDiscoveryEvents] = useState<NDKEvent[]>([]);
+  // ✅ NEW: Cache-first state management with parallel strategy
   const [templateCache, setTemplateCache] = useState<Map<string, NDKEvent>>(new Map());
-  const [isLoading, setIsLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [lastFetch, setLastFetch] = useState(Date.now());
   const [socialLimit, setSocialLimit] = useState(5);
   const [discoveryLimit, setDiscoveryLimit] = useState(6);
 
   const isAuthenticated = useIsAuthenticated();
-  
-  // Subscription refs for cleanup
-  const socialSubRef = useRef<NDKSubscription | null>(null);
-  const discoverySubRef = useRef<NDKSubscription | null>(null);
-  
-  // Event maps for deduplication (NDK best practice)
-  const socialEventsMapRef = useRef<Map<string, NDKEvent>>(new Map());
-  const discoveryEventsMapRef = useRef<Map<string, NDKEvent>>(new Map());
 
-  // Helper function to fetch template data for social workouts
+  // ✅ NEW: Social workouts using parallel caching strategy
+  const socialFilters = useMemo<NDKFilter[]>(() => 
+    isAuthenticated ? [{
+      kinds: [WORKOUT_EVENT_KINDS.WORKOUT_RECORD as number], // 1301 - workout records
+      limit: socialLimit
+    }] : [], 
+    [isAuthenticated, socialLimit]
+  );
+
+  const {
+    events: socialEvents,
+    isLoading: socialLoading,
+    error: socialError,
+    refetch: refetchSocial,
+    lastFetched: socialLastFetched
+  } = useDiscoveryData(socialFilters, {
+    enabled: isAuthenticated,
+    onSuccess: (events) => {
+      console.log('[WorkoutDataProvider] ✅ Social events fetched via parallel cache:', events.length);
+    },
+    onError: (error) => {
+      console.error('[WorkoutDataProvider] ❌ Social events fetch failed:', error);
+    }
+  });
+
+  // ✅ NEW: Discovery templates using parallel caching strategy
+  const discoveryFilters = useMemo<NDKFilter[]>(() => 
+    isAuthenticated ? [{
+      kinds: [WORKOUT_EVENT_KINDS.WORKOUT_TEMPLATE as number], // 33402 - workout templates
+      limit: discoveryLimit
+    }] : [],
+    [isAuthenticated, discoveryLimit]
+  );
+
+  const {
+    events: discoveryEvents,
+    isLoading: discoveryLoading,
+    error: discoveryError,
+    refetch: refetchDiscovery,
+    lastFetched: discoveryLastFetched
+  } = useDiscoveryData(discoveryFilters, {
+    enabled: isAuthenticated,
+    onSuccess: (events) => {
+      console.log('[WorkoutDataProvider] ✅ Discovery events fetched via parallel cache:', events.length);
+    },
+    onError: (error) => {
+      console.error('[WorkoutDataProvider] ❌ Discovery events fetch failed:', error);
+    }
+  });
+
+  // Combined loading and error states
+  const isLoading = socialLoading || discoveryLoading;
+  const error = socialError?.message || discoveryError?.message || null;
+  const lastFetch = Math.max(socialLastFetched || 0, discoveryLastFetched || 0);
+
+  // ✅ NEW: Template fetching using cache-first strategy
   const fetchTemplateForSocialWorkout = useCallback(async (templateReference: string): Promise<NDKEvent | null> => {
-    const ndk = getNDKInstance();
-    if (!ndk) return null;
-
     // Check cache first
     if (templateCache.has(templateReference)) {
       return templateCache.get(templateReference)!;
@@ -138,20 +178,31 @@ export function WorkoutDataProvider({ children }: WorkoutDataProviderProps) {
         return null;
       }
 
-      console.log('[WorkoutDataProvider] Fetching template:', { pubkey: pubkey.slice(0, 8) + '...', dTag });
+      console.log('[WorkoutDataProvider] Fetching template via cache-first:', { pubkey: pubkey.slice(0, 8) + '...', dTag });
 
-      const templateEvents = await ndk.fetchEvents({
+      // ✅ NEW: Use cache-first strategy for template fetching
+      const templateFilters: NDKFilter[] = [{
         kinds: [33402 as number],
         authors: [pubkey],
         '#d': [dTag],
         limit: 1
+      }];
+
+      // Use our caching hook for template fetching
+      const { events } = await new Promise<{ events: NDKEvent[] }>((resolve, reject) => {
+        // Create a temporary hook-like fetch using our cache service
+        import('@/lib/services/ndkCacheService').then(({ universalNDKCacheService }) => {
+          universalNDKCacheService.fetchCacheFirst(templateFilters, { timeout: 5000 })
+            .then(events => resolve({ events }))
+            .catch(reject);
+        });
       });
 
-      const templateEvent = Array.from(templateEvents)[0];
+      const templateEvent = events[0];
       if (templateEvent) {
         // Cache the template
         setTemplateCache(prev => new Map(prev.set(templateReference, templateEvent)));
-        console.log('[WorkoutDataProvider] ✅ Template fetched and cached:', templateReference);
+        console.log('[WorkoutDataProvider] ✅ Template fetched and cached via cache-first:', templateReference);
         return templateEvent;
       }
 
@@ -163,119 +214,7 @@ export function WorkoutDataProvider({ children }: WorkoutDataProviderProps) {
     }
   }, [templateCache]);
 
-  // Simple useSubscribe pattern following NDK best practices
-  const setupSocialSubscription = useCallback((limit: number) => {
-    const ndk = getNDKInstance();
-    if (!ndk || !isAuthenticated) return;
-
-    console.log('[WorkoutDataProvider] Setting up social subscription, limit:', limit);
-
-    // Clean up existing subscription
-    if (socialSubRef.current) {
-      socialSubRef.current.stop();
-    }
-
-    // Clear events map
-    socialEventsMapRef.current.clear();
-
-    const filters: NDKFilter[] = [{
-      kinds: [WORKOUT_EVENT_KINDS.WORKOUT_RECORD as number], // 1301 - workout records only
-      limit
-    }];
-
-    // Use NDK singleton subscribe method
-    const subscription = ndk.subscribe(filters);
-    socialSubRef.current = subscription;
-
-    subscription.on('event', (event: NDKEvent) => {
-      console.log('[WorkoutDataProvider] Social event received:', event.id);
-      
-      // NDK automatic deduplication using Map
-      socialEventsMapRef.current.set(event.id, event);
-      
-      // Update state with sorted events (newest first)
-      const sortedEvents = Array.from(socialEventsMapRef.current.values())
-        .sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
-      
-      setSocialEvents(sortedEvents);
-    });
-
-    subscription.on('eose', () => {
-      console.log('[WorkoutDataProvider] Social EOSE received');
-      setIsLoading(false);
-    });
-
-  }, [isAuthenticated]);
-
-  const setupDiscoverySubscription = useCallback((limit: number) => {
-    const ndk = getNDKInstance();
-    if (!ndk || !isAuthenticated) return;
-
-    console.log('[WorkoutDataProvider] Setting up discovery subscription, limit:', limit);
-
-    // Clean up existing subscription
-    if (discoverySubRef.current) {
-      discoverySubRef.current.stop();
-    }
-
-    // Clear events map
-    discoveryEventsMapRef.current.clear();
-
-    const filters: NDKFilter[] = [{
-      kinds: [WORKOUT_EVENT_KINDS.WORKOUT_TEMPLATE as number], // 33402 - workout templates only
-      limit
-    }];
-
-    // Use NDK singleton subscribe method
-    const subscription = ndk.subscribe(filters);
-    discoverySubRef.current = subscription;
-
-    subscription.on('event', (event: NDKEvent) => {
-      console.log('[WorkoutDataProvider] Discovery event received:', event.id);
-      
-      // NDK automatic deduplication using Map
-      discoveryEventsMapRef.current.set(event.id, event);
-      
-      // Update state with sorted events (newest first)
-      const sortedEvents = Array.from(discoveryEventsMapRef.current.values())
-        .sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
-      
-      setDiscoveryEvents(sortedEvents);
-    });
-
-    subscription.on('eose', () => {
-      console.log('[WorkoutDataProvider] Discovery EOSE received');
-      setIsLoading(false);
-    });
-
-  }, [isAuthenticated]);
-
-  // Initial subscription setup
-  useEffect(() => {
-    if (!isAuthenticated) {
-      // Clean up when not authenticated
-      if (socialSubRef.current) socialSubRef.current.stop();
-      if (discoverySubRef.current) discoverySubRef.current.stop();
-      setSocialEvents([]);
-      setDiscoveryEvents([]);
-      return;
-    }
-
-    console.log('[WorkoutDataProvider] Setting up initial subscriptions');
-    setIsLoading(true);
-    setError(null);
-
-    setupSocialSubscription(socialLimit);
-    setupDiscoverySubscription(discoveryLimit);
-    setLastFetch(Date.now());
-
-    // Cleanup function
-    return () => {
-      console.log('[WorkoutDataProvider] Cleaning up subscriptions');
-      if (socialSubRef.current) socialSubRef.current.stop();
-      if (discoverySubRef.current) discoverySubRef.current.stop();
-    };
-  }, [isAuthenticated, socialLimit, discoveryLimit, setupSocialSubscription, setupDiscoverySubscription]);
+  // ✅ REMOVED: Direct subscription setup - now handled by caching hooks
 
   // ✅ OPTIMIZED: Use stable event IDs to prevent unnecessary re-parsing
   const socialWorkouts = useMemo(() => {
@@ -498,20 +437,19 @@ export function WorkoutDataProvider({ children }: WorkoutDataProviderProps) {
     }
   }, [socialEvents, templateCache, fetchTemplateForSocialWorkout]);
 
-  // Simple infinite scroll - increase limits
+  // ✅ NEW: Enhanced infinite scroll with cache-first strategy
   const loadMoreSocialWorkouts = useCallback(async () => {
     if (isLoadingMore || !isAuthenticated) return;
     
-    console.log('[WorkoutDataProvider] Loading more social workouts...');
+    console.log('[WorkoutDataProvider] Loading more social workouts via cache...');
     setIsLoadingMore(true);
     
     try {
       const newLimit = socialLimit + 3;
       setSocialLimit(newLimit);
-      // Subscription will automatically update with new limit
+      // Caching hooks will automatically refetch with new limit
     } catch (error) {
       console.error('[WorkoutDataProvider] Failed to load more social workouts:', error);
-      setError('Failed to load more workouts');
     } finally {
       setIsLoadingMore(false);
     }
@@ -520,31 +458,35 @@ export function WorkoutDataProvider({ children }: WorkoutDataProviderProps) {
   const loadMoreDiscoveryTemplates = useCallback(async () => {
     if (isLoadingMore || !isAuthenticated) return;
     
-    console.log('[WorkoutDataProvider] Loading more discovery templates...');
+    console.log('[WorkoutDataProvider] Loading more discovery templates via cache...');
     setIsLoadingMore(true);
     
     try {
       const newLimit = discoveryLimit + 3;
       setDiscoveryLimit(newLimit);
-      // Subscription will automatically update with new limit
+      // Caching hooks will automatically refetch with new limit
     } finally {
       setIsLoadingMore(false);
     }
   }, [isLoadingMore, isAuthenticated, discoveryLimit]);
 
-  // Simple refresh function
+  // ✅ NEW: Enhanced refresh with parallel cache strategy
   const refreshData = useCallback(async () => {
     if (!isAuthenticated) return;
     
-    console.log('[WorkoutDataProvider] Manual refresh requested');
-    setError(null);
-    setIsLoading(true);
+    console.log('[WorkoutDataProvider] Manual refresh via parallel cache strategy');
     
-    // Reset limits and restart subscriptions
-    setSocialLimit(5);
-    setDiscoveryLimit(6);
-    setLastFetch(Date.now());
-  }, [isAuthenticated]);
+    try {
+      // Use parallel refetch for both social and discovery
+      await Promise.all([
+        refetchSocial(),
+        refetchDiscovery()
+      ]);
+      console.log('[WorkoutDataProvider] ✅ Parallel refresh completed');
+    } catch (error) {
+      console.error('[WorkoutDataProvider] ❌ Refresh failed:', error);
+    }
+  }, [isAuthenticated, refetchSocial, refetchDiscovery]);
 
   // Simple hasMore logic - assume there's more if we got the full limit
   const hasMoreWorkouts = socialEvents.length >= socialLimit;
