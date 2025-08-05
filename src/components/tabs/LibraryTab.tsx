@@ -3,9 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Library, Search, BookOpen, Dumbbell, Calendar } from 'lucide-react';
 import { useSubNavigation } from '@/providers/SubNavigationProvider';
-import { useLibraryDataWithCollections } from '@/hooks/useLibraryDataWithCollections';
-import { usePubkey } from '@/lib/auth/hooks';
-import { useMemo } from 'react';
+import { useLibraryData } from '@/providers/LibraryDataProvider';
 import { useWorkoutContext } from '@/hooks/useWorkoutContext';
 import { Input } from '@/components/powr-ui/primitives/Input';
 import { Button } from '@/components/powr-ui/primitives/Button';
@@ -263,10 +261,9 @@ function ExercisesView({ onShowOnboarding, onExerciseSelect }: {
   onExerciseSelect?: (exerciseData: any) => void;
 }) {
   const [searchTerm, setSearchTerm] = useState('');
-  const userPubkey = usePubkey();
   
-  // ✅ ENHANCED: Use Universal NDK Caching + NIP-51 collection filtering
-  const { exerciseLibrary } = useLibraryDataWithCollections(userPubkey);
+  // ✅ PERFORMANCE: Use shared library data from context (eliminates duplicate subscription)
+  const { exerciseLibrary } = useLibraryData();
 
   if (exerciseLibrary.isLoading || exerciseLibrary.isResolving) {
     return (
@@ -429,10 +426,9 @@ function WorkoutsView({ onShowOnboarding, onWorkoutSelect }: {
   onWorkoutSelect?: (workoutId: string, templateRef?: string) => void;
 }) {
   const [searchTerm, setSearchTerm] = useState('');
-  const userPubkey = usePubkey();
   
-  // ✅ ENHANCED: Use Universal NDK Caching + NIP-51 collection filtering
-  const { workoutLibrary } = useLibraryDataWithCollections(userPubkey);
+  // ✅ PERFORMANCE: Use shared library data from context (eliminates duplicate subscription)
+  const { workoutLibrary } = useLibraryData();
 
   if (workoutLibrary.isLoading || workoutLibrary.isResolving) {
     return (
@@ -547,10 +543,9 @@ function WorkoutsView({ onShowOnboarding, onWorkoutSelect }: {
 // Collections View Component
 function CollectionsView({ onShowOnboarding }: { onShowOnboarding: () => void }) {
   const [searchTerm, setSearchTerm] = useState('');
-  const userPubkey = usePubkey();
   
-  // ✅ ENHANCED: Use Universal NDK Caching + NIP-51 collection filtering
-  const { collectionSubscriptions } = useLibraryDataWithCollections(userPubkey);
+  // ✅ PERFORMANCE: Use shared library data from context (eliminates duplicate subscription)
+  const { collectionSubscriptions } = useLibraryData();
 
   if (collectionSubscriptions.isLoading || collectionSubscriptions.isResolving) {
     return (

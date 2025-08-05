@@ -22,7 +22,7 @@ import { Input } from '@/components/powr-ui/primitives/Input';
 import { Button } from '@/components/powr-ui/primitives/Button';
 import { Card, CardContent } from '@/components/powr-ui/primitives/Card';
 import { Badge } from '@/components/powr-ui/primitives/Badge';
-import { useLibraryDataWithCollections } from '@/hooks/useLibraryDataWithCollections';
+import { useLibraryData } from '@/providers/LibraryDataProvider';
 import { libraryManagementService } from '@/lib/services/libraryManagement';
 import { usePubkey } from '@/lib/auth/hooks';
 import type { WorkoutLibraryItem } from '@/hooks/useLibraryDataWithCollections';
@@ -37,7 +37,8 @@ type SortType = 'name' | 'recent' | 'duration' | 'difficulty';
 
 export function WorkoutLibrary({ onShowOnboarding, onStartWorkout }: WorkoutLibraryProps) {
   const userPubkey = usePubkey();
-  const { workoutLibrary, error } = useLibraryDataWithCollections(userPubkey);
+  // ✅ PERFORMANCE: Use shared library data from context (eliminates duplicate subscription)
+  const { workoutLibrary, error } = useLibraryData();
   
   // Local state
   const [searchTerm, setSearchTerm] = useState('');

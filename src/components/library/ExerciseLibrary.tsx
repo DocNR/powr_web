@@ -20,7 +20,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, Dumbbell, Plus, Filter } from 'lucide-react';
 import { Input } from '@/components/powr-ui/primitives/Input';
 import { Button } from '@/components/powr-ui/primitives/Button';
-import { useLibraryDataWithCollections } from '@/hooks/useLibraryDataWithCollections';
+import { useLibraryData } from '@/providers/LibraryDataProvider';
 import { libraryManagementService } from '@/lib/services/libraryManagement';
 import { usePubkey } from '@/lib/auth/hooks';
 import { ExerciseCard } from '@/components/powr-ui/workout/ExerciseCard';
@@ -36,7 +36,8 @@ type SortType = 'name' | 'recent' | 'muscle-group';
 
 export function ExerciseLibrary({ onShowOnboarding }: ExerciseLibraryProps) {
   const userPubkey = usePubkey();
-  const { exerciseLibrary, error } = useLibraryDataWithCollections(userPubkey);
+  // ✅ PERFORMANCE: Use shared library data from context (eliminates duplicate subscription)
+  const { exerciseLibrary, error } = useLibraryData();
   
   // Local state
   const [searchTerm, setSearchTerm] = useState('');

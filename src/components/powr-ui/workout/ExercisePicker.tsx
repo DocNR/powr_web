@@ -20,8 +20,7 @@ import { Button } from '@/components/powr-ui/primitives/Button';
 import { Input } from '@/components/powr-ui/primitives/Input';
 import { Badge } from '@/components/powr-ui/primitives/Badge';
 import { ExerciseCard } from './ExerciseCard';
-import { useLibraryDataWithCollections } from '@/hooks/useLibraryDataWithCollections';
-import { usePubkey } from '@/lib/auth/hooks';
+import { useLibraryData } from '@/providers/LibraryDataProvider';
 import { cn } from '@/lib/utils';
 import { 
   EQUIPMENT_OPTIONS, 
@@ -76,8 +75,8 @@ export const ExercisePicker = memo(function ExercisePicker({
   filterByMuscleGroups = [],
   className
 }: ExercisePickerProps) {
-  const userPubkey = usePubkey();
-  const { exerciseLibrary } = useLibraryDataWithCollections(userPubkey);
+  // ✅ PERFORMANCE: Use shared library data from context (eliminates duplicate subscription)
+  const { exerciseLibrary } = useLibraryData();
   
   // Local state
   const [searchQuery, setSearchQuery] = useState('');

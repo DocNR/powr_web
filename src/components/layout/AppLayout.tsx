@@ -14,6 +14,7 @@ import { getSubNavigation } from '@/config/subNavigation';
 import { WorkoutDataProvider } from '@/providers/WorkoutDataProvider';
 import { WorkoutHistoryProvider } from '@/providers/WorkoutHistoryProvider';
 import { WorkoutUIProvider } from '@/providers/WorkoutUIProvider';
+import { LibraryDataProvider } from '@/providers/LibraryDataProvider';
 import { WorkoutContext } from '@/contexts/WorkoutContext';
 import { workoutLifecycleMachine } from '@/lib/machines/workout/workoutLifecycleMachine';
 import { usePubkey, useIsAuthenticated } from '@/lib/auth/hooks';
@@ -259,13 +260,15 @@ export function AppLayout() {
             } : {}}
           >
             <div className="flex-1">
-              <WorkoutDataProvider>
-                <WorkoutHistoryProvider>
-                  <WorkoutUIProvider>
-                    <TabRouter />
-                  </WorkoutUIProvider>
-                </WorkoutHistoryProvider>
-              </WorkoutDataProvider>
+              <LibraryDataProvider>
+                <WorkoutDataProvider>
+                  <WorkoutHistoryProvider>
+                    <WorkoutUIProvider>
+                      <TabRouter />
+                    </WorkoutUIProvider>
+                  </WorkoutHistoryProvider>
+                </WorkoutDataProvider>
+              </LibraryDataProvider>
             </div>
           </main>
 

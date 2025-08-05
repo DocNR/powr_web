@@ -135,6 +135,15 @@ export function useSimpleLibraryOnboarding(): SimpleOnboardingState & SimpleOnbo
       // Mark as completed but keep modal open to show success
       markUserCompleted(currentUser.pubkey);
       
+      // Dispatch custom event to notify LibraryDataProvider
+      console.log('[SimpleOnboarding] Dispatching onboarding completion event');
+      window.dispatchEvent(new CustomEvent('powr-onboarding-complete', {
+        detail: { 
+          pubkey: currentUser.pubkey,
+          result: onboardingResult 
+        }
+      }));
+      
     } catch (error) {
       console.error('[SimpleOnboarding] Onboarding failed:', error);
       setError(error instanceof Error ? error.message : 'Onboarding failed');
