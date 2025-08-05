@@ -276,10 +276,14 @@ export class DependencyResolutionService {
   }
 
   /**
-   * Optimized event fetching with CACHE_FIRST strategy
+   * Optimized event fetching with configurable cache strategy
+   * Enhanced to support ONLY_CACHE for true offline functionality
    * Extracted from WorkoutListManager lines 200-210
    */
-  private async fetchEventsOptimized(filter: NDKFilter): Promise<Set<NDKEvent>> {
+  private async fetchEventsOptimized(
+    filter: NDKFilter, 
+    cacheUsage: NDKSubscriptionCacheUsage = NDKSubscriptionCacheUsage.CACHE_FIRST
+  ): Promise<Set<NDKEvent>> {
     const startTime = Date.now();
     
     const ndk = getNDKInstance();
@@ -287,18 +291,34 @@ export class DependencyResolutionService {
       throw new Error('NDK not initialized');
     }
 
-    console.log('[DependencyResolutionService] Fetching events with CACHE_FIRST strategy:', filter);
+    console.log(`[DependencyResolutionService] Fetching events with ${cacheUsage} strategy:`, filter);
 
-    // PROVEN PATTERN: CACHE_FIRST with closeOnEose for optimal performance
+    // ENHANCED PATTERN: Configurable cache strategy following NDK best practices
     const events = await ndk.fetchEvents(filter, {
-      cacheUsage: NDKSubscriptionCacheUsage.CACHE_FIRST,
+      cacheUsage,
       closeOnEose: true
     });
 
     const fetchTime = Date.now() - startTime;
-    console.log(`[DependencyResolutionService] ✅ Fetched ${events.size} events in ${fetchTime}ms`);
+    console.log(`[DependencyResolutionService] ✅ Fetched ${events.size} events in ${fetchTime}ms using ${cacheUsage}`);
 
     return events;
+  }
+
+  /**
+   * NEW: Fetch events from cache only (true offline functionality)
+   * Uses ONLY_CACHE strategy to prevent network requests
+   */
+  private async fetchFromCacheOnly(filter: NDKFilter): Promise<Set<NDKEvent>> {
+    return this.fetchEventsOptimized(filter, NDKSubscriptionCacheUsage.ONLY_CACHE);
+  }
+
+  /**
+   * NEW: Fetch events cache-first with network fallback
+   * Uses CACHE_FIRST strategy (existing behavior)
+   */
+  private async fetchCacheFirst(filter: NDKFilter): Promise<Set<NDKEvent>> {
+    return this.fetchEventsOptimized(filter, NDKSubscriptionCacheUsage.CACHE_FIRST);
   }
 
   /**
@@ -604,6 +624,209 @@ export class DependencyResolutionService {
     console.log(`[DependencyResolutionService] ✅ Resolved ${collections.length} collections in ${resolveTime}ms`);
 
     return collections;
+  }
+
+  // ========================================
+  // PUBLIC OFFLINE-FIRST API METHODS
+  // ========================================
+
+  /**
+   * NEW: Resolve template dependencies from cache only (offline-first)
+   * Uses ONLY_CACHE strategy to prevent network requests
+   */
+  async resolveTemplateDependenciesOffline(templateRefs: string[]): Promise<WorkoutTemplate[]> {
+    if (templateRefs.length === 0) {
+      return [];
+    }
+
+    const startTime = Date.now();
+    console.log('[DependencyResolutionService] 🔌 Resolving template dependencies OFFLINE:', templateRefs.length);
+
+    // PROVEN PATTERN: Batched author grouping and d-tag collection
+    const templateAuthors = new Set<string>();
+    const templateDTags: string[] = [];
+
+    for (const templateRef of templateRefs) {
+      const [kind, pubkey, dTag] = templateRef.split(':');
+      if (kind === '33402' && pubkey && dTag) {
+        templateDTags.push(dTag);
+        templateAuthors.add(pubkey);
+      }
+    }
+
+    if (templateAuthors.size === 0) {
+      console.warn('[DependencyResolutionService] No valid template references found');
+      return [];
+    }
+
+    // OFFLINE PATTERN: Single batched query with ONLY_CACHE
+    const filter: NDKFilter = {
+      kinds: [WORKOUT_EVENT_KINDS.WORKOUT_TEMPLATE as number],
+      authors: Array.from(templateAuthors),
+      '#d': templateDTags
+    };
+
+    const templateEvents = await this.fetchFromCacheOnly(filter);
+
+    // Use DataParsingService for template parsing
+    const templates = dataParsingService.parseWorkoutTemplatesBatch(Array.from(templateEvents));
+
+    const resolveTime = Date.now() - startTime;
+    console.log(`[DependencyResolutionService] ✅ Resolved ${templates.length} templates OFFLINE in ${resolveTime}ms`);
+
+    return templates;
+  }
+
+  /**
+   * NEW: Resolve exercise references from cache only (offline-first)
+   * Uses ONLY_CACHE strategy to prevent network requests
+   */
+  async resolveExerciseReferencesOffline(exerciseRefs: string[]): Promise<Exercise[]> {
+    if (exerciseRefs.length === 0) {
+      return [];
+    }
+
+    const startTime = Date.now();
+    console.log('[DependencyResolutionService] 🔌 Resolving exercise references OFFLINE:', exerciseRefs.length);
+
+    // Stage 1: Validate exercise reference format using DataParsingService
+    const validRefs = exerciseRefs.filter(ref => {
+      const validation = dataParsingService.validateExerciseReference(ref);
+      return validation.isValid;
+    });
+
+    if (validRefs.length === 0) {
+      console.warn('[DependencyResolutionService] No valid exercise references found');
+      return [];
+    }
+
+    // Stage 2: Fetch events from cache only
+    const uniqueRefs = [...new Set(validRefs)];
+    const exerciseAuthors = new Set<string>();
+    const exerciseDTags: string[] = [];
+
+    for (const exerciseRef of uniqueRefs) {
+      const [, pubkey, dTag] = exerciseRef.split(':');
+      exerciseDTags.push(dTag);
+      exerciseAuthors.add(pubkey);
+    }
+
+    const filter: NDKFilter = {
+      kinds: [WORKOUT_EVENT_KINDS.EXERCISE_TEMPLATE as number],
+      authors: Array.from(exerciseAuthors),
+      '#d': exerciseDTags
+    };
+
+    const exerciseEvents = await this.fetchFromCacheOnly(filter);
+
+    // Stage 3: Use DataParsingService for batch parsing with validation
+    const exercises = dataParsingService.parseExerciseTemplatesBatch(Array.from(exerciseEvents));
+
+    const resolveTime = Date.now() - startTime;
+    console.log(`[DependencyResolutionService] ✅ Resolved ${exercises.length} exercises OFFLINE in ${resolveTime}ms`);
+
+    return exercises;
+  }
+
+  /**
+   * NEW: Resolve single template from cache only (offline-first)
+   * Optimized for <50ms cache-only template resolution
+   */
+  async resolveSingleTemplateOffline(templateRef: string): Promise<ResolvedTemplate | null> {
+    const startTime = Date.now();
+    console.log('[DependencyResolutionService] 🔌 Starting resolveSingleTemplateOffline for:', templateRef);
+
+    try {
+      // Parse template reference: 33402:pubkey:d-tag
+      const [kind, pubkey, dTag] = templateRef.split(':');
+      
+      if (kind !== '33402' || !pubkey || !dTag) {
+        throw new Error(`Invalid template reference format: ${templateRef}`);
+      }
+
+      // Resolve the template from cache only
+      const templates = await this.resolveTemplateDependenciesOffline([templateRef]);
+      
+      if (templates.length === 0) {
+        console.warn('[DependencyResolutionService] ❌ No templates found in cache for:', templateRef);
+        return null; // Return null instead of throwing for offline scenarios
+      }
+
+      const template = templates[0];
+
+      // Extract exercise references from this template
+      const exerciseRefs = template.exercises.map(ex => ex.exerciseRef);
+
+      // Resolve exercises from cache only
+      const exercises = await this.resolveExerciseReferencesOffline(exerciseRefs);
+
+      const loadTime = Date.now() - startTime;
+      console.log(`[DependencyResolutionService] ✅ Resolved single template OFFLINE in ${loadTime}ms:`, {
+        template: template.name,
+        exercises: exercises.length
+      });
+
+      return {
+        template,
+        exercises,
+        loadTime
+      };
+    } catch (error) {
+      console.warn('[DependencyResolutionService] ⚠️ Failed to resolve single template offline:', error);
+      return null; // Return null instead of throwing for offline scenarios
+    }
+  }
+
+  /**
+   * NEW: Resolve all collection content from cache only (offline-first)
+   * Uses ONLY_CACHE strategy for complete offline functionality
+   */
+  async resolveAllCollectionContentOffline(collections: Collection[]): Promise<{
+    templates: WorkoutTemplate[];
+    exercises: Exercise[];
+    totalTime: number;
+  }> {
+    const startTime = Date.now();
+    console.log('[DependencyResolutionService] 🔌 Resolving all collection content OFFLINE:', collections.length);
+
+    // PROVEN PATTERN: Extract all template references from collections
+    const allTemplateRefs = new Set<string>();
+    
+    for (const collection of collections) {
+      for (const contentRef of collection.contentRefs) {
+        const [kind] = contentRef.split(':');
+        if (kind === '33402') {
+          allTemplateRefs.add(contentRef);
+        }
+      }
+    }
+
+    // Resolve templates from cache only
+    const templates = await this.resolveTemplateDependenciesOffline(Array.from(allTemplateRefs));
+
+    // PROVEN PATTERN: Extract exercise references from resolved templates
+    const allExerciseRefs = new Set<string>();
+    
+    for (const template of templates) {
+      for (const exercise of template.exercises) {
+        allExerciseRefs.add(exercise.exerciseRef);
+      }
+    }
+
+    // Resolve exercises from cache only
+    const exercises = await this.resolveExerciseReferencesOffline(Array.from(allExerciseRefs));
+
+    const totalTime = Date.now() - startTime;
+    console.log(`[DependencyResolutionService] ✅ Resolved complete dependency chain OFFLINE in ${totalTime}ms:`, {
+      templates: templates.length,
+      exercises: exercises.length
+    });
+
+    return {
+      templates,
+      exercises,
+      totalTime
+    };
   }
 }
 
