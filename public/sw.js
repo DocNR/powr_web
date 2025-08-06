@@ -1,4 +1,5 @@
-const CACHE_NAME = 'powr-workout-pwa-v6';
+const CACHE_NAME = 'powr-workout-pwa-v7';
+const AVATAR_CACHE_NAME = 'powr-avatars-v1';
 const urlsToCache = [
   '/',
   '/manifest.json',
@@ -28,16 +29,56 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// Fetch event - serve from cache when offline
+// Fetch event - serve from cache when offline with avatar caching
 self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        // Return cached version or fetch from network
-        return response || fetch(event.request);
-      }
-    )
+  const url = new URL(event.request.url);
+  
+  // Special handling for avatar images (common image hosts)
+  const isAvatarImage = event.request.destination === 'image' && (
+    url.hostname.includes('nostr.build') ||
+    url.hostname.includes('void.cat') ||
+    url.hostname.includes('i.imgur.com') ||
+    url.hostname.includes('image.nostr.build') ||
+    url.hostname.includes('primal.net') ||
+    url.pathname.includes('avatar') ||
+    url.pathname.includes('profile')
   );
+
+  if (isAvatarImage) {
+    event.respondWith(
+      caches.open(AVATAR_CACHE_NAME).then(cache => {
+        return cache.match(event.request).then(cachedResponse => {
+          if (cachedResponse) {
+            console.log('Serving avatar from cache:', url.href);
+            return cachedResponse;
+          }
+          
+          // Fetch and cache avatar images
+          return fetch(event.request).then(response => {
+            if (response.ok) {
+              console.log('Caching avatar image:', url.href);
+              cache.put(event.request, response.clone());
+            }
+            return response;
+          }).catch(() => {
+            // Return a fallback or empty response if fetch fails
+            console.log('Avatar fetch failed, using fallback');
+            return new Response('', { status: 404 });
+          });
+        });
+      })
+    );
+  } else {
+    // Regular caching for other resources
+    event.respondWith(
+      caches.match(event.request)
+        .then((response) => {
+          // Return cached version or fetch from network
+          return response || fetch(event.request);
+        }
+      )
+    );
+  }
 });
 
 // Activate event - clean up old caches

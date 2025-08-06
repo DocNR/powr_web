@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo, memo } from 'react';
 import { Sun, Moon, LogOut } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Button } from '../primitives/Button';
@@ -24,11 +24,44 @@ import {
 import { useAccount, useLogout } from '@/lib/auth/hooks';
 import { useProfile, getDisplayName, getAvatarUrl } from '@/hooks/useProfile';
 import { GlobalWorkoutSearch } from '@/components/search/GlobalWorkoutSearch';
+import { avatarCacheService } from '@/lib/services/avatarCacheService';
 
 interface AppHeaderProps {
   title?: string;
   onWorkoutSelect?: (templateReference: string) => void;
 }
+
+// Memoized Avatar component to prevent flickering during header animations
+const StableAvatar = memo(({ 
+  avatarUrl, 
+  displayName, 
+  userInitials, 
+  className 
+}: {
+  avatarUrl: string | undefined;
+  displayName: string;
+  userInitials: string;
+  className?: string;
+}) => (
+  <Avatar className={className}>
+    <AvatarImage 
+      src={avatarUrl} 
+      alt={displayName}
+      loading="eager"
+      style={{
+        // Prevent image reloading during animations
+        transform: 'translateZ(0)',
+        backfaceVisibility: 'hidden',
+        WebkitBackfaceVisibility: 'hidden'
+      }}
+    />
+    <AvatarFallback className="bg-[color:var(--workout-primary)] text-white text-sm font-medium">
+      {userInitials}
+    </AvatarFallback>
+  </Avatar>
+));
+
+StableAvatar.displayName = 'StableAvatar';
 
 export function AppHeader({ 
   title = "POWR",
@@ -43,15 +76,24 @@ export function AppHeader({
   // Get user profile data using NDK
   const { profile } = useProfile(account?.pubkey);
   
-  // Get display name and avatar using our helper functions
-  const displayName = getDisplayName(profile, account?.pubkey);
-  const avatarUrl = getAvatarUrl(profile, account?.pubkey);
-  
-  const userInitials = displayName
-    ? displayName.slice(0, 2).toUpperCase()
-    : account?.npub
-    ? account.npub.slice(4, 6).toUpperCase()
-    : "?";
+  // Memoize avatar data to prevent recalculation during scroll
+  const avatarData = useMemo(() => {
+    const displayName = getDisplayName(profile, account?.pubkey);
+    const originalAvatarUrl = getAvatarUrl(profile, account?.pubkey);
+    
+    // Use cached avatar URL to prevent flickering
+    const avatarUrl = originalAvatarUrl 
+      ? avatarCacheService.getCachedAvatarUrl(originalAvatarUrl)
+      : originalAvatarUrl;
+    
+    const userInitials = displayName
+      ? displayName.slice(0, 2).toUpperCase()
+      : account?.npub
+      ? account.npub.slice(4, 6).toUpperCase()
+      : "?";
+    
+    return { displayName, avatarUrl, userInitials };
+  }, [profile, account?.pubkey, account?.npub]);
 
   const formatNpub = (npub: string) => {
     if (npub.length <= 16) return npub;
@@ -74,12 +116,12 @@ export function AppHeader({
       {/* Left side - User Avatar (opens left drawer) */}
       <Sheet>
         <SheetTrigger asChild>
-          <Avatar className="h-10 w-10 ring-2 ring-[color:var(--workout-primary)] cursor-pointer hover:ring-[color:var(--workout-active)] transition-all duration-200 hover:scale-105 active:scale-95">
-            <AvatarImage src={avatarUrl} alt={displayName} />
-            <AvatarFallback className="bg-[color:var(--workout-primary)] text-white text-sm font-medium">
-              {userInitials}
-            </AvatarFallback>
-          </Avatar>
+          <StableAvatar 
+            avatarUrl={avatarData.avatarUrl}
+            displayName={avatarData.displayName}
+            userInitials={avatarData.userInitials}
+            className="h-10 w-10 ring-2 ring-[color:var(--workout-primary)] cursor-pointer hover:ring-[color:var(--workout-active)] transition-all duration-200 hover:scale-105 active:scale-95"
+          />
         </SheetTrigger>
         <SheetContent side="left" className="flex flex-col">
           <SheetHeader className="pb-4">
@@ -91,15 +133,15 @@ export function AppHeader({
             {/* User Profile Section */}
             <div className="p-3 rounded-lg bg-[color:var(--workout-surface)]">
               <div className="flex items-center gap-3 mb-2">
-                <Avatar className="h-10 w-10">
-                  <AvatarImage src={avatarUrl} alt={displayName} />
-                  <AvatarFallback className="bg-[color:var(--workout-primary)] text-white text-sm">
-                    {userInitials}
-                  </AvatarFallback>
-                </Avatar>
+                <StableAvatar 
+                  avatarUrl={avatarData.avatarUrl}
+                  displayName={avatarData.displayName}
+                  userInitials={avatarData.userInitials}
+                  className="h-10 w-10"
+                />
                 <div className="min-w-0 flex-1">
                   <p className="font-medium text-[color:var(--workout-text)] text-sm">
-                    {displayName}
+                    {avatarData.displayName}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {account?.npub ? formatNpub(account.npub) : "Not signed in"}

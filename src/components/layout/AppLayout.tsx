@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useMemo, useRef, useEffect } from 'react';
+import React, { useMemo, useRef, useEffect, useState } from 'react';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
+import { useScrollDirection } from '@/hooks/useScrollDirection';
 import { MobileBottomTabs } from '@/components/navigation/MobileBottomTabs';
 import { DesktopSidebar } from '@/components/navigation/DesktopSidebar';
 import { TabRouter } from '@/components/layout/TabRouter';
@@ -25,6 +26,26 @@ export function AppLayout() {
   const { activeTab, setActiveTab } = useNavigation();
   const { getActiveSubTab, setActiveSubTab } = useSubNavigation();
   const mainScrollRef = useRef<HTMLElement>(null);
+
+  // Scroll direction detection for mobile auto-hiding header
+  const { isScrollingDown, isScrollingUp, isAtTop } = useScrollDirection({
+    threshold: 10,
+    target: isMobile ? mainScrollRef.current : null
+  });
+
+  // Bottom navigation transparency state management
+  const [wasTransparent, setWasTransparent] = useState(false);
+  
+  useEffect(() => {
+    if (!isMobile) return; // Only apply to mobile
+    
+    if (isScrollingDown && !isAtTop) {
+      setWasTransparent(true);
+    }
+    if (isScrollingUp || isAtTop) {
+      setWasTransparent(false);
+    }
+  }, [isScrollingDown, isScrollingUp, isAtTop, isMobile]);
 
   // Reset scroll position when tab changes (mobile only)
   useEffect(() => {
@@ -72,6 +93,10 @@ export function AppLayout() {
   const totalFixedHeight = isMobile ? (
     headerHeight + (subNavItems ? subNavHeight : 0)
   ) : 0;
+
+  // Header visibility logic for mobile auto-hiding
+  const headerVisible = !isMobile || isAtTop || isScrollingUp;
+  const navTransparent = isMobile && !isAtTop && (isScrollingDown || wasTransparent);
 
   // AppHeader with workout context integration
   const AppHeaderWithWorkoutContext = () => {
@@ -234,7 +259,7 @@ export function AppLayout() {
         {/* Main Content Area */}
         <div className={`flex-1 flex flex-col overflow-x-hidden max-w-full ${!isMobile ? 'ml-64' : ''}`}>
           {/* Header - show on both mobile and desktop */}
-          <div className={`${isMobile ? 'fixed top-0 left-0 right-0 z-40' : 'sticky top-0 z-40'} bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60 border-b border-border`}>
+          <div className={`${isMobile ? 'fixed top-0 left-0 right-0 z-40' : 'sticky top-0 z-40'} bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60 border-b border-border ${isMobile ? 'header-transition' : ''} ${headerVisible ? 'header-visible' : 'header-hidden'}`}>
             <AppHeaderWithWorkoutContext />
           </div>
 
@@ -278,6 +303,7 @@ export function AppLayout() {
               activeTab={activeTab}
               onTabChange={setActiveTab}
               tabs={navigationTabs}
+              transparent={navTransparent}
             />
           )}
         </div>

@@ -2,11 +2,11 @@ import { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'POWR',
+    name: 'POWR - Proof of Workout over Relays',
     short_name: 'POWR',
     description: 'Track your workouts, powered by Nostr. Decentralized and censorship resistant.',
     start_url: '/',
-    display: 'standalone',
+    display: 'fullscreen', // Changed from 'standalone' to 'fullscreen' for true full-screen
     background_color: '#ffffff',
     theme_color: '#000000',
     orientation: 'portrait-primary',

@@ -487,4 +487,82 @@
     touch-action: manipulation;
     -webkit-touch-callout: none;
   }
+
+  /* Auto-hiding header animations */
+  .header-visible { 
+    transform: translateY(0); 
+    opacity: 1;
+  }
+  
+  .header-hidden { 
+    transform: translateY(-100%); 
+    opacity: 0;
+  }
+  
+  .header-transition {
+    transition: transform 300ms ease-in-out, opacity 300ms ease-in-out;
+    will-change: transform, opacity;
+  }
+
+  /* Prevent avatar flickering during header animations */
+  .header-transition img,
+  .header-transition [data-radix-avatar-image],
+  .header-transition [data-radix-avatar-fallback] {
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+    /* Force hardware acceleration and prevent repaints */
+    will-change: auto;
+    contain: layout style paint;
+  }
+
+  /* Ensure avatar images stay loaded during transitions */
+  .header-transition [data-radix-avatar-image] {
+    will-change: auto;
+    transform: none !important;
+    /* Prevent image from being affected by parent transforms */
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Create isolated compositing layer for avatar containers */
+  .header-transition [data-radix-avatar-root] {
+    transform: translateZ(0);
+    contain: layout style paint;
+    isolation: isolate;
+  }
+
+  /* Bottom navigation transparency states */
+  .nav-transparent { 
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(8px);
+  }
+  
+  .dark .nav-transparent {
+    background: rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(8px);
+  }
+  
+  .nav-solid { 
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(12px);
+  }
+  
+  .dark .nav-solid {
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(12px);
+  }
+  
+  .nav-transition {
+    transition: background-color 300ms ease-in-out, backdrop-filter 300ms ease-in-out;
+  }
+
+  /* Reduced motion support */
+  @media (prefers-reduced-motion: reduce) {
+    .header-transition,
+    .nav-transition {
+      transition: none;
+    }
+  }
 }

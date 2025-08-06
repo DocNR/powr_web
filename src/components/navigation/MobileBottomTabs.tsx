@@ -15,11 +15,15 @@ interface MobileBottomTabsProps {
     notificationDot?: boolean;
     href?: string;
   }>;
+  transparent?: boolean;
 }
 
-export function MobileBottomTabs({ activeTab, onTabChange, tabs }: MobileBottomTabsProps) {
+export function MobileBottomTabs({ activeTab, onTabChange, tabs, transparent = false }: MobileBottomTabsProps) {
   return (
-    <div className="fixed left-0 right-0 bottom-0 z-50 bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60 border-t border-border">
+    <div className={cn(
+      "fixed left-0 right-0 bottom-0 z-50 border-t border-border nav-transition",
+      transparent ? "nav-transparent" : "nav-solid"
+    )}>
       <div 
         className="flex items-center justify-around px-2"
         style={{ 
