@@ -30,6 +30,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Drag & Drop UX Optimization - Mobile-First Up/Down Arrows COMPLETE (August 5, 2025) ✅**
+  
+  **User Impact**: Exercise reordering now uses intuitive up/down arrow buttons instead of problematic drag & drop, providing reliable mobile-first UX perfect for gym environments. Users can quickly reorder exercises and superset selections with large touch targets optimized for sweaty hands and gloves. No more ghost elements, layout glitches, or confusing drag behavior - just simple, predictable arrow controls that work consistently across all devices.
+  
+  **Developer Notes**: Replaced react-dnd drag & drop implementation with native up/down arrow controls in both ExerciseReorderModal and SupersetCreationModal components. Removed react-dnd and react-dnd-html5-backend dependencies (9 packages, reduced bundle size from 410kB to 396kB). Enhanced mobile touch targets with `h-8 w-8 p-0 touch-manipulation` classes and proper disabled states. Maintained all existing functionality while eliminating complex drag state management and layout shift issues.
+  
+  **Architecture Changes**: Simplified component architecture eliminates drag & drop complexity while improving mobile reliability. Touch-first design patterns established for gym environment usage. Foundation ready for consistent mobile UX across all reordering interfaces with predictable, accessible controls that work reliably in challenging gym conditions.
+
 ### Added
 - **Automatic Workout History Refresh After Completion COMPLETE (August 5, 2025) ✅**
   

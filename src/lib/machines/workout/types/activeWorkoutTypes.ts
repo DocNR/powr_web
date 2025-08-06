@@ -140,7 +140,7 @@ export type ActiveWorkoutEvent =
   | { type: 'SUBSTITUTE_EXERCISE'; exerciseIndex: number; newExerciseRef: string; confirmed?: boolean }
   | { type: 'MOVE_EXERCISE_UP'; exerciseIndex: number }
   | { type: 'MOVE_EXERCISE_DOWN'; exerciseIndex: number }
-  | { type: 'REORDER_EXERCISES'; fromIndex: number; toIndex: number }
+  | { type: 'REORDER_EXERCISES'; newOrder: number[] }
   
   // Publishing events
   | { type: 'PUBLISH_WORKOUT' }

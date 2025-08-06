@@ -5,6 +5,9 @@ import { useSelector } from '@xstate/react';
 import { Button, WorkoutTimer } from '@/components/powr-ui';
 import { ExerciseSection } from './ExerciseSection';
 import { ExercisePicker } from './ExercisePicker';
+import { SupersetCreationModal } from './SupersetCreationModal';
+import { SupersetGroup } from './SupersetGroup';
+import { ExerciseReorderModal } from './ExerciseReorderModal';
 import { WorkoutImageHandler } from './WorkoutImageHandler';
 import { ExerciseDetailModal } from '@/components/library/ExerciseDetailModal';
 import { ArrowLeft, Square, Plus } from 'lucide-react';
@@ -69,6 +72,16 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
   const [showAddExercisePicker, setShowAddExercisePicker] = useState(false);
   const [showExerciseDetail, setShowExerciseDetail] = useState(false);
   const [selectedExerciseRef, setSelectedExerciseRef] = useState<string | null>(null);
+  const [showSupersetPicker, setShowSupersetPicker] = useState(false);
+  const [supersetTriggerExerciseIndex, setSupersetTriggerExerciseIndex] = useState<number | null>(null);
+  const [showExerciseReorder, setShowExerciseReorder] = useState(false);
+  
+  // NEW: Local superset state (will be moved to XState in Phase 4)
+  const [supersetGroups, setSupersetGroups] = useState<Array<{
+    id: string;
+    exerciseIndices: number[];
+    exerciseNames: string[];
+  }>>([]);
   
   // ✅ OPTIMIZED: Use fewer, more specific selectors to reduce re-renders
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -241,14 +254,6 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
     });
   };
 
-  // NEW: Exercise selection handler for superset support
-  const handleExerciseSelect = (exerciseIndex: number) => {
-    // Send NAVIGATE_TO_EXERCISE event to activeWorkoutActor
-    actorSend({ 
-      type: 'NAVIGATE_TO_EXERCISE',
-      exerciseIndex
-    });
-  };
 
   // NEW: Exercise detail modal handler
   const handleExerciseNameClick = (exerciseRef: string) => {
@@ -299,23 +304,117 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
     });
   };
 
-  const handleMoveExerciseUp = (exerciseIndex: number) => {
-    if (exerciseIndex > 0) {
-      actorSend({
-        type: 'MOVE_EXERCISE_UP',
-        exerciseIndex: exerciseIndex
-      });
-    }
+
+  // NEW: Superset creation handler
+  const handleCreateSuperset = (exerciseIndex: number) => {
+    setSupersetTriggerExerciseIndex(exerciseIndex);
+    setShowSupersetPicker(true);
   };
 
-  const handleMoveExerciseDown = (exerciseIndex: number) => {
-    if (exerciseIndex < exercises.length - 1) {
-      actorSend({
-        type: 'MOVE_EXERCISE_DOWN',
-        exerciseIndex: exerciseIndex
-      });
+  // NEW: Regrouping logic for non-adjacent exercises
+  const regroupExercisesForSuperset = (selectedIndices: number[]): number[] => {
+    if (selectedIndices.length < 2) return selectedIndices;
+    
+    // Sort indices to maintain selection order
+    const sortedIndices = [...selectedIndices].sort((a, b) => a - b);
+    const firstIndex = sortedIndices[0];
+    
+    // Check if exercises are already consecutive
+    const areConsecutive = sortedIndices.every((index, i) => 
+      i === 0 || index === sortedIndices[i - 1] + 1
+    );
+    
+    if (areConsecutive) {
+      return selectedIndices; // No regrouping needed
     }
+    
+    // Need to regroup - move all selected exercises to be consecutive starting at first index
+    console.log('🔄 Regrouping non-adjacent exercises:', {
+      originalIndices: selectedIndices,
+      sortedIndices,
+      firstIndex,
+      exerciseNames: selectedIndices.map(i => exercises[i]?.name)
+    });
+    
+    // For now, just return the sorted indices - actual exercise reordering will be in Phase 4
+    // In Phase 4, we'll send REGROUP_EXERCISES_FOR_SUPERSET event to XState
+    return sortedIndices;
   };
+
+  // NEW: Handle superset creation with automatic regrouping
+  const handleSupersetCreation = (exerciseIndices: number[]) => {
+    if (supersetTriggerExerciseIndex !== null && exerciseIndices.length >= 2) {
+      // Apply regrouping logic
+      const regroupedIndices = regroupExercisesForSuperset(exerciseIndices);
+      
+      // Create superset group locally (will be moved to XState in Phase 4)
+      const newSuperset = {
+        id: `superset-${Date.now()}`,
+        exerciseIndices: regroupedIndices,
+        exerciseNames: regroupedIndices.map(index => exercises[index]?.name || `Exercise ${index + 1}`)
+      };
+      
+      setSupersetGroups(prev => [...prev, newSuperset]);
+      
+      console.log('🔗 Created superset with regrouping:', {
+        originalIndices: exerciseIndices,
+        regroupedIndices,
+        supersetGroup: newSuperset
+      });
+      
+      // TODO Phase 4: Send CREATE_SUPERSET event to XState machine
+      // actorSend({
+      //   type: 'CREATE_SUPERSET',
+      //   exerciseIndices: regroupedIndices,
+      //   triggerExerciseIndex: supersetTriggerExerciseIndex
+      // });
+    }
+    
+    setShowSupersetPicker(false);
+    setSupersetTriggerExerciseIndex(null);
+  };
+
+  // NEW: Handle superset removal
+  const handleRemoveSuperset = (groupId: string) => {
+    setSupersetGroups(prev => prev.filter(group => group.id !== groupId));
+    console.log('🔗 Removed superset group:', groupId);
+    
+    // TODO Phase 4: Send REMOVE_SUPERSET event to XState machine
+    // actorSend({
+    //   type: 'REMOVE_SUPERSET',
+    //   groupId
+    // });
+  };
+
+  // NEW: Check if exercise is in a superset
+  const getExerciseSuperset = (exerciseIndex: number) => {
+    return supersetGroups.find(group => 
+      group.exerciseIndices.includes(exerciseIndex)
+    );
+  };
+
+  // NEW: Exercise reorder handler
+  const handleReorderExercises = () => {
+    setShowExerciseReorder(true);
+  };
+
+  // NEW: Handle exercise reordering
+  const handleExerciseReorder = (newOrder: number[]) => {
+    console.log('🔄 Reordering exercises:', {
+      originalOrder: exercises.map((ex, i) => ({ index: i, name: ex.name })),
+      newOrder,
+      newOrderNames: newOrder.map(i => exercises[i]?.name)
+    });
+    
+    // Send REORDER_EXERCISES event to XState machine
+    actorSend({
+      type: 'REORDER_EXERCISES',
+      newOrder
+    });
+    
+    setShowExerciseReorder(false);
+  };
+
 
   const handleCancelConfirm = () => {
     setShowCancelDialog(false);
@@ -427,32 +526,87 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
 
             {/* Exercise List - Scrollable with comfortable padding */}
             <div className="flex-1 overflow-y-auto px-4 pb-20 space-y-2">
-              {exercises.map((exercise: ExerciseData, exerciseIndex: number) => {
-                const smartSetIndex = calculateCurrentSetIndex(exerciseIndex);
-                const shouldHighlightAddSet = smartSetIndex === -2;
+              {(() => {
+                const renderedExercises: React.ReactNode[] = [];
+                const processedIndices = new Set<number>();
 
-                return (
-                  <ExerciseSection
-                    key={`${exercise.id}-${exerciseIndex}`}
-                    exercise={exercise}
-                    shouldHighlightAddSet={shouldHighlightAddSet} // NEW PROP for Add Set highlighting
-                    onSetComplete={(exerciseId: string, setIndex: number, setData: SetData) => 
-                      handleSetComplete(exerciseId, setIndex, setData)
-                    }
-                    onAddSet={(exerciseId: string) => handleAddSet(exerciseId)}
-                    onExerciseSelect={() => handleExerciseSelect(exerciseIndex)}
-                    onExerciseNameClick={() => handleExerciseNameClick(exercise.exerciseRef)} // NEW: Exercise detail modal handler
-                    onSelectSet={handleSetSelect} // NEW: Pass set selection handler
-                    exerciseIndex={exerciseIndex} // NEW: Pass exercise index
-                    // CRUD operation handlers
-                    onRemoveExercise={handleRemoveExercise}
-                    onSubstituteExercise={handleSubstituteExercise}
-                    onMoveExerciseUp={handleMoveExerciseUp}
-                    onMoveExerciseDown={handleMoveExerciseDown}
-                    totalExercises={exercises.length}
-                  />
-                );
-              })}
+                exercises.forEach((exercise: ExerciseData, exerciseIndex: number) => {
+                  // Skip if already processed as part of a superset
+                  if (processedIndices.has(exerciseIndex)) return;
+
+                  const superset = getExerciseSuperset(exerciseIndex);
+                  
+                  if (superset) {
+                    // Render superset group
+                    const supersetExercises = superset.exerciseIndices.map(index => {
+                      processedIndices.add(index);
+                      const ex = exercises[index];
+                      const smartSetIndex = calculateCurrentSetIndex(index);
+                      const shouldHighlightAddSet = smartSetIndex === -2;
+
+                      return (
+                        <ExerciseSection
+                          key={`${ex.id}-${index}`}
+                          exercise={ex}
+                          shouldHighlightAddSet={shouldHighlightAddSet}
+                          onSetComplete={(exerciseId: string, setIndex: number, setData: SetData) => 
+                            handleSetComplete(exerciseId, setIndex, setData)
+                          }
+                          onAddSet={(exerciseId: string) => handleAddSet(exerciseId)}
+                          onExerciseNameClick={() => handleExerciseNameClick(ex.exerciseRef)}
+                          onSelectSet={handleSetSelect}
+                          exerciseIndex={index}
+                          // CRUD operation handlers
+                          onRemoveExercise={handleRemoveExercise}
+                          onSubstituteExercise={handleSubstituteExercise}
+                          onReorderExercises={handleReorderExercises}
+                          onCreateSuperset={handleCreateSuperset}
+                          totalExercises={exercises.length}
+                        />
+                      );
+                    });
+
+                    renderedExercises.push(
+                      <SupersetGroup
+                        key={superset.id}
+                        groupId={superset.id}
+                        exerciseNames={superset.exerciseNames}
+                        onRemoveSuperset={handleRemoveSuperset}
+                      >
+                        {supersetExercises}
+                      </SupersetGroup>
+                    );
+                  } else {
+                    // Render individual exercise
+                    processedIndices.add(exerciseIndex);
+                    const smartSetIndex = calculateCurrentSetIndex(exerciseIndex);
+                    const shouldHighlightAddSet = smartSetIndex === -2;
+
+                    renderedExercises.push(
+                      <ExerciseSection
+                        key={`${exercise.id}-${exerciseIndex}`}
+                        exercise={exercise}
+                        shouldHighlightAddSet={shouldHighlightAddSet}
+                        onSetComplete={(exerciseId: string, setIndex: number, setData: SetData) => 
+                          handleSetComplete(exerciseId, setIndex, setData)
+                        }
+                        onAddSet={(exerciseId: string) => handleAddSet(exerciseId)}
+                        onExerciseNameClick={() => handleExerciseNameClick(exercise.exerciseRef)}
+                        onSelectSet={handleSetSelect}
+                        exerciseIndex={exerciseIndex}
+                        // CRUD operation handlers
+                        onRemoveExercise={handleRemoveExercise}
+                        onSubstituteExercise={handleSubstituteExercise}
+                        onReorderExercises={handleReorderExercises}
+                        onCreateSuperset={handleCreateSuperset}
+                        totalExercises={exercises.length}
+                      />
+                    );
+                  }
+                });
+
+                return renderedExercises;
+              })()}
               
               {/* Add Exercise Button - Enhanced with semantic styling */}
               <div className="pt-4">
@@ -597,6 +751,34 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
           }}
         />
       )}
+
+      {/* Superset Creation Modal */}
+      <SupersetCreationModal
+        isOpen={showSupersetPicker}
+        onClose={() => {
+          setShowSupersetPicker(false);
+          setSupersetTriggerExerciseIndex(null);
+        }}
+        onCreateSuperset={handleSupersetCreation}
+        currentExercises={exercises.map((exercise, index) => ({
+          index,
+          name: exercise.name,
+          exerciseRef: exercise.exerciseRef
+        }))}
+        triggerExerciseIndex={supersetTriggerExerciseIndex || 0}
+      />
+
+      {/* Exercise Reorder Modal */}
+      <ExerciseReorderModal
+        isOpen={showExerciseReorder}
+        onClose={() => setShowExerciseReorder(false)}
+        onReorderExercises={handleExerciseReorder}
+        currentExercises={exercises.map((exercise, index) => ({
+          index,
+          name: exercise.name,
+          exerciseRef: exercise.exerciseRef
+        }))}
+      />
 
     </>
   );

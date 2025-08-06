@@ -11,7 +11,7 @@
  */
 
 import React, { useState } from 'react';
-import { MoreHorizontal, ArrowUp, ArrowDown, Replace, Trash2 } from 'lucide-react';
+import { MoreHorizontal, ArrowUpDown, Replace, Trash2, Link } from 'lucide-react';
 import { ExercisePicker } from './ExercisePicker';
 import {
   DropdownMenu,
@@ -29,8 +29,7 @@ interface ExerciseMenuDropdownProps {
   // CRUD operation handlers
   onSubstituteExercise?: (exerciseIndex: number, newExerciseRef: string) => void;
   onRemoveExercise?: (exerciseIndex: number) => void;
-  onMoveExerciseUp?: (exerciseIndex: number) => void;
-  onMoveExerciseDown?: (exerciseIndex: number) => void;
+  onReorderExercises?: () => void; // NEW: Reorder exercises handler
   // Future extensibility props
   onCreateSuperset?: (exerciseIndex: number) => void;
   onAddNote?: (exerciseIndex: number) => void;
@@ -45,8 +44,7 @@ export const ExerciseMenuDropdown: React.FC<ExerciseMenuDropdownProps> = ({
   totalExercises,
   onSubstituteExercise,
   onRemoveExercise,
-  onMoveExerciseUp,
-  onMoveExerciseDown,
+  onReorderExercises,
   onCreateSuperset,
   onAddNote,
   onExercisePreferences,
@@ -54,9 +52,6 @@ export const ExerciseMenuDropdown: React.FC<ExerciseMenuDropdownProps> = ({
 }) => {
   // State for ExercisePicker
   const [showSubstitutePicker, setShowSubstitutePicker] = useState(false);
-
-  const isFirstExercise = exerciseIndex === 0;
-  const isLastExercise = exerciseIndex === totalExercises - 1;
 
   return (
     <>
@@ -78,10 +73,10 @@ export const ExerciseMenuDropdown: React.FC<ExerciseMenuDropdownProps> = ({
             </DropdownMenuItem>
           )}
           
-          {/* Future: Create Superset */}
+          {/* Create Superset */}
           {onCreateSuperset && (
             <DropdownMenuItem onClick={() => onCreateSuperset(exerciseIndex)}>
-              <div className="h-4 w-4 mr-2 flex items-center justify-center text-xs font-bold">SS</div>
+              <Link className="h-4 w-4 mr-2" />
               Create Superset
             </DropdownMenuItem>
           )}
@@ -99,29 +94,14 @@ export const ExerciseMenuDropdown: React.FC<ExerciseMenuDropdownProps> = ({
           )}
           
           {/* Exercise Reordering Section */}
-          {onMoveExerciseUp && (
-            <DropdownMenuItem 
-              onClick={() => onMoveExerciseUp(exerciseIndex)}
-              disabled={isFirstExercise}
-            >
-              <ArrowUp className="h-4 w-4 mr-2" />
-              Move Up
-            </DropdownMenuItem>
-          )}
-          
-          {onMoveExerciseDown && (
-            <DropdownMenuItem 
-              onClick={() => onMoveExerciseDown(exerciseIndex)}
-              disabled={isLastExercise}
-            >
-              <ArrowDown className="h-4 w-4 mr-2" />
-              Move Down
+          {onReorderExercises && (
+            <DropdownMenuItem onClick={onReorderExercises}>
+              <ArrowUpDown className="h-4 w-4 mr-2" />
+              Reorder Exercises
             </DropdownMenuItem>
           )}
 
-          {(onMoveExerciseUp || onMoveExerciseDown) && (
-            <DropdownMenuSeparator />
-          )}
+          <DropdownMenuSeparator />
           
           {/* Future: Exercise Preferences */}
           {onExercisePreferences && (

@@ -833,6 +833,81 @@ export const activeWorkoutMachine = setup({
               })
             },
             
+            REORDER_EXERCISES: {
+              actions: assign({
+                workoutData: ({ context, event }) => {
+                  console.log(`[ActiveWorkoutMachine] 🔄 REORDER_EXERCISES: Applying new order:`, {
+                    originalOrder: context.workoutData.exercises?.map((ex, i) => ({ index: i, name: ex.exerciseName, ref: ex.exerciseRef })),
+                    newOrder: event.newOrder,
+                    newOrderNames: event.newOrder.map(i => context.workoutData.exercises?.[i]?.exerciseName)
+                  });
+                  
+                  const exercises = context.workoutData.exercises || [];
+                  if (event.newOrder.length !== exercises.length) {
+                    console.warn(`[ActiveWorkoutMachine] REORDER_EXERCISES: newOrder length (${event.newOrder.length}) doesn't match exercises length (${exercises.length})`);
+                    return context.workoutData;
+                  }
+                  
+                  // Reorder exercises according to newOrder array
+                  const reorderedExercises = event.newOrder.map(originalIndex => exercises[originalIndex]);
+                  
+                  // Update completed sets to reference new exercise indices
+                  const updatedCompletedSets = context.workoutData.completedSets.map(set => {
+                    // Find where the exercise moved to
+                    const newIndex = event.newOrder.indexOf(set.exerciseIndex);
+                    return {
+                      ...set,
+                      exerciseIndex: newIndex >= 0 ? newIndex : set.exerciseIndex
+                    };
+                  });
+                  
+                  console.log(`[ActiveWorkoutMachine] ✅ REORDER_EXERCISES: Reordered ${reorderedExercises.length} exercises and updated ${updatedCompletedSets.length} completed sets`);
+                  
+                  return {
+                    ...context.workoutData,
+                    exercises: reorderedExercises,
+                    completedSets: updatedCompletedSets
+                  };
+                },
+                workoutModifications: ({ context, event }) => {
+                  const exercises = context.workoutData.exercises || [];
+                  const timestamp = Date.now();
+                  
+                  // Track all the moves that happened in this reorder
+                  const reorderMoves = event.newOrder.map((originalIndex, newIndex) => ({
+                    fromIndex: originalIndex,
+                    toIndex: newIndex,
+                    exerciseRef: exercises[originalIndex]?.exerciseRef || 'unknown',
+                    timestamp
+                  })).filter(move => move.fromIndex !== move.toIndex); // Only track actual moves
+                  
+                  return {
+                    ...context.workoutModifications,
+                    exercisesReordered: [
+                      ...context.workoutModifications.exercisesReordered,
+                      ...reorderMoves
+                    ],
+                    modifiedAt: timestamp,
+                    totalModifications: context.workoutModifications.totalModifications + reorderMoves.length
+                  };
+                },
+                exerciseProgression: ({ context, event }) => {
+                  // Update current exercise index to follow the exercise that was previously current
+                  const currentExerciseIndex = context.exerciseProgression.currentExerciseIndex;
+                  const newCurrentIndex = event.newOrder.indexOf(currentExerciseIndex);
+                  
+                  console.log(`[ActiveWorkoutMachine] 🎯 REORDER_EXERCISES: Current exercise moved from index ${currentExerciseIndex} to ${newCurrentIndex}`);
+                  
+                  return {
+                    ...context.exerciseProgression,
+                    currentExerciseIndex: newCurrentIndex >= 0 ? newCurrentIndex : 0,
+                    isLastExercise: (newCurrentIndex >= 0 ? newCurrentIndex : 0) >= event.newOrder.length - 1
+                  };
+                },
+                lastActivityAt: Date.now()
+              })
+            },
+            
             SELECT_SET: {
               actions: assign({
                 exerciseProgression: ({ context, event }) => {
