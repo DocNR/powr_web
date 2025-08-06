@@ -73,11 +73,15 @@ export const ExerciseMenuDropdown: React.FC<ExerciseMenuDropdownProps> = ({
             </DropdownMenuItem>
           )}
           
-          {/* Create Superset */}
+          {/* Create Superset - Temporarily Disabled */}
           {onCreateSuperset && (
-            <DropdownMenuItem onClick={() => onCreateSuperset(exerciseIndex)}>
+            <DropdownMenuItem 
+              disabled={true}
+              className="opacity-50 cursor-not-allowed"
+            >
               <Link className="h-4 w-4 mr-2" />
               Create Superset
+              <span className="ml-auto text-xs text-muted-foreground">Coming Soon</span>
             </DropdownMenuItem>
           )}
           

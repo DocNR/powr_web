@@ -305,10 +305,12 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
   };
 
 
-  // NEW: Superset creation handler
+  // NEW: Superset creation handler - TEMPORARILY DISABLED
   const handleCreateSuperset = (exerciseIndex: number) => {
-    setSupersetTriggerExerciseIndex(exerciseIndex);
-    setShowSupersetPicker(true);
+    // Temporarily disabled - superset functionality coming soon
+    console.log('🔗 Superset creation temporarily disabled - coming soon!');
+    // setSupersetTriggerExerciseIndex(exerciseIndex);
+    // setShowSupersetPicker(true);
   };
 
   // NEW: Regrouping logic for non-adjacent exercises
