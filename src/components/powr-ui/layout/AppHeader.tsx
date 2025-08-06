@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Sun, Moon, LogOut } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Button } from '../primitives/Button';
@@ -34,6 +34,23 @@ export function AppHeader({
   title = "POWR",
   onWorkoutSelect
 }: AppHeaderProps) {
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Detect if we're in fullscreen PWA mode
+  useEffect(() => {
+    const checkDisplayMode = () => {
+      const isFullscreenMode = window.matchMedia('(display-mode: fullscreen)').matches;
+      setIsFullscreen(isFullscreenMode);
+    };
+
+    checkDisplayMode();
+    
+    // Listen for display mode changes
+    const mediaQuery = window.matchMedia('(display-mode: fullscreen)');
+    mediaQuery.addEventListener('change', checkDisplayMode);
+    
+    return () => mediaQuery.removeEventListener('change', checkDisplayMode);
+  }, []);
   const { theme, setTheme } = useTheme();
   const account = useAccount();
   const logout = useLogout();
@@ -70,7 +87,9 @@ export function AppHeader({
   };
 
   return (
-    <header className="flex items-center justify-between px-4 py-2 md:py-3 min-w-0">
+    <header className={`flex items-center justify-between px-4 py-2 md:py-3 min-w-0 ${
+      isFullscreen ? 'app-header-fullscreen' : ''
+    }`}>
       {/* Left side - User Avatar (opens left drawer) */}
       <Sheet>
         <SheetTrigger asChild>

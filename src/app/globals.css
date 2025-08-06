@@ -443,29 +443,48 @@
   }
 }
 
-/* Fullscreen PWA mode detection - NEW for translucent status bar */
+/* iOS PWA Fullscreen Mode - Optimized for black status bar */
 @media (display-mode: fullscreen) {
-  /* Styles when app is in fullscreen mode */
-  body {
-    /* Ensure content extends behind status bar */
-    padding-top: 0 !important;
-  }
-  
-  /* Main app container should handle safe area */
+  /* Ensure app container handles safe area properly */
   .app-container {
     padding-top: env(safe-area-inset-top);
   }
   
-  /* Status bar area styling for translucent effect */
-  .status-bar-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: env(safe-area-inset-top);
-    background: transparent;
-    z-index: 9999;
-    pointer-events: none;
+  /* Header integration with status bar area - Light Mode */
+  .app-header-fullscreen {
+    /* Extend header into status bar area for seamless look */
+    margin-top: calc(-1 * env(safe-area-inset-top));
+    padding-top: env(safe-area-inset-top);
+    
+    /* Light mode: Gradient from black status bar to light background */
+    background: linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0.95) 0%,
+      rgba(0, 0, 0, 0.8) 25%,
+      rgba(255, 255, 255, 0.9) 60%,
+      var(--background) 100%
+    );
+    
+    /* Subtle backdrop blur for premium feel */
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+  
+  /* Dark mode: Seamless black gradient */
+  .dark .app-header-fullscreen {
+    background: linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0.95) 0%,
+      rgba(0, 0, 0, 0.9) env(safe-area-inset-top),
+      var(--background) 100%
+    );
+  }
+  
+  /* Alternative: Solid black header that matches status bar exactly */
+  .app-header-solid {
+    margin-top: calc(-1 * env(safe-area-inset-top));
+    padding-top: env(safe-area-inset-top);
+    background: #000000; /* Always black to match iOS status bar */
   }
 }
 
