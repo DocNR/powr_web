@@ -218,7 +218,7 @@ export function AppLayout() {
       logic={workoutLifecycleMachine}
       options={{ input: { userInfo } }}
     >
-      <div className="min-h-screen bg-background flex">
+      <div className="min-h-screen bg-background flex app-container">
         {/* Desktop Sidebar */}
         {!isMobile && (
           <DesktopSidebar

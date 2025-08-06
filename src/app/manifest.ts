@@ -6,7 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: 'POWR',
     description: 'Track your workouts, powered by Nostr. Decentralized and censorship resistant.',
     start_url: '/',
-    display: 'standalone',
+    display: 'fullscreen',
     background_color: '#ffffff',
     theme_color: '#000000',
     orientation: 'portrait-primary',

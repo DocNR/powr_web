@@ -260,6 +260,10 @@
 
 
 @layer utilities {
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+  
   .pb-safe {
     padding-bottom: env(safe-area-inset-bottom);
   }
@@ -436,6 +440,32 @@
   .content-area {
     -webkit-user-select: text;
     user-select: text;
+  }
+}
+
+/* Fullscreen PWA mode detection - NEW for translucent status bar */
+@media (display-mode: fullscreen) {
+  /* Styles when app is in fullscreen mode */
+  body {
+    /* Ensure content extends behind status bar */
+    padding-top: 0 !important;
+  }
+  
+  /* Main app container should handle safe area */
+  .app-container {
+    padding-top: env(safe-area-inset-top);
+  }
+  
+  /* Status bar area styling for translucent effect */
+  .status-bar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: env(safe-area-inset-top);
+    background: transparent;
+    z-index: 9999;
+    pointer-events: none;
   }
 }
 
