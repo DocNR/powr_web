@@ -31,6 +31,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Automatic Workout History Refresh After Completion COMPLETE (August 5, 2025) ✅**
+  
+  **User Impact**: Users now see their completed workouts appear automatically in the Log tab without manual refresh. Custom DOM event system triggers automatic data refresh 3 seconds after workout completion, ensuring fresh workout history is always available. Log tab search box now matches Library tab styling for consistent user experience across all tabs.
+  
+  **Developer Notes**: Implemented custom DOM event system where WorkoutUIProvider dispatches `powr-workout-complete` event on workout completion, and WorkoutHistoryProvider listens for this event to trigger automatic refetch with 3-second delay. Updated LogTab search box styling to match LibraryTab with `pl-10 h-12 text-base` classes and proper Search icon positioning. Removed manual refresh button from LogTab, keeping only pull-to-refresh functionality for cleaner UI consistency.
+  
+  **Architecture Changes**: Established custom DOM event pattern for cross-provider communication without tight coupling. Automatic refresh system ensures workout history stays current without user intervention. Consistent search styling patterns across all tabs enhance user experience. Foundation ready for similar automatic refresh patterns in other data providers.
+
 - **Library Data Provider Duplicate Subscription Fix COMPLETE (August 5, 2025) ✅**
   
   **User Impact**: Users now experience 70%+ faster library browsing with eliminated duplicate network requests and improved cache performance. Single subscription architecture prevents websocket conflicts while maintaining all existing functionality. Library content loads from cache in sub-100ms for previously viewed data, with seamless real-time updates when new content is available.

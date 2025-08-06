@@ -18,6 +18,8 @@ interface WorkoutHistoryContextType {
   // New caching features
   getOfflineCount: () => Promise<number>;
   lastFetched: number | null;
+  // ✅ NEW: Force refetch after workout completion
+  forceRefetch: () => Promise<void>;
 }
 
 const WorkoutHistoryContext = createContext<WorkoutHistoryContextType | undefined>(undefined);
@@ -43,7 +45,7 @@ export function WorkoutHistoryProvider({ children }: WorkoutHistoryProviderProps
   const isAuthenticated = useIsAuthenticated();
   const user = useAccount();
   
-  // ✅ NEW: Use caching hook instead of direct NDK subscription
+  // ✅ NEW: Use caching hook with PARALLEL strategy for real-time updates
   const {
     events: workoutEvents,
     isLoading,
@@ -57,10 +59,16 @@ export function WorkoutHistoryProvider({ children }: WorkoutHistoryProviderProps
     {
       enabled: isAuthenticated && !!user?.pubkey,
       onSuccess: (events) => {
-        console.log('[WorkoutHistoryProvider] ✅ Cache-first fetch completed:', events.length, 'events');
+        console.log('[WorkoutHistoryProvider] ✅ Parallel fetch completed:', events.length, 'events for user:', user?.pubkey?.slice(0, 8));
+        console.log('[WorkoutHistoryProvider] 📊 Event details:', events.map(e => ({
+          id: e.id.slice(0, 8),
+          kind: e.kind,
+          pubkey: e.pubkey.slice(0, 8),
+          created_at: e.created_at ? new Date(e.created_at * 1000).toISOString() : 'unknown'
+        })));
       },
       onError: (error) => {
-        console.error('[WorkoutHistoryProvider] ❌ Cache-first fetch failed:', error);
+        console.error('[WorkoutHistoryProvider] ❌ Parallel fetch failed for user:', user?.pubkey?.slice(0, 8), error);
       }
     }
   );
@@ -156,6 +164,31 @@ export function WorkoutHistoryProvider({ children }: WorkoutHistoryProviderProps
     }
   }, [isAuthenticated, user?.pubkey, refetch]);
 
+  // ✅ NEW: Force refetch function (same as refreshData for now)
+  const forceRefetch = useCallback(async () => {
+    console.log('[WorkoutHistoryProvider] 🔄 Force refetch requested (after workout completion)');
+    await refreshData();
+  }, [refreshData]);
+
+  // Listen for workout completion events
+  useEffect(() => {
+    const handleWorkoutComplete = () => {
+      console.log('[WorkoutHistoryProvider] 🎯 Workout completion detected, triggering refetch');
+      
+      // 3 second delay to allow NDK event delivery
+      setTimeout(() => {
+        forceRefetch();
+      }, 3000);
+    };
+
+    // Listen for custom workout completion event
+    window.addEventListener('powr-workout-complete', handleWorkoutComplete);
+    
+    return () => {
+      window.removeEventListener('powr-workout-complete', handleWorkoutComplete);
+    };
+  }, [forceRefetch]);
+
   // Simple hasMore logic - assume there's more if we got the full limit
   const hasMoreRecords = workoutEvents.length >= recordLimit;
 
@@ -169,7 +202,8 @@ export function WorkoutHistoryProvider({ children }: WorkoutHistoryProviderProps
     hasMoreRecords,
     isLoadingMore,
     getOfflineCount,
-    lastFetched
+    lastFetched,
+    forceRefetch
   };
 
   return (

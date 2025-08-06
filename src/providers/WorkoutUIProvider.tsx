@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useWorkoutContext } from '@/hooks/useWorkoutContext';
+import { usePubkey } from '@/lib/auth/hooks';
 import { WorkoutMiniBar } from '@/components/powr-ui/workout/WorkoutMiniBar';
 import { ActiveWorkoutInterface } from '@/components/powr-ui/workout/ActiveWorkoutInterface';
 
@@ -27,6 +28,7 @@ interface WorkoutUIProviderProps {
 
 export const WorkoutUIProvider: React.FC<WorkoutUIProviderProps> = ({ children }) => {
   const { workoutState, workoutSend } = useWorkoutContext();
+  const userPubkey = usePubkey();
   const [isClient, setIsClient] = useState(false);
   
   // Real-time timer using React state that updates every second
@@ -147,6 +149,18 @@ export const WorkoutUIProvider: React.FC<WorkoutUIProviderProps> = ({ children }
             }}
             onWorkoutComplete={(workoutData) => {
               console.log('[WorkoutUIProvider] Workout completed with data:', workoutData);
+              
+              // Dispatch custom event for WorkoutHistoryProvider to listen to
+              if (userPubkey) {
+                console.log('[WorkoutUIProvider] 🎯 Dispatching workout completion event');
+                window.dispatchEvent(new CustomEvent('powr-workout-complete', {
+                  detail: { 
+                    pubkey: userPubkey,
+                    workoutId: workoutData.workoutId
+                  }
+                }));
+              }
+              
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               workoutSend({ type: 'WORKOUT_COMPLETED', workoutData: workoutData as any });
             }}

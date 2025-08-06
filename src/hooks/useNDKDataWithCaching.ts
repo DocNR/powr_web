@@ -221,7 +221,7 @@ export function useLibraryData(
 }
 
 /**
- * Specialized hook for workout history (cache-first)
+ * Specialized hook for workout history (parallel for real-time updates)
  */
 export function useWorkoutHistory(
   userPubkey: string,
@@ -234,16 +234,26 @@ export function useWorkoutHistory(
   // ✅ FIXED: Memoize filters to prevent infinite loops
   const filters = useMemo<NDKFilter[]>(() => {
     return userPubkey ? [{
-      kinds: [WORKOUT_EVENT_KINDS.WORKOUT_RECORD as number], // Workout records
+      kinds: [WORKOUT_EVENT_KINDS.WORKOUT_RECORD as number], // Workout records (1301)
       authors: [userPubkey],
       limit
     }] : [];
   }, [userPubkey, limit]);
 
+  // ✅ NDK BEST PRACTICES: Use PARALLEL strategy for real-time social feeds
   const result = useNDKDataWithCaching(filters, {
     ...options,
-    strategy: 'cache-first',
-    enabled: !!userPubkey
+    strategy: 'parallel', // Cache + network simultaneously for real-time updates
+    enabled: !!userPubkey,
+    timeout: 8000, // Longer timeout for workout history
+    onSuccess: (events) => {
+      console.log(`[useWorkoutHistory] ✅ Fetched ${events.length} workout records for user:`, userPubkey.slice(0, 8));
+      options.onSuccess?.(events);
+    },
+    onError: (error) => {
+      console.error(`[useWorkoutHistory] ❌ Failed to fetch workout records for user ${userPubkey.slice(0, 8)}:`, error);
+      options.onError?.(error);
+    }
   });
 
   const getOfflineCount = useCallback(async () => {
