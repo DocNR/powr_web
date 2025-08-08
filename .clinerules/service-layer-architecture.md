@@ -313,6 +313,112 @@ const analytics = workoutAnalyticsService.calculateStats(workouts);
 const performance = exerciseAnalyticsService.analyzePerformance(sets);
 ```
 
+### Pattern 3: Facade Pattern for Service Refactoring
+```typescript
+// ✅ CORRECT: Facade pattern for refactoring monolithic services
+// When refactoring large services, use facade pattern to maintain backward compatibility
+
+// Step 1: Extract focused services
+// src/lib/services/libraryCollectionService.ts
+export class LibraryCollectionService {
+  async getUserCollection(userPubkey: string, collectionType: string): Promise<Collection | null> { }
+  async createCollection(userPubkey: string, collectionType: string, refs: string[]): Promise<Collection> { }
+  async addToCollection(userPubkey: string, collectionType: string, itemRef: string): Promise<void> { }
+}
+
+// src/lib/services/libraryOnboardingService.ts  
+export class LibraryOnboardingService {
+  async setupStarterLibrary(userPubkey: string): Promise<StarterLibraryResult> { }
+  async validateStarterContent(): Promise<StarterContentValidation> { }
+  async isLibraryEmpty(userPubkey: string): Promise<boolean> { }
+}
+
+// src/lib/services/templateManagementService.ts
+export class TemplateManagementService {
+  analyzeTemplateModifications(modifications: any, originalTemplate: any, userPubkey: string): TemplateAnalysis { }
+  generateSmartTemplateName(originalTemplate: any, modifications: any): string { }
+  buildTemplateFromWorkoutStructure(workoutData: any): TemplateStructure { }
+}
+
+// Export focused service singletons
+export const libraryCollectionService = new LibraryCollectionService();
+export const libraryOnboardingService = new LibraryOnboardingService();
+export const templateManagementService = new TemplateManagementService();
+
+// Step 2: Create facade for backward compatibility
+// src/lib/services/libraryManagement.ts
+export class LibraryManagementService {
+  // ===== COLLECTION OPERATIONS (delegate to LibraryCollectionService) =====
+  
+  async getUserLibraryCollection(userPubkey: string, collectionType: string): Promise<Collection | null> {
+    return libraryCollectionService.getUserCollection(userPubkey, collectionType);
+  }
+
+  async createLibraryCollection(userPubkey: string, collectionType: string, refs: string[] = []): Promise<Collection> {
+    return libraryCollectionService.createCollection(userPubkey, collectionType, refs);
+  }
+
+  async addToLibraryCollection(userPubkey: string, collectionType: string, itemRef: string): Promise<void> {
+    return libraryCollectionService.addToCollection(userPubkey, collectionType, itemRef);
+  }
+
+  // ===== ONBOARDING OPERATIONS (delegate to LibraryOnboardingService) =====
+  
+  async setupStarterLibrary(userPubkey: string): Promise<StarterLibraryResult> {
+    return libraryOnboardingService.setupStarterLibrary(userPubkey);
+  }
+
+  async validateStarterContent(): Promise<StarterContentValidation> {
+    return libraryOnboardingService.validateStarterContent();
+  }
+
+  async isLibraryEmpty(userPubkey: string): Promise<boolean> {
+    return libraryOnboardingService.isLibraryEmpty(userPubkey);
+  }
+
+  // ===== TEMPLATE OPERATIONS (delegate to TemplateManagementService) =====
+  
+  analyzeTemplateModifications(modifications: any, originalTemplate: any, userPubkey: string): TemplateAnalysis {
+    return templateManagementService.analyzeTemplateModifications(modifications, originalTemplate, userPubkey);
+  }
+
+  generateSmartTemplateName(originalTemplate: any, modifications: any): string {
+    return templateManagementService.generateSmartTemplateName(originalTemplate, modifications);
+  }
+
+  buildTemplateFromWorkoutStructure(workoutData: any): TemplateStructure {
+    return templateManagementService.buildTemplateFromWorkoutStructure(workoutData);
+  }
+}
+
+// Export facade singleton - existing code continues to work
+export const libraryManagementService = new LibraryManagementService();
+
+// Step 3: Usage pattern - ALWAYS use the facade
+// ✅ CORRECT: Use facade for backward compatibility
+import { libraryManagementService } from '@/lib/services/libraryManagement';
+
+const collection = await libraryManagementService.getUserLibraryCollection(userPubkey, 'EXERCISE_LIBRARY');
+const template = libraryManagementService.buildTemplateFromWorkoutStructure(workoutData);
+
+// ❌ FORBIDDEN: Don't use focused services directly
+import { libraryCollectionService } from '@/lib/services/libraryCollectionService'; // Internal implementation detail
+```
+
+### Facade Pattern Benefits
+- **Backward Compatibility**: All existing code continues to work unchanged
+- **Single Responsibility**: Internal services have focused responsibilities
+- **Maintainability**: Services under 400 lines each (down from 700+ monolithic)
+- **Testability**: Each focused service can be tested in isolation
+- **Bundle Optimization**: Tree-shaking friendly through focused services
+- **Migration Safety**: Refactor internal structure without breaking changes
+
+### When to Use Facade Pattern
+- **Refactoring monolithic services** (>500 lines with multiple responsibilities)
+- **Maintaining backward compatibility** during service extraction
+- **Gradual migration** from complex to focused services
+- **API stability** while improving internal architecture
+
 ## NDK-Specific Optimizations
 
 ### Pattern 1: Universal NDK Cache Service Integration
