@@ -39,6 +39,36 @@ export interface WorkoutTemplate {
   createdAt: number; // Unix timestamp
 }
 
+// Workout modification tracking types
+export interface WorkoutModifications {
+  exercisesAdded: Array<{
+    exerciseRef: string;
+    insertIndex: number;
+    timestamp: number;
+  }>;
+  exercisesRemoved: Array<{
+    exerciseRef: string;
+    exerciseIndex: number;
+    hadCompletedSets: boolean;
+    timestamp: number;
+  }>;
+  exercisesSubstituted: Array<{
+    originalRef: string;
+    replacementRef: string;
+    exerciseIndex: number;
+    hadCompletedSets: boolean;
+    timestamp: number;
+  }>;
+  exercisesReordered: Array<{
+    fromIndex: number;
+    toIndex: number;
+    exerciseRef: string;
+    timestamp: number;
+  }>;
+  modifiedAt: number;
+  totalModifications: number;
+}
+
 export interface WorkoutData {
   workoutId: string;
   templateId?: string;
@@ -50,7 +80,11 @@ export interface WorkoutData {
   notes?: string;
   workoutType: 'strength' | 'circuit' | 'emom' | 'amrap';
   template?: WorkoutTemplate; // Loaded template data
-  extraSetsRequested?: { [exerciseRef: string]: number };
+  extraSetsRequested?: { [exerciseIndex: number]: number }; // ✅ FIXED: Use exerciseIndex instead of exerciseRef
+  // ✅ NEW: Template modification tracking for save prompt
+  modifications?: WorkoutModifications;
+  originalTemplate?: TemplateSelection;
+  userPubkey?: string;
 }
 
 // User and authentication types

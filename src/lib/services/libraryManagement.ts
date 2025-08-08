@@ -413,17 +413,423 @@ export class LibraryManagementService {
   }
 
   /**
-   * Add item to library collection (placeholder for future implementation)
-   * Currently not implemented - collections are append-only for now
+   * Add item to existing library collection
+   * Updates the collection with new content reference and publishes updated event
    */
   async addToLibraryCollection(
     userPubkey: string,
     collectionType: POWRCollectionType,
     itemRef: string
   ): Promise<void> {
-    console.log(`[LibraryManagementService] Add to ${collectionType} not implemented yet:`, itemRef);
-    // TODO: Implement add functionality when needed
-    throw new Error('addToLibraryCollection not implemented yet');
+    try {
+      console.log(`[LibraryManagementService] Adding ${itemRef} to ${collectionType} collection`);
+
+      const ndk = getNDKInstance();
+      if (!ndk || !userPubkey) {
+        throw new Error('NDK not initialized or user not authenticated');
+      }
+
+      // Get existing collection
+      const existingCollection = await this.getUserLibraryCollection(userPubkey, collectionType);
+      
+      if (!existingCollection) {
+        // Create new collection with this item
+        await this.createLibraryCollection(userPubkey, collectionType, [itemRef]);
+        console.log(`[LibraryManagementService] ✅ Created new ${collectionType} collection with item`);
+        return;
+      }
+
+      // Check if item already exists
+      if (existingCollection.contentRefs.includes(itemRef)) {
+        console.log(`[LibraryManagementService] Item ${itemRef} already exists in ${collectionType}`);
+        return;
+      }
+
+      // Add new item to existing collection
+      const updatedContentRefs = [...existingCollection.contentRefs, itemRef];
+      const dTag = POWR_COLLECTION_DTAGS[collectionType];
+
+      // Create updated collection event (replaceable)
+      const updatedCollectionEvent = new NDKEvent(ndk, {
+        kind: 30003,
+        content: '',
+        tags: [
+          ['d', dTag],
+          ['title', existingCollection.name],
+          ['description', existingCollection.description],
+          // Add all content references including the new one
+          ...updatedContentRefs.map(ref => ['a', ref])
+        ],
+        created_at: Math.floor(Date.now() / 1000),
+        pubkey: userPubkey
+      });
+
+      // Publish updated collection
+      await updatedCollectionEvent.publish();
+      console.log(`[LibraryManagementService] ✅ Added ${itemRef} to ${collectionType} collection`);
+
+    } catch (error) {
+      console.error(`[LibraryManagementService] Failed to add item to ${collectionType}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Analyze template modifications to determine if save prompt should be shown
+   * Implements smart thresholds: any add/remove, 2+ substitutions, 3+ reorders
+   */
+  analyzeTemplateModifications(
+    modifications: any,
+    originalTemplate: any,
+    userPubkey: string
+  ): {
+    isOwner: boolean;
+    hasSignificantChanges: boolean;
+    modificationSummary: string;
+    totalChanges: number;
+    canUpdateOriginal: boolean;
+    canSaveAsNew: boolean;
+  } {
+    const isOwner = originalTemplate.authorPubkey === userPubkey;
+    
+    const addedCount = modifications.exercisesAdded?.length || 0;
+    const removedCount = modifications.exercisesRemoved?.length || 0;
+    const substitutedCount = modifications.exercisesSubstituted?.length || 0;
+    const reorderedCount = modifications.exercisesReordered?.length || 0;
+    
+    // Smart thresholds
+    const hasSignificantChanges = (
+      addedCount > 0 ||
+      removedCount > 0 ||
+      substitutedCount >= 2 ||
+      reorderedCount >= 3
+    );
+    
+    const totalChanges = addedCount + removedCount + substitutedCount + reorderedCount;
+    
+    // Generate modification summary
+    const summaryParts = [];
+    if (addedCount > 0) summaryParts.push(`${addedCount} exercise${addedCount > 1 ? 's' : ''} added`);
+    if (removedCount > 0) summaryParts.push(`${removedCount} exercise${removedCount > 1 ? 's' : ''} removed`);
+    if (substitutedCount > 0) summaryParts.push(`${substitutedCount} exercise${substitutedCount > 1 ? 's' : ''} substituted`);
+    if (reorderedCount > 0) summaryParts.push(`${reorderedCount} exercise${reorderedCount > 1 ? 's' : ''} reordered`);
+    
+    const modificationSummary = summaryParts.length > 0 
+      ? summaryParts.join(', ')
+      : 'No significant changes detected';
+    
+    console.log(`[LibraryManagementService] Template modification analysis:`, {
+      isOwner,
+      hasSignificantChanges,
+      totalChanges,
+      modificationSummary
+    });
+    
+    return {
+      isOwner,
+      hasSignificantChanges,
+      modificationSummary,
+      totalChanges,
+      canUpdateOriginal: isOwner,
+      canSaveAsNew: true
+    };
+  }
+
+  /**
+   * Generate smart template name based on original template and modifications
+   * Creates descriptive names showing relationship to original plus changes
+   */
+  generateSmartTemplateName(originalTemplate: any, modifications: any): string {
+    const baseName = originalTemplate.name || 'Workout Template';
+    
+    const addedCount = modifications.exercisesAdded?.length || 0;
+    const removedCount = modifications.exercisesRemoved?.length || 0;
+    const substitutedCount = modifications.exercisesSubstituted?.length || 0;
+    
+    // Generate descriptive suffix based on modifications
+    const suffixParts = [];
+    
+    if (addedCount > 0) {
+      // Try to identify what was added
+      const addedExercises = modifications.exercisesAdded || [];
+      if (addedExercises.length === 1) {
+        suffixParts.push('+ Extra');
+      } else {
+        suffixParts.push(`+ ${addedCount} Exercises`);
+      }
+    }
+    
+    if (removedCount > 0) {
+      if (removedCount === 1) {
+        suffixParts.push('(Modified)');
+      } else {
+        suffixParts.push(`(${removedCount} Removed)`);
+      }
+    }
+    
+    if (substitutedCount > 0) {
+      suffixParts.push('(Custom)');
+    }
+    
+    // Fallback for reorders or no specific changes
+    if (suffixParts.length === 0) {
+      suffixParts.push('(Modified)');
+    }
+    
+    const smartName = `${baseName} ${suffixParts.join(' ')}`;
+    
+    console.log(`[LibraryManagementService] Generated smart template name:`, {
+      original: baseName,
+      generated: smartName,
+      modifications: { addedCount, removedCount, substitutedCount }
+    });
+    
+    return smartName;
+  }
+
+  /**
+   * Build template from workout structure (enhanced to handle added exercises and extra sets)
+   * Uses the actual workout state including added exercises and extra sets
+   */
+  buildTemplateFromWorkoutStructure(
+    workoutData: any
+  ): {
+    name: string;
+    type: string;
+    description: string;
+    exercises: Array<{
+      exerciseRef: string;
+      name: string;
+      sets: number;
+      reps: number;
+      weight: number;
+      rpe: number;
+      setType: string;
+    }>;
+  } {
+    console.log('[LibraryManagementService] Building template from workout structure:', {
+      workoutTitle: workoutData?.title,
+      exerciseCount: workoutData?.exercises?.length || 0
+    });
+
+    // ✅ FIXED: Use the actual workout exercises including added exercises and account for extra sets
+    const exercises = (workoutData?.exercises || []).map((exercise: any, exerciseIndex: number) => {
+      // Get the base sets from the exercise
+      const baseSets = exercise.sets || 3;
+      
+      // ✅ FIXED: Account for extra sets requested via ADD_SET
+      const extraSets = workoutData?.extraSetsRequested?.[exerciseIndex] || 0;
+      const totalSets = baseSets + extraSets;
+      
+      console.log(`[LibraryManagementService] Exercise ${exerciseIndex} (${exercise.exerciseRef}): ${baseSets} base + ${extraSets} extra = ${totalSets} total sets`);
+      
+      return {
+        exerciseRef: exercise.exerciseRef,
+        name: exercise.exerciseName || exercise.name || 'Exercise',
+        sets: totalSets, // ✅ FIXED: Use total sets including extra sets
+        reps: exercise.reps || 10,
+        weight: exercise.weight || 0,
+        rpe: exercise.rpe || 7,
+        setType: exercise.setType || 'normal'
+      };
+    });
+
+    // Generate template name
+    const baseName = workoutData?.title?.replace(/ - \d{1,2}\/\d{1,2}\/\d{4}$/, '') || 'Workout Template';
+    const templateName = `${baseName} (Modified)`;
+
+    const result = {
+      name: templateName,
+      type: workoutData?.workoutType || 'strength',
+      description: `Modified version of ${baseName}`,
+      exercises
+    };
+
+    console.log('[LibraryManagementService] ✅ Built template from workout structure:', {
+      name: result.name,
+      exerciseCount: result.exercises.length,
+      totalSets: result.exercises.reduce((sum: number, ex: any) => sum + ex.sets, 0)
+    });
+
+    return result;
+  }
+
+  /**
+   * Create new modified template with NIP-101e compliance
+   * Uses workout structure as it was when user hit "Finish"
+   */
+  async createModifiedTemplate(
+    workoutData: any,
+    userPubkey: string
+  ): Promise<any> {
+    try {
+      console.log(`[LibraryManagementService] Creating template from workout structure:`, {
+        workoutTitle: workoutData?.title,
+        userPubkey: userPubkey.slice(0, 8),
+        exerciseCount: workoutData?.exercises?.length || 0
+      });
+
+      const ndk = getNDKInstance();
+      if (!ndk || !userPubkey) {
+        throw new Error('NDK not initialized or user not authenticated');
+      }
+
+      // Build template structure from workout data (simple approach)
+      const templateData = this.buildTemplateFromWorkoutStructure(workoutData);
+
+      // Generate unique d-tag for new template
+      const dTag = `${templateData.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${Date.now()}`;
+
+      // Create exercise tags with proper NIP-101e set numbering
+      const exerciseTags: string[][] = [];
+      templateData.exercises.forEach(exercise => {
+        // Create multiple tags for multi-set exercises (proper NIP-101e format)
+        for (let setNum = 1; setNum <= exercise.sets; setNum++) {
+          exerciseTags.push([
+            'exercise',
+            exercise.exerciseRef,
+            '', // relay-url (empty)
+            exercise.weight.toString(),
+            exercise.reps.toString(),
+            exercise.rpe.toString(),
+            exercise.setType,
+            setNum.toString() // ✅ FIXED: Per-exercise set numbering (1,2,3 then reset)
+          ]);
+        }
+      });
+
+      console.log(`[LibraryManagementService] Generated ${exerciseTags.length} exercise tags with proper set numbering`);
+
+      // Create NIP-101e compliant template event (kind 33402)
+      const templateEvent = new NDKEvent(ndk, {
+        kind: 33402,
+        content: templateData.description || '',
+        tags: [
+          ['d', dTag],
+          ['title', templateData.name], // NIP-101e uses "title", not "name"
+          ['type', templateData.type],
+          // Add properly structured exercise tags
+          ...exerciseTags,
+          ['t', 'fitness']
+        ],
+        created_at: Math.floor(Date.now() / 1000),
+        pubkey: userPubkey
+      });
+
+      // Publish the template
+      await templateEvent.publish();
+      console.log(`[LibraryManagementService] ✅ Modified template published:`, templateEvent.id);
+
+      // Return template data
+      return {
+        id: dTag,
+        name: templateData.name,
+        type: templateData.type,
+        description: templateData.description,
+        exercises: templateData.exercises,
+        authorPubkey: userPubkey,
+        createdAt: templateEvent.created_at,
+        eventId: templateEvent.id
+      };
+
+    } catch (error) {
+      console.error('[LibraryManagementService] Failed to create modified template:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update existing template (owner-only, replaceable event)
+   * Updates the original template with new data
+   */
+  async updateExistingTemplate(templateData: any, originalTemplate: any): Promise<any> {
+    try {
+      console.log(`[LibraryManagementService] Updating existing template:`, originalTemplate.id);
+
+      const ndk = getNDKInstance();
+      if (!ndk) {
+        throw new Error('NDK not initialized');
+      }
+
+      // Create updated template event (replaceable, same d-tag)
+      const updatedTemplateEvent = new NDKEvent(ndk, {
+        kind: 33402,
+        content: templateData.description || originalTemplate.description || '',
+        tags: [
+          ['d', originalTemplate.id], // Same d-tag for replacement
+          ['title', templateData.name], // NIP-101e uses "title", not "name"
+          ['type', templateData.type || originalTemplate.type || 'strength'],
+          // Add updated exercise references
+          ...(templateData.exercises || []).map((exercise: any, index: number) => [
+            'exercise',
+            exercise.exerciseRef || `33401:${originalTemplate.authorPubkey}:unknown`,
+            '', // relay-url (empty)
+            (exercise.weight || 0).toString(),
+            (exercise.reps || 0).toString(),
+            (exercise.rpe || 7).toString(),
+            exercise.setType || 'normal',
+            (index + 1).toString() // set number for deduplication
+          ]),
+          ['t', 'fitness']
+        ],
+        created_at: Math.floor(Date.now() / 1000),
+        pubkey: originalTemplate.authorPubkey
+      });
+
+      // Publish the updated template
+      await updatedTemplateEvent.publish();
+      console.log(`[LibraryManagementService] ✅ Template updated:`, updatedTemplateEvent.id);
+
+      // Return updated template data
+      return {
+        ...originalTemplate,
+        name: templateData.name,
+        type: templateData.type || originalTemplate.type,
+        description: templateData.description || originalTemplate.description,
+        exercises: templateData.exercises || originalTemplate.exercises,
+        eventId: updatedTemplateEvent.id
+      };
+
+    } catch (error) {
+      console.error('[LibraryManagementService] Failed to update existing template:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Simple template modification analysis for save prompt
+   * Following "simple solutions first" - any modification = save prompt
+   */
+  analyzeWorkoutForTemplateChanges(workoutData: any): {
+    hasModifications: boolean;
+    modificationCount: number;
+    suggestedName: string;
+    isOwner: boolean;
+  } {
+    const modifications = workoutData.modifications || {};
+    const hasModifications = (
+      (modifications.exercisesAdded?.length || 0) > 0 ||
+      (modifications.exercisesRemoved?.length || 0) > 0 ||
+      (modifications.exercisesSubstituted?.length || 0) > 0 ||
+      (modifications.exercisesReordered?.length || 0) > 0
+    );
+    
+    const originalTemplate = workoutData.originalTemplate;
+    const isOwner = originalTemplate?.templatePubkey === workoutData.userPubkey;
+    
+    console.log('[LibraryManagementService] Template modification analysis:', {
+      hasModifications,
+      modificationCount: modifications.totalModifications || 0,
+      isOwner,
+      templateName: originalTemplate?.templateId || 'Unknown'
+    });
+    
+    return {
+      hasModifications,
+      modificationCount: modifications.totalModifications || 0,
+      suggestedName: `${originalTemplate?.templateId || 'Workout'} (Modified)`,
+      isOwner
+    };
   }
 
   /**

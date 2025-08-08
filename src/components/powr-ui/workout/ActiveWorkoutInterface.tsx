@@ -10,6 +10,7 @@ import { SupersetGroup } from './SupersetGroup';
 import { ExerciseReorderModal } from './ExerciseReorderModal';
 import { WorkoutImageHandler } from './WorkoutImageHandler';
 import { ExerciseDetailModal } from '@/components/library/ExerciseDetailModal';
+import { SaveTemplateModal } from './SaveTemplateModal';
 import { ArrowLeft, Square, Plus } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
@@ -43,6 +44,8 @@ interface ExerciseData {
 interface ActiveWorkoutInterfaceProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   activeWorkoutActor: any; // XState actor reference
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  workoutLifecycleActor?: any; // NEW: Lifecycle actor for template save prompt
   isOpen?: boolean; // NEW: Control modal open state
   onMinimize: () => void; // Changed from onClose to onMinimize
   onWorkoutComplete?: (workoutData: WorkoutData) => void;
@@ -60,6 +63,7 @@ interface ActiveWorkoutInterfaceProps {
 
 export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
   activeWorkoutActor,
+  workoutLifecycleActor, // NEW: Lifecycle actor for template save prompt
   isOpen = true, // NEW: Default to open
   onMinimize,
   onWorkoutComplete,
@@ -98,6 +102,15 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
   const extraSetsRequested = useSelector(activeWorkoutActor, (state: any) => 
     state.context?.workoutData?.extraSetsRequested || {}
   );
+
+  // ✅ NEW: Monitor lifecycle state for template save prompt
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const lifecycleState = workoutLifecycleActor ? useSelector(workoutLifecycleActor, (state: any) => state) : null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const templateAnalysis = workoutLifecycleActor ? useSelector(workoutLifecycleActor, (state: any) => state.context?.templateAnalysis) : null;
+  
+  // Check if we should show the template save modal
+  const showTemplateSaveModal = lifecycleState?.matches?.('templateSavePrompt') && templateAnalysis?.hasModifications;
 
   // ✅ MINIMAL LOGGING: Only log on initial mount
   useEffect(() => {
@@ -145,8 +158,8 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
     // ✅ FIXED: Handle user-requested extra sets properly (ported from ActiveWorkoutContainer)
     const templateSets = exercise.sets || 3;
     
-    // Check if user has requested extra sets via ADD_SET events
-    const extraSets = extraSetsRequested[exercise.exerciseRef] || 0;
+    // ✅ FIXED: Check if user has requested extra sets via ADD_SET events using exerciseIndex
+    const extraSets = extraSetsRequested[index] || 0;
     
     // Total sets = template sets + any extra sets the user has requested
     const totalSets = templateSets + extraSets;
@@ -781,6 +794,37 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
           exerciseRef: exercise.exerciseRef
         }))}
       />
+
+      {/* ✅ NEW: Template Save Modal - Shows when lifecycle is in templateSavePrompt state */}
+      {workoutLifecycleActor && templateAnalysis && (
+        <SaveTemplateModal
+          isOpen={showTemplateSaveModal}
+          onClose={() => {
+            console.log('⏭️ SaveTemplateModal: Skipping template save');
+            workoutLifecycleActor.send({ type: 'SKIP_SAVE' });
+          }}
+          onSaveTemplate={(saveType: 'new' | 'update', templateName?: string) => {
+            console.log('💾 SaveTemplateModal: Saving template:', { saveType, templateName });
+            workoutLifecycleActor.send({ type: 'SAVE_TEMPLATE', saveType, templateName });
+          }}
+          modificationAnalysis={{
+            isOwner: templateAnalysis.isOwner,
+            hasSignificantChanges: templateAnalysis.hasModifications,
+            modificationSummary: `${templateAnalysis.modificationCount} modifications made`,
+            totalChanges: templateAnalysis.modificationCount,
+            canUpdateOriginal: templateAnalysis.isOwner,
+            canSaveAsNew: true
+          }}
+          originalTemplate={{
+            id: templateAnalysis.originalTemplate?.templateId || 'unknown',
+            name: templateAnalysis.originalTemplate?.templateId || 'Unknown Template',
+            authorPubkey: templateAnalysis.originalTemplate?.templatePubkey || '',
+            exercises: []
+          }}
+          isOwner={templateAnalysis.isOwner}
+          suggestedName={templateAnalysis.suggestedName}
+        />
+      )}
 
     </>
   );

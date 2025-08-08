@@ -18,7 +18,8 @@ import { LibraryDataProvider } from '@/providers/LibraryDataProvider';
 import { WorkoutContext } from '@/contexts/WorkoutContext';
 import { workoutLifecycleMachine } from '@/lib/machines/workout/workoutLifecycleMachine';
 import { usePubkey, useIsAuthenticated } from '@/lib/auth/hooks';
-import { WorkoutDetailModal } from '@/components/powr-ui/workout';
+import { WorkoutDetailModal, SaveTemplateModal } from '@/components/powr-ui/workout';
+import { libraryManagementService } from '@/lib/services/libraryManagement';
 
 export function AppLayout() {
   const isMobile = useMediaQuery('(max-width: 640px)');
@@ -213,6 +214,100 @@ export function AppLayout() {
     );
   };
 
+  // ✅ NEW: Global Save Template Modal - Handles template save prompts
+  const GlobalSaveTemplateModal = () => {
+    const workoutState = WorkoutContext.useSelector(state => state);
+    const workoutSend = WorkoutContext.useActorRef().send;
+
+    console.log('💾 [GlobalSaveTemplateModal] Current state:', workoutState.value, 'matches templateSavePrompt:', workoutState.matches('templateSavePrompt'));
+
+    const handleSaveTemplate = async (saveType: 'new' | 'update', templateName?: string) => {
+      console.log('💾 [GlobalSaveTemplateModal] Saving template:', { saveType, templateName });
+      
+      try {
+        const templateAnalysis = workoutState.context.templateAnalysis;
+        const workoutData = workoutState.context.workoutData;
+        
+        if (!templateAnalysis || !workoutData) {
+          console.error('❌ [GlobalSaveTemplateModal] Missing template analysis or workout data');
+          workoutSend({ type: 'SKIP_SAVE' });
+          return;
+        }
+
+        // Create template data from workout
+        const originalTemplate = templateAnalysis.originalTemplate as { templateId?: string; templatePubkey?: string } | undefined;
+        const templateData = {
+          name: templateName || templateAnalysis.suggestedName,
+          type: workoutData.workoutType || 'strength',
+          description: `Modified template based on ${originalTemplate?.templateId || 'workout'}`,
+          exercises: workoutData.exercises || []
+        };
+
+        if (saveType === 'update' && templateAnalysis.isOwner) {
+          // Update existing template
+          await libraryManagementService.updateExistingTemplate(templateData, templateAnalysis.originalTemplate);
+          console.log('✅ [GlobalSaveTemplateModal] Template updated successfully');
+        } else {
+          // Create new template from workout structure (simplified approach)
+          await libraryManagementService.createModifiedTemplate(
+            workoutData,
+            userInfo.pubkey
+          );
+          console.log('✅ [GlobalSaveTemplateModal] New template created successfully');
+        }
+
+        // Continue to summary
+        workoutSend({ type: 'SAVE_TEMPLATE' });
+        
+      } catch (error) {
+        console.error('❌ [GlobalSaveTemplateModal] Template save failed:', error);
+        // Continue to summary even if save fails
+        workoutSend({ type: 'SKIP_SAVE' });
+      }
+    };
+
+    const handleSkipSave = () => {
+      console.log('💾 [GlobalSaveTemplateModal] Skipping template save');
+      workoutSend({ type: 'SKIP_SAVE' });
+    };
+
+    const isModalOpen = workoutState.matches('templateSavePrompt');
+    const templateAnalysis = workoutState.context.templateAnalysis;
+
+    if (!isModalOpen || !templateAnalysis) {
+      return null;
+    }
+
+    // Create modification analysis for the modal
+    const modificationAnalysis = {
+      isOwner: templateAnalysis.isOwner,
+      hasSignificantChanges: templateAnalysis.hasModifications,
+      modificationSummary: `${templateAnalysis.modificationCount} modifications made to the original template`,
+      totalChanges: templateAnalysis.modificationCount,
+      canUpdateOriginal: templateAnalysis.isOwner,
+      canSaveAsNew: true
+    };
+
+    const originalTemplateData = templateAnalysis.originalTemplate as { templateId?: string; templatePubkey?: string } | undefined;
+    const originalTemplate = {
+      id: originalTemplateData?.templateId || 'unknown',
+      name: originalTemplateData?.templateId || 'Unknown Template',
+      authorPubkey: originalTemplateData?.templatePubkey || userInfo.pubkey
+    };
+
+    return (
+      <SaveTemplateModal
+        isOpen={isModalOpen}
+        onClose={handleSkipSave}
+        onSaveTemplate={handleSaveTemplate}
+        modificationAnalysis={modificationAnalysis}
+        originalTemplate={originalTemplate}
+        isOwner={templateAnalysis.isOwner}
+        suggestedName={templateAnalysis.suggestedName}
+      />
+    );
+  };
+
   return (
     <WorkoutContext.Provider 
       logic={workoutLifecycleMachine}
@@ -284,6 +379,9 @@ export function AppLayout() {
 
         {/* Global Workout Detail Modal - Handles search results */}
         <GlobalWorkoutModal />
+        
+        {/* Global Save Template Modal - Handles template save prompts */}
+        <GlobalSaveTemplateModal />
       </div>
     </WorkoutContext.Provider>
   );

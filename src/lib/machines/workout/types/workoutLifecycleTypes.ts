@@ -43,6 +43,15 @@ export interface WorkoutLifecycleContext extends BaseMachineContext {
   // NEW: Resolved template and exercises from dependency resolution
   resolvedTemplate?: unknown; // WorkoutTemplate from dependency resolution
   resolvedExercises?: unknown[]; // Exercise[] from dependency resolution
+  
+  // NEW: Template modification analysis for save prompt
+  templateAnalysis?: {
+    hasModifications: boolean;
+    modificationCount: number;
+    suggestedName: string;
+    isOwner: boolean;
+    originalTemplate?: unknown;
+  } | null;
 }
 
 // Active state context - guarantees workoutData is present
@@ -72,6 +81,10 @@ export type WorkoutLifecycleEvent =
   | { type: 'SHARE_WORKOUT'; content: string }
   | { type: 'SKIP_SHARING' }
   | { type: 'CLOSE_SUMMARY' }
+  
+  // NEW: Template save events
+  | { type: 'SAVE_TEMPLATE'; saveType?: 'new' | 'update'; templateName?: string }
+  | { type: 'SKIP_SAVE' }
   
   // NEW: Exercise resolution events from activeWorkoutMachine
   | { type: 'RESOLVE_AND_ADD_EXERCISES'; exerciseRefs: string[]; insertIndex?: number }

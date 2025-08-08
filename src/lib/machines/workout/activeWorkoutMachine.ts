@@ -345,7 +345,7 @@ export const activeWorkoutMachine = setup({
               ]
             },
             
-            // ADD_SET event handler - ✅ FIXED to use event.exerciseIndex
+            // ADD_SET event handler - ✅ FIXED to use exerciseIndex for tracking
             ADD_SET: {
               actions: assign({
                 workoutData: ({ context, event }) => {
@@ -363,17 +363,18 @@ export const activeWorkoutMachine = setup({
                     return context.workoutData;
                   }
                   
-                  const exerciseRef = exercise.exerciseRef;
-                  const currentExtra = context.workoutData.extraSetsRequested?.[exerciseRef] || 0;
+                  // ✅ FIXED: Use exerciseIndex instead of exerciseRef for tracking extra sets
+                  // This ensures each exercise instance tracks its own extra sets independently
+                  const currentExtra = context.workoutData.extraSetsRequested?.[exerciseIndex] || 0;
                   const newExtraCount = currentExtra + 1;
                   
-                  console.log(`[ActiveWorkoutMachine] ✅ Adding extra set #${newExtraCount} for ${exerciseRef} (index ${exerciseIndex})`);
+                  console.log(`[ActiveWorkoutMachine] ✅ Adding extra set #${newExtraCount} for ${exercise.exerciseRef} (index ${exerciseIndex})`);
                   
                   return {
                     ...context.workoutData,
                     extraSetsRequested: {
                       ...context.workoutData.extraSetsRequested,
-                      [exerciseRef]: newExtraCount
+                      [exerciseIndex]: newExtraCount  // ✅ FIXED: Use exerciseIndex as key
                     }
                   };
                 },
@@ -1076,8 +1077,8 @@ export const activeWorkoutMachine = setup({
             exerciseProgression: ({ context, event }) => {
               const targetExerciseIndex = event.exerciseIndex;
               
-              // Calculate correct set number based on completed sets for the target exercise
-              const targetExercise = context.workoutData.template?.exercises?.[targetExerciseIndex];
+              // ✅ FIXED: Use context.workoutData.exercises instead of context.workoutData.template.exercises
+              const targetExercise = context.workoutData.exercises?.[targetExerciseIndex];
               if (!targetExercise) {
                 console.warn(`[ActiveWorkoutMachine] Invalid exercise index: ${targetExerciseIndex}`);
                 return context.exerciseProgression;
@@ -1182,7 +1183,11 @@ export const activeWorkoutMachine = setup({
           completedSets: context.workoutData?.completedSets || [],
           templateId: context.workoutData?.template?.id || 'unknown-template',
           endTime: Date.now(),
-          extraSetsRequested: context.workoutData?.extraSetsRequested || {}
+          extraSetsRequested: context.workoutData?.extraSetsRequested || {},
+          // ✅ ADD: Include modification tracking data for template save analysis
+          modifications: context.workoutModifications,
+          originalTemplate: context.templateSelection,
+          userPubkey: context.userInfo.pubkey
         },
         totalDuration: Date.now() - (context.timingInfo?.startTime || Date.now()),
         completed: true

@@ -43,6 +43,20 @@ export const workoutLifecycleMachine = setup({
     
     canRetryOperation: ({ context }) => {
       return !!context.error && context.error.code !== 'FATAL_ERROR';
+    },
+    
+    // ✅ NEW: Check if workout has template modifications
+    hasTemplateModifications: ({ context }) => {
+      const workoutData = context.workoutData;
+      if (!workoutData?.modifications) return false;
+      
+      const modifications = workoutData.modifications;
+      return (
+        (modifications.exercisesAdded?.length || 0) > 0 ||
+        (modifications.exercisesRemoved?.length || 0) > 0 ||
+        (modifications.exercisesSubstituted?.length || 0) > 0 ||
+        (modifications.exercisesReordered?.length || 0) > 0
+      );
     }
   },
   
@@ -203,6 +217,52 @@ export const workoutLifecycleMachine = setup({
     // Clear active workout actor from context
     clearActiveWorkoutActor: assign({
       activeWorkoutActor: undefined
+    }),
+    
+    // ✅ NEW: Analyze template modifications for save prompt
+    analyzeTemplateModifications: assign({
+      templateAnalysis: ({ context }) => {
+        console.log('[WorkoutLifecycle] 🔍 Analyzing template modifications...');
+        
+        if (!context.workoutData) {
+          console.warn('[WorkoutLifecycle] No workout data for template analysis');
+          return null;
+        }
+        
+        // Use LibraryManagementService for analysis - handle undefined modifications
+        const modifications = context.workoutData.modifications;
+        if (!modifications) {
+          console.log('[WorkoutLifecycle] No modifications found in workout data');
+          return {
+            hasModifications: false,
+            modificationCount: 0,
+            suggestedName: `${context.workoutData.originalTemplate?.templateId || 'Workout'} (Modified)`,
+            isOwner: context.workoutData.originalTemplate?.templatePubkey === context.userInfo.pubkey,
+            originalTemplate: context.workoutData.originalTemplate
+          };
+        }
+        
+        const hasModifications = (
+          (modifications.exercisesAdded?.length || 0) > 0 ||
+          (modifications.exercisesRemoved?.length || 0) > 0 ||
+          (modifications.exercisesSubstituted?.length || 0) > 0 ||
+          (modifications.exercisesReordered?.length || 0) > 0
+        );
+        
+        const originalTemplate = context.workoutData.originalTemplate;
+        const isOwner = originalTemplate?.templatePubkey === context.userInfo.pubkey;
+        
+        const analysis = {
+          hasModifications,
+          modificationCount: modifications.totalModifications || 0,
+          suggestedName: `${originalTemplate?.templateId || 'Workout'} (Modified)`,
+          isOwner,
+          originalTemplate
+        };
+        
+        console.log('[WorkoutLifecycle] ✅ Template analysis complete:', analysis);
+        return analysis;
+      }
     })
   },
   
@@ -645,9 +705,72 @@ export const workoutLifecycleMachine = setup({
           }
         })
       ],
-      // Immediate transition to summary - no waiting for publishing
+      // ✅ NEW: Check for template modifications before going to summary
+      always: [
+        {
+          target: 'workoutPublished',
+          actions: 'analyzeTemplateModifications'
+        }
+      ],
+      on: {
+        START_SETUP: {
+          target: 'setup',
+          actions: [
+            assign({
+              templateReference: ({ event }) => event.templateReference
+            }),
+            'logTransition', 
+            'updateLastActivity'
+          ]
+        }
+      }
+    },
+    
+    // ✅ NEW: Intermediate state after workout publishing
+    workoutPublished: {
+      entry: ['logTransition'],
+      always: [
+        {
+          target: 'templateSavePrompt',
+          guard: 'hasTemplateModifications'
+        },
+        {
+          target: 'summary' // Skip to summary if no modifications
+        }
+      ]
+    },
+    
+    // ✅ NEW: Template save prompt state
+    templateSavePrompt: {
+      entry: ['logTransition'],
+      on: {
+        SAVE_TEMPLATE: {
+          target: 'savingTemplate',
+          actions: ['logTransition']
+        },
+        SKIP_SAVE: {
+          target: 'summary',
+          actions: ['logTransition']
+        },
+        START_SETUP: {
+          target: 'setup',
+          actions: [
+            assign({
+              templateReference: ({ event }) => event.templateReference
+            }),
+            'logTransition', 
+            'updateLastActivity'
+          ]
+        }
+      }
+    },
+    
+    // ✅ NEW: Template saving state
+    savingTemplate: {
+      entry: ['logTransition'],
+      // TODO: Add saveTemplateActor invoke here when implementing template saving
       always: {
-        target: 'summary'
+        target: 'summary' // For now, go directly to summary
       },
       on: {
         START_SETUP: {
