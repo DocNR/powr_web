@@ -248,15 +248,16 @@ export function AppLayout() {
           await libraryManagementService.updateExistingTemplate(templateData, templateAnalysis.originalTemplate);
           console.log('✅ [GlobalSaveTemplateModal] Template updated successfully');
         } else {
-          // Create new template from workout structure (simplified approach)
-          await libraryManagementService.createModifiedTemplate(
-            workoutData,
-            userInfo.pubkey
-          );
-          console.log('✅ [GlobalSaveTemplateModal] New template created successfully');
+          // Trigger SaveTemplateActor to create new template AND add to collection
+          console.log('✅ [GlobalSaveTemplateModal] Triggering SaveTemplateActor for new template creation');
+          workoutSend({ 
+            type: 'SAVE_TEMPLATE',
+            templateName: templateName || templateAnalysis.suggestedName
+          });
+          return; // Let the machine handle the rest
         }
 
-        // Continue to summary
+        // Continue to summary (for update case only)
         workoutSend({ type: 'SAVE_TEMPLATE' });
         
       } catch (error) {

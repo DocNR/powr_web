@@ -16,6 +16,7 @@ import type { UserInfo, WorkoutData } from './types/workoutTypes';
 import { publishWorkoutActor } from './actors/publishWorkoutActor';
 import { publishSocialNoteActor } from './actors/publishSocialNoteActor';
 import { loadTemplateActor } from './actors/loadTemplateActor';
+import { saveTemplateActor, type SaveTemplateOutput } from './actors/saveTemplateActor';
 import { workoutSetupMachine, loadTemplatesActor } from './workoutSetupMachine';
 import { activeWorkoutMachine } from './activeWorkoutMachine';
 
@@ -271,6 +272,7 @@ export const workoutLifecycleMachine = setup({
     loadTemplateActor,
     publishWorkoutActor,
     publishSocialNoteActor,
+    saveTemplateActor,
     loadTemplatesActor,
     
     // Use direct reference to real setup machine (following NOGA pattern)
@@ -768,9 +770,26 @@ export const workoutLifecycleMachine = setup({
     // ✅ NEW: Template saving state
     savingTemplate: {
       entry: ['logTransition'],
-      // TODO: Add saveTemplateActor invoke here when implementing template saving
-      always: {
-        target: 'summary' // For now, go directly to summary
+      invoke: {
+        src: 'saveTemplateActor',
+        input: ({ context }) => ({
+          workoutData: context.workoutData!,
+          userPubkey: context.userInfo.pubkey,
+          templateName: context.templateAnalysis?.suggestedName
+        }),
+        onDone: {
+          target: 'summary',
+          actions: [
+            assign({
+              savedTemplate: ({ event }) => (event as any).output
+            }),
+            'logTransition'
+          ]
+        },
+        onError: {
+          target: 'summary', // Continue to summary even if save fails
+          actions: ['logTransition']
+        }
       },
       on: {
         START_SETUP: {

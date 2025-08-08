@@ -421,12 +421,15 @@ export class LibraryManagementService {
     collectionType: POWRCollectionType,
     itemRef: string
   ): Promise<void> {
-    try {
-      console.log(`[LibraryManagementService] Adding ${itemRef} to ${collectionType} collection`);
+    console.log(`[LibraryManagementService] Adding ${itemRef} to ${collectionType} collection`);
 
+    try {
       const ndk = getNDKInstance();
-      if (!ndk || !userPubkey) {
-        throw new Error('NDK not initialized or user not authenticated');
+      if (!ndk) {
+        throw new Error('NDK not initialized');
+      }
+      if (!userPubkey) {
+        throw new Error('User not authenticated');
       }
 
       // Get existing collection
@@ -441,7 +444,7 @@ export class LibraryManagementService {
 
       // Check if item already exists
       if (existingCollection.contentRefs.includes(itemRef)) {
-        console.log(`[LibraryManagementService] Item ${itemRef} already exists in ${collectionType}`);
+        console.log(`[LibraryManagementService] Item already exists in ${collectionType}, skipping`);
         return;
       }
 
@@ -466,10 +469,14 @@ export class LibraryManagementService {
 
       // Publish updated collection
       await updatedCollectionEvent.publish();
-      console.log(`[LibraryManagementService] ✅ Added ${itemRef} to ${collectionType} collection`);
+      
+      console.log(`[LibraryManagementService] ✅ Added ${itemRef} to ${collectionType} collection (${updatedContentRefs.length} total items)`);
 
     } catch (error) {
-      console.error(`[LibraryManagementService] Failed to add item to ${collectionType}:`, error);
+      console.error(`[LibraryManagementService] ❌ Failed to add item to ${collectionType}:`, {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        itemRef
+      });
       throw error;
     }
   }

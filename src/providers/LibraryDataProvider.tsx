@@ -88,6 +88,29 @@ export const LibraryDataProvider: React.FC<LibraryDataProviderProps> = ({ childr
       window.removeEventListener('powr-onboarding-complete', handleOnboardingComplete);
     };
   }, [libraryData.refetch]);
+
+  // ✅ NEW: Listen for template save completion events
+  useEffect(() => {
+    const handleTemplateSaved = (event: CustomEvent) => {
+      console.log('[LibraryDataProvider] 🎯 Template save completion detected, triggering refetch:', {
+        templateId: event.detail?.templateId,
+        templateRef: event.detail?.templateRef,
+        timestamp: event.detail?.timestamp
+      });
+      
+      // Refetch after template save to get updated collection (30003 event)
+      setTimeout(() => {
+        libraryData.refetch();
+      }, 1000); // 1 second delay to ensure 30003 collection update event is published
+    };
+
+    // Listen for custom template save completion event
+    window.addEventListener('powr-template-saved', handleTemplateSaved as EventListener);
+    
+    return () => {
+      window.removeEventListener('powr-template-saved', handleTemplateSaved as EventListener);
+    };
+  }, [libraryData.refetch]);
   
   console.log('[LibraryDataProvider] 🎯 Providing shared library data:', {
     exerciseCount: libraryData.exerciseLibrary.content?.length || 0,

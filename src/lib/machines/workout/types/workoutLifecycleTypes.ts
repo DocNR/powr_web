@@ -52,6 +52,14 @@ export interface WorkoutLifecycleContext extends BaseMachineContext {
     isOwner: boolean;
     originalTemplate?: unknown;
   } | null;
+  
+  // NEW: Saved template result from saveTemplateActor
+  savedTemplate?: {
+    success: boolean;
+    templateId?: string;
+    templateRef?: string;
+    error?: string;
+  };
 }
 
 // Active state context - guarantees workoutData is present
