@@ -9,21 +9,56 @@ import { Input } from '@/components/powr-ui/primitives/Input';
 import { Button } from '@/components/powr-ui/primitives/Button';
 import { Card, CardContent } from '@/components/powr-ui/primitives/Card';
 import { WorkoutCard } from '@/components/powr-ui/workout/WorkoutCard';
+import { ExerciseCard } from '@/components/powr-ui/workout/ExerciseCard';
 import { WorkoutDetailModal } from '@/components/powr-ui/workout/WorkoutDetailModal';
 import { WorkoutSummaryModal } from '@/components/powr-ui/workout/WorkoutSummaryModal';
 import { ExerciseDetailModal } from '@/components/library/ExerciseDetailModal';
 import { SimpleLibraryOnboarding } from '@/components/library/SimpleLibraryOnboarding';
 import { useSimpleLibraryOnboarding } from '@/hooks/useSimpleLibraryOnboarding';
-import { cn } from '@/lib/utils';
+import { libraryManagementService } from '@/lib/services/libraryManagement';
+import { useToast } from '@/providers/ToastProvider';
+import { ConfirmationDialog } from '@/components/powr-ui/primitives/ConfirmationDialog';
+import { usePubkey } from '@/lib/auth/hooks';
 
 export function LibraryTab() {
   const { getActiveSubTab } = useSubNavigation();
   const activeSubTab = getActiveSubTab('library') || 'exercises';
   const [modalError, setModalError] = useState<string | undefined>();
+  const userPubkey = usePubkey();
+  const { showToast } = useToast();
 
   // Exercise Detail Modal state
-  const [selectedExercise, setSelectedExercise] = useState<any>(null);
+  const [selectedExercise, setSelectedExercise] = useState<{
+    id: string;
+    name: string;
+    description?: string;
+    equipment?: string;
+    difficulty?: string;
+    muscleGroups?: string[];
+    format?: string[];
+    formatUnits?: string[];
+    authorPubkey?: string;
+    createdAt?: number;
+    eventId?: string;
+    eventTags?: string[];
+    eventContent?: string;
+    eventKind?: number;
+  } | null>(null);
   const [isExerciseModalOpen, setIsExerciseModalOpen] = useState(false);
+
+  // CRUD operation state
+  const [isOperationLoading, setIsOperationLoading] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    itemRef: string;
+    itemName: string;
+    itemType: 'exercise' | 'workout';
+  }>({
+    isOpen: false,
+    itemRef: '',
+    itemName: '',
+    itemType: 'exercise'
+  });
 
   // Simple onboarding hook - no complex state synchronization
   const {
@@ -49,7 +84,6 @@ export function LibraryTab() {
   const handleWorkoutSelect = (workoutId: string, templateRef?: string) => {
     // Reset machine to idle state before starting new selection
     if (!workoutState.matches('idle')) {
-      console.log('🔄 [LibraryTab] Machine not idle, resetting before new workout selection');
       workoutSend({ type: 'RESET_LIFECYCLE' });
       return; // Exit early, user can click again after reset
     }
@@ -58,7 +92,6 @@ export function LibraryTab() {
     const templateReference = templateRef;
     
     if (!templateReference) {
-      console.warn('⚠️ [LibraryTab] No template reference provided for workout:', workoutId);
       setModalError('Cannot start workout: No template reference found');
       return;
     }
@@ -66,12 +99,9 @@ export function LibraryTab() {
     // Validate template reference format
     const templateParts = templateReference.split(':');
     if (templateParts.length !== 3) {
-      console.error('❌ [LibraryTab] Invalid template reference format:', templateReference);
       setModalError('Cannot start workout: Invalid template reference format');
       return;
     }
-
-    console.log('🚀 [LibraryTab] Starting workout lifecycle machine with template reference:', templateReference);
     
     // Start the workout lifecycle machine with the correct template reference
     workoutSend({ 
@@ -85,28 +115,20 @@ export function LibraryTab() {
     
     // Only reset machine if we're in setup states, not active workout
     if (workoutState.matches('setupComplete')) {
-      console.log('🔄 [LibraryTab] Canceling setup - returning machine to idle state');
       workoutSend({ type: 'CANCEL_SETUP' });
     } else if (workoutState.matches('setup')) {
-      console.log('🔄 [LibraryTab] Canceling setup in progress - returning machine to idle state');
       workoutSend({ type: 'CANCEL_SETUP' });
     }
   };
 
   const handleStartWorkout = () => {
-    console.log('🚀 [LibraryTab] Starting workout from modal!');
-    
     // Use the machine's resolved workout data
     if (workoutState.context.workoutData) {
-      console.log('✅ [LibraryTab] Using resolved workout data from machine:', workoutState.context.workoutData);
-      
       workoutSend({ 
         type: 'START_WORKOUT',
         workoutData: workoutState.context.workoutData
       });
     } else {
-      console.error('❌ [LibraryTab] No workout data available in machine context');
-      
       // Fallback to basic workout data
       workoutSend({ 
         type: 'START_WORKOUT',
@@ -124,7 +146,6 @@ export function LibraryTab() {
 
   // Summary modal handlers
   const handleShareWorkout = (content: string) => {
-    console.log('📱 [LibraryTab] Sharing workout to Nostr:', content);
     workoutSend({ 
       type: 'SHARE_WORKOUT',
       content: content
@@ -132,27 +153,85 @@ export function LibraryTab() {
   };
 
   const handleSkipSharing = () => {
-    console.log('⏭️ [LibraryTab] Skipping workout sharing');
     workoutSend({ type: 'SKIP_SHARING' });
   };
 
   const handleCloseSummary = () => {
-    console.log('❌ [LibraryTab] Closing workout summary');
     workoutSend({ type: 'CLOSE_SUMMARY' });
   };
 
   // Exercise Detail Modal handlers
-  const handleExerciseSelect = (exerciseData: any) => {
-    console.log('🏋️ [LibraryTab] Selected exercise:', exerciseData.name);
+  const handleExerciseSelect = (exerciseData: {
+    id: string;
+    name: string;
+    description?: string;
+    equipment?: string;
+    difficulty?: string;
+    muscleGroups?: string[];
+    format?: string[];
+    formatUnits?: string[];
+    authorPubkey?: string;
+    createdAt?: number;
+    eventId?: string;
+    eventTags?: string[];
+    eventContent?: string;
+    eventKind?: number;
+  }) => {
     setSelectedExercise(exerciseData);
     setIsExerciseModalOpen(true);
   };
 
   const handleCloseExerciseModal = () => {
-    console.log('❌ [LibraryTab] Closing exercise detail modal');
     setIsExerciseModalOpen(false);
     setSelectedExercise(null);
   };
+
+  // CRUD handlers for library items
+  const handleRemoveItem = (itemRef: string, itemName: string, itemType: 'exercise' | 'workout') => {
+    setConfirmDialog({
+      isOpen: true,
+      itemRef,
+      itemName,
+      itemType
+    });
+  };
+
+  const confirmRemoveItem = async () => {
+    if (!userPubkey || !confirmDialog.itemRef) return;
+
+    setIsOperationLoading(true);
+    try {
+      const collectionType = confirmDialog.itemType === 'exercise' ? 'EXERCISE_LIBRARY' : 'WORKOUT_LIBRARY';
+      
+      // Use the new service method with automatic cache refresh
+      await libraryManagementService.removeFromLibraryCollectionWithRefresh(
+        userPubkey,
+        collectionType,
+        confirmDialog.itemRef
+      );
+
+      showToast(
+        `${confirmDialog.itemType === 'exercise' ? 'Exercise' : 'Workout'} removed`,
+        'success',
+        `${confirmDialog.itemName} has been removed from your library`
+      );
+
+      // Close dialog
+      setConfirmDialog({ isOpen: false, itemRef: '', itemName: '', itemType: 'exercise' });
+      
+      // Cache refresh event automatically dispatched by service
+    } catch (error) {
+      console.error('[LibraryTab] Failed to remove item:', error);
+      showToast(
+        `Failed to remove ${confirmDialog.itemType}`,
+        'error',
+        'Please try again'
+      );
+    } finally {
+      setIsOperationLoading(false);
+    }
+  };
+
 
   return (
     <>
@@ -169,8 +248,8 @@ export function LibraryTab() {
 
       {/* Sub-tab content */}
       <div className="space-y-6">
-        {activeSubTab === 'exercises' && <ExercisesView onShowOnboarding={() => setIsModalOpen(true)} onExerciseSelect={handleExerciseSelect} />}
-        {activeSubTab === 'workouts' && <WorkoutsView onShowOnboarding={() => setIsModalOpen(true)} onWorkoutSelect={handleWorkoutSelect} />}
+        {activeSubTab === 'exercises' && <ExercisesView onShowOnboarding={() => setIsModalOpen(true)} onExerciseSelect={handleExerciseSelect} onRemoveItem={handleRemoveItem} />}
+        {activeSubTab === 'workouts' && <WorkoutsView onShowOnboarding={() => setIsModalOpen(true)} onWorkoutSelect={handleWorkoutSelect} onRemoveItem={handleRemoveItem} />}
         {activeSubTab === 'collections' && <CollectionsView onShowOnboarding={() => setIsModalOpen(true)} />}
       </div>
 
@@ -248,22 +327,63 @@ export function LibraryTab() {
       {/* Exercise Detail Modal */}
       <ExerciseDetailModal
         isOpen={isExerciseModalOpen}
-        exercise={selectedExercise}
+        exercise={selectedExercise ? {
+          ...selectedExercise,
+          equipment: selectedExercise.equipment || '',
+          muscleGroups: selectedExercise.muscleGroups || [],
+          eventTags: (selectedExercise.eventTags || []).map(tag => Array.isArray(tag) ? tag : [tag]),
+          authorPubkey: selectedExercise.authorPubkey || '',
+          createdAt: selectedExercise.createdAt || Date.now(),
+          eventId: selectedExercise.eventId || '',
+          eventContent: selectedExercise.eventContent || '',
+          eventKind: selectedExercise.eventKind || 33401
+        } : undefined}
         onClose={handleCloseExerciseModal}
+      />
+
+      {/* Remove Item Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={confirmDialog.isOpen}
+        onClose={() => setConfirmDialog({ isOpen: false, itemRef: '', itemName: '', itemType: 'exercise' })}
+        onConfirm={confirmRemoveItem}
+        title={`Remove ${confirmDialog.itemType === 'exercise' ? 'Exercise' : 'Workout'}`}
+        description={`Are you sure you want to remove "${confirmDialog.itemName}" from your ${confirmDialog.itemType} library? This action cannot be undone.`}
+        confirmText="Remove"
+        cancelText="Cancel"
+        variant="destructive"
+        isLoading={isOperationLoading}
       />
     </>
   );
 }
 
 // Exercises View Component
-function ExercisesView({ onShowOnboarding, onExerciseSelect }: { 
+function ExercisesView({ onShowOnboarding, onExerciseSelect, onRemoveItem }: { 
   onShowOnboarding: () => void;
-  onExerciseSelect?: (exerciseData: any) => void;
+  onExerciseSelect?: (exerciseData: {
+    id: string;
+    name: string;
+    description?: string;
+    equipment?: string;
+    difficulty?: string;
+    muscleGroups?: string[];
+    format?: string[];
+    formatUnits?: string[];
+    authorPubkey?: string;
+    createdAt?: number;
+    eventId?: string;
+    eventTags?: string[];
+    eventContent?: string;
+    eventKind?: number;
+  }) => void;
+  onRemoveItem?: (itemRef: string, itemName: string, itemType: 'exercise' | 'workout') => void;
 }) {
   const [searchTerm, setSearchTerm] = useState('');
+  const { showToast } = useToast();
   
   // ✅ PERFORMANCE: Use shared library data from context (eliminates duplicate subscription)
   const { exerciseLibrary } = useLibraryData();
+
 
   if (exerciseLibrary.isLoading || exerciseLibrary.isResolving) {
     return (
@@ -329,91 +449,89 @@ function ExercisesView({ onShowOnboarding, onExerciseSelect }: {
       {/* Exercises Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {filteredExercises.map((item) => (
-          <Card 
-            key={item.exerciseRef} 
-            className={cn(
-              "cursor-pointer transition-all duration-200",
-              "hover:shadow-lg hover:ring-2 hover:ring-ring",
-              "active:scale-[0.98] active:ring-2 active:ring-ring",
-              "focus:ring-2 focus:ring-ring focus:outline-none"
-            )}
-            onClick={() => {
-              console.log('🏋️ [LibraryTab] Selected exercise:', item.exercise.name);
-              if (onExerciseSelect) {
-                onExerciseSelect({
-                  id: item.exercise.id,
-                  name: item.exercise.name,
-                  description: item.exercise.description,
-                  equipment: item.exercise.equipment,
-                  difficulty: item.exercise.difficulty,
-                  muscleGroups: item.exercise.muscleGroups,
-                  format: item.exercise.format,
-                  formatUnits: item.exercise.format_units,
-                  authorPubkey: item.exercise.authorPubkey,
-                  createdAt: item.exercise.createdAt,
-                  eventId: item.exercise.eventId,
-                  eventTags: item.exercise.hashtags || [],
-                  eventContent: item.exercise.description,
-                  eventKind: 33401
-                });
-              }
+          <ExerciseCard
+            key={item.exerciseRef}
+            variant="discovery"
+            exercise={{
+              id: item.exercise.id,
+              name: item.exercise.name,
+              description: item.exercise.description,
+              equipment: item.exercise.equipment,
+              muscleGroups: item.exercise.muscleGroups,
+              difficulty: item.exercise.difficulty as 'beginner' | 'intermediate' | 'advanced' | undefined,
+              author: { pubkey: item.exercise.authorPubkey },
+              eventId: item.exercise.eventId,
+                eventTags: (item.exercise.hashtags || []).map(tag => Array.isArray(tag) ? tag : [tag]),
+              eventContent: item.exercise.description,
+              eventKind: 33401
             }}
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                console.log('🏋️ [LibraryTab] Selected exercise via keyboard:', item.exercise.name);
-                if (onExerciseSelect) {
+            onSelect={(exerciseId) => {
+              if (onExerciseSelect) {
+                const exerciseItem = exerciseLibrary.content?.find(ex => ex.exercise.id === exerciseId);
+                if (exerciseItem) {
                   onExerciseSelect({
-                    id: item.exercise.id,
-                    name: item.exercise.name,
-                    description: item.exercise.description,
-                    equipment: item.exercise.equipment,
-                    difficulty: item.exercise.difficulty,
-                    muscleGroups: item.exercise.muscleGroups,
-                    format: item.exercise.format,
-                    formatUnits: item.exercise.format_units,
-                    authorPubkey: item.exercise.authorPubkey,
-                    createdAt: item.exercise.createdAt,
-                    eventId: item.exercise.eventId,
-                    eventTags: item.exercise.hashtags || [],
-                    eventContent: item.exercise.description,
+                    id: exerciseItem.exercise.id,
+                    name: exerciseItem.exercise.name,
+                    description: exerciseItem.exercise.description,
+                    equipment: exerciseItem.exercise.equipment,
+                    difficulty: exerciseItem.exercise.difficulty,
+                    muscleGroups: exerciseItem.exercise.muscleGroups,
+                    format: exerciseItem.exercise.format,
+                    formatUnits: exerciseItem.exercise.format_units,
+                    authorPubkey: exerciseItem.exercise.authorPubkey,
+                    createdAt: exerciseItem.exercise.createdAt,
+                    eventId: exerciseItem.exercise.eventId,
+                    eventTags: exerciseItem.exercise.hashtags || [],
+                    eventContent: exerciseItem.exercise.description,
                     eventKind: 33401
                   });
                 }
               }
             }}
-          >
-            <CardContent className="p-4">
-              <div className="space-y-3">
-                <div className="flex items-start justify-between">
-                  <h3 className="font-semibold text-lg line-clamp-1">{item.exercise.name}</h3>
-                  <div className="text-sm text-muted-foreground">
-                    {item.exercise.equipment}
-                  </div>
-                </div>
-                
-                {item.exercise.description && (
-                  <p className="text-sm text-muted-foreground line-clamp-2">
-                    {item.exercise.description}
-                  </p>
-                )}
+              onMenuAction={(action, exerciseId) => {
+                const exerciseItem = exerciseLibrary.content?.find(ex => ex.exercise.id === exerciseId);
+                if (!exerciseItem) return;
 
-                <div className="flex flex-wrap gap-1">
-                  {item.exercise.muscleGroups.slice(0, 3).map((muscle) => (
-                    <span key={muscle} className="px-2 py-1 bg-muted rounded text-xs">
-                      {muscle}
-                    </span>
-                  ))}
-                  {item.exercise.muscleGroups.length > 3 && (
-                    <span className="px-2 py-1 bg-muted rounded text-xs text-muted-foreground">
-                      +{item.exercise.muscleGroups.length - 3} more
-                    </span>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                switch (action) {
+                  case 'details':
+                    if (onExerciseSelect) {
+                      onExerciseSelect({
+                        id: exerciseItem.exercise.id,
+                        name: exerciseItem.exercise.name,
+                        description: exerciseItem.exercise.description,
+                        equipment: exerciseItem.exercise.equipment,
+                        difficulty: exerciseItem.exercise.difficulty,
+                        muscleGroups: exerciseItem.exercise.muscleGroups,
+                        format: exerciseItem.exercise.format,
+                        formatUnits: exerciseItem.exercise.format_units,
+                        authorPubkey: exerciseItem.exercise.authorPubkey,
+                        createdAt: exerciseItem.exercise.createdAt,
+                        eventId: exerciseItem.exercise.eventId,
+                        eventTags: (exerciseItem.exercise.hashtags || []).flat(),
+                        eventContent: exerciseItem.exercise.description,
+                        eventKind: 33401
+                      });
+                    }
+                    break;
+                  case 'remove':
+                    // Use the parent component's confirmation dialog
+                    if (onRemoveItem) {
+                      onRemoveItem(exerciseItem.exerciseRef, exerciseItem.exercise.name, 'exercise');
+                    }
+                    break;
+                  case 'copy':
+                  case 'share':
+                    showToast(
+                      `${action === 'copy' ? 'Copy naddr' : 'Share Exercise'}`,
+                      'info',
+                      `${action === 'copy' ? 'Copy' : 'Share'} functionality coming soon!`
+                    );
+                    break;
+                }
+              }}
+            showAuthor={true}
+            showEquipment={true}
+          />
         ))}
       </div>
     </div>
@@ -421,11 +539,13 @@ function ExercisesView({ onShowOnboarding, onExerciseSelect }: {
 }
 
 // Workouts View Component
-function WorkoutsView({ onShowOnboarding, onWorkoutSelect }: { 
+function WorkoutsView({ onShowOnboarding, onWorkoutSelect, onRemoveItem }: { 
   onShowOnboarding: () => void;
   onWorkoutSelect?: (workoutId: string, templateRef?: string) => void;
+  onRemoveItem?: (itemRef: string, itemName: string, itemType: 'exercise' | 'workout') => void;
 }) {
   const [searchTerm, setSearchTerm] = useState('');
+  const { showToast } = useToast();
   
   // ✅ PERFORMANCE: Use shared library data from context (eliminates duplicate subscription)
   const { workoutLibrary } = useLibraryData();
@@ -510,23 +630,49 @@ function WorkoutsView({ onShowOnboarding, onWorkoutSelect }: {
                 description: item.template.description,
                 exercises: item.template.exercises.map(ex => ({
                   name: ex.exerciseRef.split(':')[2], // Extract exercise name from ref
-                  sets: ex.sets,
-                  reps: ex.reps,
+                  sets: ex.sets || 0,
+                  reps: ex.reps || 0,
                   weight: ex.weight
                 })),
                 estimatedDuration: item.template.estimatedDuration || 0,
                 difficulty: item.template.difficulty as 'beginner' | 'intermediate' | 'advanced' | undefined,
                 author: { pubkey: item.template.authorPubkey },
                 eventId: item.template.eventId,
-                eventTags: item.template.tags,
+                eventTags: item.template.tags.map(tag => Array.isArray(tag) ? tag : [tag]),
                 eventContent: item.template.description,
                 eventKind: 33402
               }}
               onSelect={(workoutId) => {
-                console.log('🏋️ [LibraryTab] Selected workout from library:', workoutId);
                 // Use the template reference from the library item
                 if (onWorkoutSelect) {
                   onWorkoutSelect(workoutId, item.templateRef);
+                }
+              }}
+              onMenuAction={(action, workoutId) => {
+                const workoutItem = workoutLibrary.content?.find(w => w.template.id === workoutId);
+                if (!workoutItem) return;
+
+                switch (action) {
+                  case 'start':
+                  case 'details':
+                    if (onWorkoutSelect) {
+                      onWorkoutSelect(workoutId, workoutItem.templateRef);
+                    }
+                    break;
+                  case 'remove':
+                    // Use the parent component's confirmation dialog (same pattern as ExercisesView)
+                    if (onRemoveItem) {
+                      onRemoveItem(workoutItem.templateRef, workoutItem.template.name, 'workout');
+                    }
+                    break;
+                  case 'copy':
+                  case 'share':
+                    showToast(
+                      `${action === 'copy' ? 'Copy naddr' : 'Share Workout'}`,
+                      'info',
+                      `${action === 'copy' ? 'Copy' : 'Share'} functionality coming soon!`
+                    );
+                    break;
                 }
               }}
               showImage={true}

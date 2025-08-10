@@ -441,20 +441,47 @@ export class DependencyResolutionService {
     const startTime = Date.now();
     console.log('[DependencyResolutionService] Resolving all collection content:', collections.length);
 
+    // 🔍 DEBUG: Log collection details to understand what's happening
+    collections.forEach((collection, index) => {
+      console.log(`[DependencyResolutionService] 📋 Collection ${index + 1}: "${collection.name}"`, {
+        contentRefs: collection.contentRefs,
+        contentCount: collection.contentRefs.length
+      });
+    });
+
     // PROVEN PATTERN: Extract all template references from collections
     const allTemplateRefs = new Set<string>();
+    const allDirectExerciseRefs = new Set<string>();
     
     for (const collection of collections) {
       for (const contentRef of collection.contentRefs) {
         const [kind] = contentRef.split(':');
+        console.log(`[DependencyResolutionService] 🔍 Processing contentRef: "${contentRef}" (kind: ${kind})`);
+        
         if (kind === '33402') {
           allTemplateRefs.add(contentRef);
+          console.log(`[DependencyResolutionService] ✅ Added template ref: ${contentRef}`);
+        } else if (kind === '33401') {
+          allDirectExerciseRefs.add(contentRef);
+          console.log(`[DependencyResolutionService] ✅ Added direct exercise ref: ${contentRef}`);
         }
       }
     }
 
+    console.log(`[DependencyResolutionService] 📊 Content extraction summary:`, {
+      templateRefs: Array.from(allTemplateRefs),
+      directExerciseRefs: Array.from(allDirectExerciseRefs),
+      templateCount: allTemplateRefs.size,
+      directExerciseCount: allDirectExerciseRefs.size
+    });
+
     // Resolve templates first
     const templates = await this.resolveTemplateDependencies(Array.from(allTemplateRefs));
+    console.log(`[DependencyResolutionService] 📦 Template resolution result:`, {
+      requested: allTemplateRefs.size,
+      resolved: templates.length,
+      templates: templates.map(t => ({ id: t.id, name: t.name }))
+    });
 
     // PROVEN PATTERN: Extract exercise references from resolved templates
     const allExerciseRefs = new Set<string>();
@@ -465,8 +492,25 @@ export class DependencyResolutionService {
       }
     }
 
+    // Add direct exercise references from collections
+    for (const directRef of allDirectExerciseRefs) {
+      allExerciseRefs.add(directRef);
+    }
+
+    console.log(`[DependencyResolutionService] 🏋️ Exercise reference summary:`, {
+      fromTemplates: templates.reduce((sum, t) => sum + t.exercises.length, 0),
+      directFromCollections: allDirectExerciseRefs.size,
+      totalUnique: allExerciseRefs.size,
+      exerciseRefs: Array.from(allExerciseRefs)
+    });
+
     // Resolve exercises
     const exercises = await this.resolveExerciseReferences(Array.from(allExerciseRefs));
+    console.log(`[DependencyResolutionService] 📦 Exercise resolution result:`, {
+      requested: allExerciseRefs.size,
+      resolved: exercises.length,
+      exercises: exercises.map(e => ({ id: e.id, name: e.name }))
+    });
 
     const totalTime = Date.now() - startTime;
     console.log(`[DependencyResolutionService] ✅ Resolved complete dependency chain in ${totalTime}ms:`, {

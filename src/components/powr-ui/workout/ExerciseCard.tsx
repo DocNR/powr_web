@@ -13,6 +13,7 @@ import { Button } from '@/components/powr-ui/primitives/Button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/powr-ui/primitives/Avatar';
 import { useProfile, getDisplayName, getAvatarUrl } from '@/hooks/useProfile';
 import { cn } from '@/lib/utils';
+import { MoreVertical, Eye, Trash2, Copy, Share } from 'lucide-react';
 
 // Exercise data types
 interface ExerciseTemplate {
@@ -77,88 +78,159 @@ export const ExerciseCard = memo(function ExerciseCard({
     onSelect?.(exercise.id);
   };
 
-  // Discovery variant - main library browsing
+  // Discovery variant - main library browsing with menu overlay
   if (variant === 'discovery') {
+    const handleMenuClick = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      setShowMenu(!showMenu);
+    };
+
+    const handleMenuAction = (action: string) => {
+      setShowMenu(false);
+      onMenuAction?.(action, exercise.id);
+    };
+
     return (
-      <Card 
-        className={cn(
-          "cursor-pointer transition-all duration-200",
-          "hover:shadow-lg hover:ring-2 hover:ring-ring",
-          "active:scale-[0.98] active:ring-2 active:ring-ring",
-          "focus:ring-2 focus:ring-ring focus:outline-none",
-          className
-        )}
-        onClick={handleCardClick}
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            handleCardClick();
-          }
-        }}
-      >
-        <CardContent className="p-4">
-          <div className="space-y-3">
-            {/* Header with exercise name */}
-            <div className="flex items-start justify-between">
-              <h3 className="font-semibold text-lg line-clamp-1 group-hover:text-primary transition-colors">
-                {exercise.name}
-              </h3>
-              
-              {showEquipment && (
-                <div className="text-sm text-muted-foreground">
-                  {exercise.equipment}
+      <div className="relative group">
+        <Card 
+          className={cn(
+            "cursor-pointer transition-all duration-200",
+            "hover:shadow-lg hover:ring-2 hover:ring-ring",
+            "active:scale-[0.98] active:ring-2 active:ring-ring",
+            "focus:ring-2 focus:ring-ring focus:outline-none",
+            className
+          )}
+          onClick={handleCardClick}
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              handleCardClick();
+            }
+          }}
+        >
+          <CardContent className="p-4">
+            <div className="space-y-3">
+              {/* Header with exercise name and menu button */}
+              <div className="flex items-start justify-between">
+                <h3 className="font-semibold text-lg line-clamp-1 group-hover:text-primary transition-colors flex-1 pr-2">
+                  {exercise.name}
+                </h3>
+                
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {showEquipment && (
+                    <div className="text-sm text-muted-foreground">
+                      {exercise.equipment}
+                    </div>
+                  )}
+                  
+                  {/* Menu Button - appears on hover/focus */}
+                  {onMenuAction && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity"
+                      onClick={handleMenuClick}
+                    >
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
+              </div>
+              
+              {/* Description */}
+              {exercise.description && (
+                <p className="text-sm text-muted-foreground line-clamp-2">
+                  {exercise.description}
+                </p>
               )}
+
+              {/* Muscle groups */}
+              <div className="flex flex-wrap gap-1">
+                {exercise.muscleGroups.slice(0, 3).map((muscle) => (
+                  <span key={muscle} className="px-2 py-1 bg-muted rounded text-xs">
+                    {muscle}
+                  </span>
+                ))}
+                {exercise.muscleGroups.length > 3 && (
+                  <span className="px-2 py-1 bg-muted rounded text-xs text-muted-foreground">
+                    +{exercise.muscleGroups.length - 3} more
+                  </span>
+                )}
+              </div>
+
+              {/* Footer with author and difficulty */}
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                {showAuthor && author && (
+                  <div className="flex items-center gap-2">
+                    <Avatar className="h-4 w-4">
+                      <AvatarImage src={authorAvatar} alt={authorDisplayName} />
+                      <AvatarFallback className="bg-muted text-muted-foreground text-xs">
+                        {authorDisplayName[0]?.toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span>by {authorDisplayName}</span>
+                  </div>
+                )}
+                
+                {exercise.difficulty && (
+                  <span className={cn(
+                    "px-2 py-1 rounded text-xs font-medium",
+                    getDifficultyColor(exercise.difficulty)
+                  )}>
+                    {exercise.difficulty}
+                  </span>
+                )}
+              </div>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Dropdown Menu */}
+        {showMenu && onMenuAction && (
+          <>
+            {/* Backdrop */}
+            <div 
+              className="fixed inset-0 z-40"
+              onClick={() => setShowMenu(false)}
+            />
             
-            {/* Description */}
-            {exercise.description && (
-              <p className="text-sm text-muted-foreground line-clamp-2">
-                {exercise.description}
-              </p>
-            )}
-
-            {/* Muscle groups */}
-            <div className="flex flex-wrap gap-1">
-              {exercise.muscleGroups.slice(0, 3).map((muscle) => (
-                <span key={muscle} className="px-2 py-1 bg-muted rounded text-xs">
-                  {muscle}
-                </span>
-              ))}
-              {exercise.muscleGroups.length > 3 && (
-                <span className="px-2 py-1 bg-muted rounded text-xs text-muted-foreground">
-                  +{exercise.muscleGroups.length - 3} more
-                </span>
-              )}
+            {/* Menu */}
+            <div className="absolute right-0 top-12 z-50 w-48 bg-background border border-border rounded-md shadow-lg">
+              <div className="py-1">
+                <button
+                  className="w-full px-3 py-2 text-left text-sm hover:bg-muted transition-colors flex items-center gap-2"
+                  onClick={() => handleMenuAction('details')}
+                >
+                  <Eye className="h-4 w-4" />
+                  View Details
+                </button>
+                <button
+                  className="w-full px-3 py-2 text-left text-sm hover:bg-muted transition-colors flex items-center gap-2"
+                  onClick={() => handleMenuAction('remove')}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Remove from Library
+                </button>
+                <button
+                  className="w-full px-3 py-2 text-left text-sm hover:bg-muted transition-colors flex items-center gap-2"
+                  onClick={() => handleMenuAction('copy')}
+                >
+                  <Copy className="h-4 w-4" />
+                  Copy naddr
+                </button>
+                <button
+                  className="w-full px-3 py-2 text-left text-sm hover:bg-muted transition-colors flex items-center gap-2"
+                  onClick={() => handleMenuAction('share')}
+                >
+                  <Share className="h-4 w-4" />
+                  Share
+                </button>
+              </div>
             </div>
-
-            {/* Footer with author and difficulty */}
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
-              {showAuthor && author && (
-                <div className="flex items-center gap-2">
-                  <Avatar className="h-4 w-4">
-                    <AvatarImage src={authorAvatar} alt={authorDisplayName} />
-                    <AvatarFallback className="bg-muted text-muted-foreground text-xs">
-                      {authorDisplayName[0]?.toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span>by {authorDisplayName}</span>
-                </div>
-              )}
-              
-              {exercise.difficulty && (
-                <span className={cn(
-                  "px-2 py-1 rounded text-xs font-medium",
-                  getDifficultyColor(exercise.difficulty)
-                )}>
-                  {exercise.difficulty}
-                </span>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </>
+        )}
+      </div>
     );
   }
 

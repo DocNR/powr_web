@@ -7,7 +7,7 @@ import { NavigationProvider } from "@/providers/NavigationProvider";
 import { SubNavigationProvider } from "@/providers/SubNavigationProvider";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 import InstallButton from "@/components/InstallButton";
-import { Toaster } from "@/components/powr-ui/primitives/Toast";
+import { ToastProvider } from "@/providers/ToastProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -83,10 +83,11 @@ export default function RootLayout({
           <Provider>
             <NavigationProvider>
               <SubNavigationProvider>
-                <ServiceWorkerRegistration />
-                <InstallButton />
-                {children}
-                <Toaster />
+                <ToastProvider>
+                  <ServiceWorkerRegistration />
+                  <InstallButton />
+                  {children}
+                </ToastProvider>
               </SubNavigationProvider>
             </NavigationProvider>
           </Provider>

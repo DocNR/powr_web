@@ -143,8 +143,6 @@ export function useLibraryDataWithCollections(userPubkey: string | undefined): L
       setError(undefined);
       
       try {
-        console.log('[useLibraryDataWithCollections] 🔍 Fetching user collections via UniversalNDKCacheService');
-        
         const collectionFilters: NDKFilter[] = [
           { kinds: [30003], authors: [userPubkey], '#d': ['powr-exercise-list'] },
           { kinds: [30003], authors: [userPubkey], '#d': ['powr-workout-list'] },
@@ -155,10 +153,8 @@ export function useLibraryDataWithCollections(userPubkey: string | undefined): L
         const events = await universalNDKCacheService.fetchCacheFirst(collectionFilters, { timeout: 5000 });
         setCollectionEvents(events);
         
-        console.log('[useLibraryDataWithCollections] ✅ Fetched collections:', events.length);
-        
       } catch (err) {
-        console.error('[useLibraryDataWithCollections] ❌ Failed to fetch collections:', err);
+        console.error('[useLibraryDataWithCollections] Failed to fetch collections:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch collections');
         setCollectionEvents([]);
       } finally {
@@ -181,11 +177,8 @@ export function useLibraryDataWithCollections(userPubkey: string | undefined): L
       setError(undefined);
       
       try {
-        console.log('[useLibraryDataWithCollections] 🔧 Starting service layer integration');
-        
         // ✅ USE SERVICE LAYER: DataParsingService for collection parsing
         const collections = dataParsingService.parseCollectionsBatch(collectionEvents);
-        console.log('[useLibraryDataWithCollections] ✅ Parsed collections via DataParsingService:', collections.length);
 
         if (collections.length === 0) {
           setResolvedContent({ exercises: [], workouts: [], collections: [] });
@@ -193,16 +186,29 @@ export function useLibraryDataWithCollections(userPubkey: string | undefined): L
         }
 
         // ✅ USE SERVICE LAYER: DependencyResolutionService for complete dependency chains
-        console.log('[useLibraryDataWithCollections] 🔗 Resolving dependencies via DependencyResolutionService');
         const { templates, exercises } = await dependencyResolutionService.resolveAllCollectionContent(collections);
-        
-        console.log('[useLibraryDataWithCollections] ✅ Resolved dependencies:', {
-          templates: templates.length,
-          exercises: exercises.length
+
+        // ✅ CRITICAL FIX: Filter resolved content by collection membership
+        // Create fast lookup sets for O(1) membership checking
+        const allContentRefs = new Set<string>();
+        collections.forEach(collection => {
+          collection.contentRefs.forEach(ref => allContentRefs.add(ref));
+        });
+
+        // Filter exercises by collection membership
+        const filteredExercises = exercises.filter(exercise => {
+          const exerciseRef = `33401:${exercise.authorPubkey}:${exercise.id}`;
+          return allContentRefs.has(exerciseRef);
+        });
+
+        // Filter templates by collection membership
+        const filteredTemplates = templates.filter(template => {
+          const templateRef = `33402:${template.authorPubkey}:${template.id}`;
+          return allContentRefs.has(templateRef);
         });
 
         // ✅ USE SERVICE LAYER: Transform to library items using proper service patterns
-        const exerciseItems: ExerciseLibraryItem[] = exercises.map((exercise: Exercise) => ({
+        const exerciseItems: ExerciseLibraryItem[] = filteredExercises.map((exercise: Exercise) => ({
           exerciseRef: `33401:${exercise.authorPubkey}:${exercise.id}`,
           exercise: {
             id: exercise.id,
@@ -221,7 +227,7 @@ export function useLibraryDataWithCollections(userPubkey: string | undefined): L
         }));
 
         // ✅ FIXED: Correct set counting using DataParsingService (not manual parsing)
-        const workoutItems: WorkoutLibraryItem[] = templates.map((template: WorkoutTemplate) => ({
+        const workoutItems: WorkoutLibraryItem[] = filteredTemplates.map((template: WorkoutTemplate) => ({
           templateRef: `33402:${template.authorPubkey}:${template.id}`,
           template: {
             id: template.id,
@@ -261,14 +267,8 @@ export function useLibraryDataWithCollections(userPubkey: string | undefined): L
           collections: collectionItems
         });
 
-        console.log('[useLibraryDataWithCollections] ✅ Service layer integration complete:', {
-          exercises: exerciseItems.length,
-          workouts: workoutItems.length,
-          collections: collectionItems.length
-        });
-
       } catch (err) {
-        console.error('[useLibraryDataWithCollections] ❌ Service layer integration failed:', err);
+        console.error('[useLibraryDataWithCollections] Service layer integration failed:', err);
         setError(err instanceof Error ? err.message : 'Failed to resolve library content');
       } finally {
         setIsResolving(false);
@@ -295,7 +295,6 @@ export function useLibraryDataWithCollections(userPubkey: string | undefined): L
   const refetch = useCallback(async () => {
     if (!userPubkey) return;
     
-    console.log('[useLibraryDataWithCollections] 🔄 Manual refetch triggered');
     setIsLoading(true);
     setError(undefined);
     
@@ -310,10 +309,8 @@ export function useLibraryDataWithCollections(userPubkey: string | undefined): L
       const events = await universalNDKCacheService.fetchFromRelaysOnly(collectionFilters, { timeout: 10000 });
       setCollectionEvents(events);
       
-      console.log('[useLibraryDataWithCollections] ✅ Refetch completed:', events.length);
-      
     } catch (err) {
-      console.error('[useLibraryDataWithCollections] ❌ Refetch failed:', err);
+      console.error('[useLibraryDataWithCollections] Refetch failed:', err);
       setError(err instanceof Error ? err.message : 'Failed to refetch collections');
     } finally {
       setIsLoading(false);

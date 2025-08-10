@@ -15,6 +15,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/powr-ui/primit
 import { WorkoutImageHandler } from './WorkoutImageHandler';
 import { useProfile, getDisplayName, getAvatarUrl } from '@/hooks/useProfile';
 import { cn } from '@/lib/utils';
+import { MoreVertical, Play, Trash2, Eye, Copy, Share } from 'lucide-react';
 
 // Workout data types
 interface WorkoutTemplate {
@@ -368,76 +369,155 @@ export const WorkoutCard = memo(function WorkoutCard({
     );
   }
 
-  // Discovery variant - template browsing (unchanged but with difficulty handling)
+  // Discovery variant - template browsing with menu functionality
   if (variant === 'discovery') {
+    const handleMenuClick = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      setShowMenu(!showMenu);
+    };
+
+    const handleMenuAction = (action: string) => {
+      setShowMenu(false);
+      // ✅ FIX: Pass the workout ID, let the parent component handle the reference format
+      onMenuAction?.(action, workout.id);
+    };
+
     return (
-      <Card 
-        className={cn(
-          "cursor-pointer transition-all duration-200",
-          "hover:shadow-lg hover:ring-2 hover:ring-ring",
-          "active:scale-[0.98] active:ring-2 active:ring-ring",
-          "focus:ring-2 focus:ring-ring focus:outline-none",
-          className
-        )}
-        onClick={handleCardClick}
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            handleCardClick();
-          }
-        }}
-      >
-        {showImage && (
-          <div className="relative h-40 w-full">
-            <WorkoutImageHandler
-              tags={workout.eventTags}
-              content={workout.eventContent}
-              eventKind={workout.eventKind}
-              alt={workout.title}
-              width={400}
-              height={240}
-              className="w-full h-full rounded-t-lg"
-            />
-          </div>
-        )}
-
-        <CardContent className="p-4">
-          <h3 className="font-semibold text-lg mb-2 line-clamp-1">
-            {workout.title}
-          </h3>
-
-          {showStats && (
-            <div className="flex justify-between text-sm text-gray-600 mb-3">
-              <div className="flex items-center gap-2">
-                <span>{exerciseCount} exercises</span>
-                <span>•</span>
-                <span>{workout.exercises.reduce((total, ex) => {
-                  const setCount = Array.isArray(ex.sets) ? ex.sets.length : (ex.sets || 0);
-                  return total + setCount;
-                }, 0)} sets</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span>{duration}m</span>
-                {isTemplate && (
-                  <span className={cn(
-                    "px-2 py-1 rounded text-xs font-medium",
-                    getDifficultyColor(workout.difficulty)
-                  )}>
-                    {workout.difficulty || 'intermediate'}
-                  </span>
-                )}
-              </div>
+      <div className="relative group">
+        <Card 
+          className={cn(
+            "cursor-pointer transition-all duration-200",
+            "hover:shadow-lg hover:ring-2 hover:ring-ring",
+            "active:scale-[0.98] active:ring-2 active:ring-ring",
+            "focus:ring-2 focus:ring-ring focus:outline-none",
+            className
+          )}
+          onClick={handleCardClick}
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              handleCardClick();
+            }
+          }}
+        >
+          {showImage && (
+            <div className="relative h-40 w-full">
+              <WorkoutImageHandler
+                tags={workout.eventTags}
+                content={workout.eventContent}
+                eventKind={workout.eventKind}
+                alt={workout.title}
+                width={400}
+                height={240}
+                className="w-full h-full rounded-t-lg"
+              />
             </div>
           )}
 
-          {isTemplate && workout.description && (
-            <p className="text-sm text-gray-600 line-clamp-2">
-              {workout.description}
-            </p>
-          )}
-        </CardContent>
-      </Card>
+          <CardContent className="p-4">
+            <div className="flex items-start justify-between mb-2">
+              <h3 className="font-semibold text-lg line-clamp-1 flex-1 pr-2">
+                {workout.title}
+              </h3>
+              
+              {/* Menu Button - appears on hover/focus */}
+              {onMenuAction && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity flex-shrink-0"
+                  onClick={handleMenuClick}
+                >
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+
+            {showStats && (
+              <div className="flex justify-between text-sm text-gray-600 mb-3">
+                <div className="flex items-center gap-2">
+                  <span>{exerciseCount} exercises</span>
+                  <span>•</span>
+                  <span>{workout.exercises.reduce((total, ex) => {
+                    const setCount = Array.isArray(ex.sets) ? ex.sets.length : (ex.sets || 0);
+                    return total + setCount;
+                  }, 0)} sets</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span>{duration}m</span>
+                  {isTemplate && (
+                    <span className={cn(
+                      "px-2 py-1 rounded text-xs font-medium",
+                      getDifficultyColor(workout.difficulty)
+                    )}>
+                      {workout.difficulty || 'intermediate'}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {isTemplate && workout.description && (
+              <p className="text-sm text-gray-600 line-clamp-2">
+                {workout.description}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Dropdown Menu */}
+        {showMenu && onMenuAction && (
+          <>
+            {/* Backdrop */}
+            <div 
+              className="fixed inset-0 z-40"
+              onClick={() => setShowMenu(false)}
+            />
+            
+            {/* Menu */}
+            <div className="absolute right-0 top-12 z-50 w-48 bg-background border border-border rounded-md shadow-lg">
+              <div className="py-1">
+                <button
+                  className="w-full px-3 py-2 text-left text-sm hover:bg-muted transition-colors flex items-center gap-2"
+                  onClick={() => handleMenuAction('start')}
+                >
+                  <Play className="h-4 w-4" />
+                  Start Workout
+                </button>
+                <button
+                  className="w-full px-3 py-2 text-left text-sm hover:bg-muted transition-colors flex items-center gap-2"
+                  onClick={() => handleMenuAction('details')}
+                >
+                  <Eye className="h-4 w-4" />
+                  View Details
+                </button>
+                <button
+                  className="w-full px-3 py-2 text-left text-sm hover:bg-muted transition-colors flex items-center gap-2 text-destructive"
+                  onClick={() => handleMenuAction('remove')}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Remove from Library
+                </button>
+                <button
+                  className="w-full px-3 py-2 text-left text-sm hover:bg-muted transition-colors flex items-center gap-2"
+                  onClick={() => handleMenuAction('copy')}
+                >
+                  <Copy className="h-4 w-4" />
+                  Copy naddr
+                </button>
+                <button
+                  className="w-full px-3 py-2 text-left text-sm hover:bg-muted transition-colors flex items-center gap-2"
+                  onClick={() => handleMenuAction('share')}
+                >
+                  <Share className="h-4 w-4" />
+                  Share
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
     );
   }
 
@@ -618,6 +698,7 @@ export const WorkoutCard = memo(function WorkoutCard({
 
     const handleMenuAction = (action: string) => {
       setShowMenu(false);
+      // ✅ FIX: Pass the workout ID, let the parent component handle the reference format
       onMenuAction?.(action, workout.id);
     };
 
@@ -719,14 +800,14 @@ export const WorkoutCard = memo(function WorkoutCard({
               onClick={() => setShowMenu(false)}
             />
             
-            {/* Menu - Fixed positioning to appear above the card */}
+            {/* Menu */}
             <div className="absolute right-0 bottom-full mb-1 z-50 w-48 bg-background border border-border rounded-md shadow-lg">
               <div className="py-1">
                 <button
                   className="w-full px-3 py-2 text-left text-sm hover:bg-muted transition-colors"
                   onClick={() => handleMenuAction('details')}
                 >
-                  📋 Open Details
+                  📋 View Details
                 </button>
                 <button
                   className="w-full px-3 py-2 text-left text-sm hover:bg-muted transition-colors"

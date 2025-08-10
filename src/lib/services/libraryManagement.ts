@@ -14,6 +14,7 @@
 import { libraryCollectionService } from './libraryCollectionService';
 import { libraryOnboardingService } from './libraryOnboardingService';
 import { templateManagementService } from './templateManagementService';
+import { CacheEventService } from './cacheEventService';
 
 // Re-export types and constants from the focused services
 export type {
@@ -242,6 +243,61 @@ export class LibraryManagementService {
     }>;
   } {
     return templateManagementService.generateTemplatePreview(templateData);
+  }
+
+  // ===== CACHE REFRESH METHODS (with automatic event dispatching) =====
+
+  /**
+   * Add item to library collection with automatic cache refresh
+   * Performs the operation and dispatches cache refresh event
+   */
+  async addToLibraryCollectionWithRefresh(
+    userPubkey: string,
+    collectionType: import('./types/libraryTypes').POWRCollectionType,
+    itemRef: string
+  ): Promise<void> {
+    // 1. Perform the operation
+    await this.addToLibraryCollection(userPubkey, collectionType, itemRef);
+    
+    // 2. Dispatch cache refresh event with correct item type mapping
+    const itemType = this.mapCollectionTypeToItemType(collectionType);
+    CacheEventService.dispatchLibraryUpdate('add', itemType, itemRef);
+  }
+
+  /**
+   * Remove item from library collection with automatic cache refresh
+   * Performs the operation and dispatches cache refresh event
+   */
+  async removeFromLibraryCollectionWithRefresh(
+    userPubkey: string,
+    collectionType: import('./types/libraryTypes').POWRCollectionType,
+    itemRef: string
+  ): Promise<void> {
+    // 1. Perform the operation
+    await this.removeFromLibraryCollection(userPubkey, collectionType, itemRef);
+    
+    // 2. Dispatch cache refresh event with correct item type mapping
+    const itemType = this.mapCollectionTypeToItemType(collectionType);
+    CacheEventService.dispatchLibraryUpdate('remove', itemType, itemRef);
+  }
+
+  /**
+   * Map POWRCollectionType to CacheEventService item type
+   * Private helper to ensure correct event dispatching
+   */
+  private mapCollectionTypeToItemType(collectionType: import('./types/libraryTypes').POWRCollectionType): 'exercise' | 'workout' | 'collection' {
+    switch (collectionType) {
+      case 'EXERCISE_LIBRARY':
+        return 'exercise';
+      case 'WORKOUT_LIBRARY':
+        return 'workout';
+      case 'COLLECTION_SUBSCRIPTIONS':
+        return 'collection';
+      default:
+        // Keep essential warning for unknown types
+        console.warn('[LibraryManagementService] Unknown collection type:', collectionType);
+        return 'collection';
+    }
   }
 }
 

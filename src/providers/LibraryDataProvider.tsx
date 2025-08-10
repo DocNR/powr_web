@@ -56,11 +56,6 @@ export const LibraryDataProvider: React.FC<LibraryDataProviderProps> = ({ childr
   useEffect(() => {
     // Auth change refetch - when pubkey becomes available or changes
     if (userPubkey && userPubkey !== previousPubkey.current) {
-      console.log('[LibraryDataProvider] 🔄 Auth change detected, triggering refetch:', {
-        previousPubkey: previousPubkey.current,
-        newPubkey: userPubkey
-      });
-      
       // Small delay to ensure auth is fully settled
       setTimeout(() => {
         libraryData.refetch();
@@ -73,8 +68,6 @@ export const LibraryDataProvider: React.FC<LibraryDataProviderProps> = ({ childr
   // Listen for onboarding completion events
   useEffect(() => {
     const handleOnboardingComplete = () => {
-      console.log('[LibraryDataProvider] 🎯 Onboarding completion detected, triggering refetch');
-      
       // Immediate refetch after onboarding to get newly created collections
       setTimeout(() => {
         libraryData.refetch();
@@ -91,13 +84,7 @@ export const LibraryDataProvider: React.FC<LibraryDataProviderProps> = ({ childr
 
   // ✅ NEW: Listen for template save completion events
   useEffect(() => {
-    const handleTemplateSaved = (event: CustomEvent) => {
-      console.log('[LibraryDataProvider] 🎯 Template save completion detected, triggering refetch:', {
-        templateId: event.detail?.templateId,
-        templateRef: event.detail?.templateRef,
-        timestamp: event.detail?.timestamp
-      });
-      
+    const handleTemplateSaved = () => {
       // Refetch after template save to get updated collection (30003 event)
       setTimeout(() => {
         libraryData.refetch();
@@ -105,21 +92,30 @@ export const LibraryDataProvider: React.FC<LibraryDataProviderProps> = ({ childr
     };
 
     // Listen for custom template save completion event
-    window.addEventListener('powr-template-saved', handleTemplateSaved as EventListener);
+    window.addEventListener('powr-template-saved', handleTemplateSaved);
     
     return () => {
-      window.removeEventListener('powr-template-saved', handleTemplateSaved as EventListener);
+      window.removeEventListener('powr-template-saved', handleTemplateSaved);
+    };
+  }, [libraryData.refetch]);
+
+  // ✅ NEW: Listen for library update events (add/remove operations)
+  useEffect(() => {
+    const handleLibraryUpdate = () => {
+      // Refetch after library update to get updated collection (30003 event)
+      setTimeout(() => {
+        libraryData.refetch();
+      }, 1000); // 1 second delay to ensure 30003 collection update event is published
+    };
+
+    // Listen for custom library update event
+    window.addEventListener('powr-library-updated', handleLibraryUpdate);
+    
+    return () => {
+      window.removeEventListener('powr-library-updated', handleLibraryUpdate);
     };
   }, [libraryData.refetch]);
   
-  console.log('[LibraryDataProvider] 🎯 Providing shared library data:', {
-    exerciseCount: libraryData.exerciseLibrary.content?.length || 0,
-    workoutCount: libraryData.workoutLibrary.content?.length || 0,
-    collectionCount: libraryData.collectionSubscriptions.content?.length || 0,
-    isLoading: libraryData.exerciseLibrary.isLoading || libraryData.workoutLibrary.isLoading,
-    isResolving: libraryData.exerciseLibrary.isResolving || libraryData.workoutLibrary.isResolving,
-    userPubkey: userPubkey ? `${userPubkey.slice(0, 8)}...` : 'none'
-  });
   
   return (
     <LibraryDataContext.Provider value={libraryData}>
