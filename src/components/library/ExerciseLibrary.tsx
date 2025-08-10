@@ -23,8 +23,10 @@ import { Button } from '@/components/powr-ui/primitives/Button';
 import { useLibraryData } from '@/providers/LibraryDataProvider';
 import { libraryManagementService } from '@/lib/services/libraryManagement';
 import { usePubkey } from '@/lib/auth/hooks';
+import { useToast } from '@/providers/ToastProvider';
 import { ExerciseCard } from '@/components/powr-ui/workout/ExerciseCard';
 import { ExerciseDetailModal } from './ExerciseDetailModal';
+import { ConfirmationDialog } from '@/components/powr-ui/primitives/ConfirmationDialog';
 import type { ExerciseLibraryItem } from '@/hooks/useLibraryDataWithCollections';
 
 interface ExerciseLibraryProps {
@@ -36,6 +38,7 @@ type SortType = 'name' | 'recent' | 'muscle-group';
 
 export function ExerciseLibrary({ onShowOnboarding }: ExerciseLibraryProps) {
   const userPubkey = usePubkey();
+  const { showToast } = useToast();
   // ✅ PERFORMANCE: Use shared library data from context (eliminates duplicate subscription)
   const { exerciseLibrary, error } = useLibraryData();
   
@@ -49,6 +52,18 @@ export function ExerciseLibrary({ onShowOnboarding }: ExerciseLibraryProps) {
   const [selectedExercise, setSelectedExercise] = useState<ExerciseLibraryItem | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  // CRUD operation state
+  const [isOperationLoading, setIsOperationLoading] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    exerciseRef: string;
+    exerciseName: string;
+  }>({
+    isOpen: false,
+    exerciseRef: '',
+    exerciseName: ''
+  });
+
   // Auto-create collection if it doesn't exist
   useEffect(() => {
     const createCollectionIfNeeded = async () => {
@@ -58,7 +73,6 @@ export function ExerciseLibrary({ onShowOnboarding }: ExerciseLibraryProps) {
 
       // If we have no content and no error, the collection doesn't exist
       if (!exerciseLibrary.content && !error) {
-        console.log('[ExerciseLibrary] Auto-creating exercise collection...');
         setIsCreatingCollection(true);
         
         try {
@@ -67,8 +81,6 @@ export function ExerciseLibrary({ onShowOnboarding }: ExerciseLibraryProps) {
             'EXERCISE_LIBRARY',
             [] // Start with empty collection
           );
-          
-          console.log('[ExerciseLibrary] ✅ Exercise collection created');
           
           // Collection will be automatically refetched by the hook
         } catch (error) {
@@ -85,15 +97,12 @@ export function ExerciseLibrary({ onShowOnboarding }: ExerciseLibraryProps) {
 
   // Handle exercise click to open detail modal
   const handleExerciseClick = (exerciseId: string) => {
-    console.log('[ExerciseLibrary] Opening exercise detail modal for ID:', exerciseId);
-    
     // Find the exercise item by ID
     const exerciseItem = exerciseLibrary.content?.find(item => 
       item.exercise.id === exerciseId || item.exerciseRef === exerciseId
     );
     
     if (exerciseItem) {
-      console.log('[ExerciseLibrary] Found exercise:', exerciseItem.exercise.name);
       setSelectedExercise(exerciseItem);
       setIsModalOpen(true);
     } else {
@@ -105,6 +114,58 @@ export function ExerciseLibrary({ onShowOnboarding }: ExerciseLibraryProps) {
   const handleModalClose = () => {
     setIsModalOpen(false);
     setSelectedExercise(null);
+  };
+
+  // Handle remove exercise
+  const handleRemoveExercise = (exerciseRef: string, exerciseName: string) => {
+    setConfirmDialog({
+      isOpen: true,
+      exerciseRef,
+      exerciseName
+    });
+  };
+
+  // Confirm remove exercise
+  const confirmRemoveExercise = async () => {
+    if (!userPubkey || !confirmDialog.exerciseRef) return;
+
+    setIsOperationLoading(true);
+    try {
+      await libraryManagementService.removeFromLibraryCollectionWithRefresh(
+        userPubkey,
+        'EXERCISE_LIBRARY',
+        confirmDialog.exerciseRef
+      );
+
+      showToast(
+        'Exercise removed',
+        'success',
+        `${confirmDialog.exerciseName} has been removed from your library`
+      );
+
+      // Close dialog
+      setConfirmDialog({ isOpen: false, exerciseRef: '', exerciseName: '' });
+      
+      // Data will automatically refresh via LibraryDataProvider
+    } catch (error) {
+      console.error('[ExerciseLibrary] Failed to remove exercise:', error);
+      showToast(
+        'Failed to remove exercise',
+        'error',
+        'Please try again'
+      );
+    } finally {
+      setIsOperationLoading(false);
+    }
+  };
+
+  // Handle add exercise (placeholder for future implementation)
+  const handleAddExercise = () => {
+    showToast(
+      'Add Exercise',
+      'info',
+      'Exercise discovery and adding functionality coming soon!'
+    );
   };
 
   // Filter and sort exercises
@@ -216,7 +277,12 @@ export function ExerciseLibrary({ onShowOnboarding }: ExerciseLibraryProps) {
           </p>
         </div>
         
-        <Button variant="outline" size="sm" className="gap-2">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="gap-2"
+          onClick={handleAddExercise}
+        >
           <Plus className="h-4 w-4" />
           Add Exercise
         </Button>
@@ -328,11 +394,16 @@ export function ExerciseLibrary({ onShowOnboarding }: ExerciseLibraryProps) {
               }}
               onSelect={handleExerciseClick}
               onMenuAction={(action, exerciseId) => {
-                console.log('[ExerciseLibrary] Menu action:', action, 'for exercise:', exerciseId);
                 if (action === 'details') {
                   handleExerciseClick(exerciseId);
-                } else if (action === 'library') {
-                  // TODO: Implement add to library
+                } else if (action === 'remove') {
+                  // Find the exercise to get its name and ref
+                  const exerciseItem = exerciseLibrary.content?.find(item => 
+                    item.exercise.id === exerciseId || item.exerciseRef === exerciseId
+                  );
+                  if (exerciseItem) {
+                    handleRemoveExercise(exerciseItem.exerciseRef, exerciseItem.exercise.name);
+                  }
                 } else if (action === 'copy') {
                   // TODO: Implement copy naddr
                 } else if (action === 'share') {
@@ -354,6 +425,19 @@ export function ExerciseLibrary({ onShowOnboarding }: ExerciseLibraryProps) {
           onClose={handleModalClose}
         />
       )}
+
+      {/* Remove Exercise Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={confirmDialog.isOpen}
+        onClose={() => setConfirmDialog({ isOpen: false, exerciseRef: '', exerciseName: '' })}
+        onConfirm={confirmRemoveExercise}
+        title="Remove Exercise"
+        description={`Are you sure you want to remove "${confirmDialog.exerciseName}" from your exercise library? This action cannot be undone.`}
+        confirmText="Remove"
+        cancelText="Cancel"
+        variant="destructive"
+        isLoading={isOperationLoading}
+      />
     </div>
   );
 }

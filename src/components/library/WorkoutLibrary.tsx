@@ -5,6 +5,8 @@
  * Auto-creates the collection if it doesn't exist and provides
  * functionality to add/remove workout templates with filtering and search.
  * 
+ * REWRITTEN FROM SCRATCH: Based on working ExerciseLibrary.tsx pattern
+ * 
  * Features:
  * - Auto-creation of powr-workout-list collection
  * - Workout template display using WorkoutCard discovery variant
@@ -17,15 +19,15 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Search, Dumbbell, Plus, Trash2, Filter, Play } from 'lucide-react';
+import { Search, Dumbbell, Plus, Filter } from 'lucide-react';
 import { Input } from '@/components/powr-ui/primitives/Input';
 import { Button } from '@/components/powr-ui/primitives/Button';
-import { Card, CardContent } from '@/components/powr-ui/primitives/Card';
-import { Badge } from '@/components/powr-ui/primitives/Badge';
 import { useLibraryData } from '@/providers/LibraryDataProvider';
 import { libraryManagementService } from '@/lib/services/libraryManagement';
 import { usePubkey } from '@/lib/auth/hooks';
-import type { WorkoutLibraryItem } from '@/hooks/useLibraryDataWithCollections';
+import { useToast } from '@/providers/ToastProvider';
+import { WorkoutCard } from '@/components/powr-ui/workout/WorkoutCard';
+import { ConfirmationDialog } from '@/components/powr-ui/primitives/ConfirmationDialog';
 
 interface WorkoutLibraryProps {
   onShowOnboarding?: () => void;
@@ -33,10 +35,11 @@ interface WorkoutLibraryProps {
 }
 
 type FilterType = 'all' | 'my-saved' | 'from-collections';
-type SortType = 'name' | 'recent' | 'duration' | 'difficulty';
+type SortType = 'name' | 'recent' | 'duration';
 
 export function WorkoutLibrary({ onShowOnboarding, onStartWorkout }: WorkoutLibraryProps) {
   const userPubkey = usePubkey();
+  const { showToast } = useToast();
   // ✅ PERFORMANCE: Use shared library data from context (eliminates duplicate subscription)
   const { workoutLibrary, error } = useLibraryData();
   
@@ -45,6 +48,18 @@ export function WorkoutLibrary({ onShowOnboarding, onStartWorkout }: WorkoutLibr
   const [filterType, setFilterType] = useState<FilterType>('all');
   const [sortType, setSortType] = useState<SortType>('name');
   const [isCreatingCollection, setIsCreatingCollection] = useState(false);
+
+  // CRUD operation state
+  const [isOperationLoading, setIsOperationLoading] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    templateRef: string;
+    templateName: string;
+  }>({
+    isOpen: false,
+    templateRef: '',
+    templateName: ''
+  });
 
   // Auto-create collection if it doesn't exist
   useEffect(() => {
@@ -55,7 +70,6 @@ export function WorkoutLibrary({ onShowOnboarding, onStartWorkout }: WorkoutLibr
 
       // If we have no content and no error, the collection doesn't exist
       if (!workoutLibrary.content && !error) {
-        console.log('[WorkoutLibrary] Auto-creating workout collection...');
         setIsCreatingCollection(true);
         
         try {
@@ -64,8 +78,6 @@ export function WorkoutLibrary({ onShowOnboarding, onStartWorkout }: WorkoutLibr
             'WORKOUT_LIBRARY',
             [] // Start with empty collection
           );
-          
-          console.log('[WorkoutLibrary] ✅ Workout collection created');
           
           // Collection will be automatically refetched by the hook
         } catch (error) {
@@ -79,19 +91,59 @@ export function WorkoutLibrary({ onShowOnboarding, onStartWorkout }: WorkoutLibr
     createCollectionIfNeeded();
   }, [userPubkey, workoutLibrary.isLoading, workoutLibrary.content, error]);
 
-  // Handle remove workout (placeholder - not implemented in service yet)
-  const handleRemoveWorkout = async (templateRef: string) => {
-    console.log('[WorkoutLibrary] Remove workout not implemented yet:', templateRef);
-    // TODO: Implement remove functionality when needed
+  // Handle remove workout
+  const handleRemoveWorkout = (templateRef: string, templateName: string) => {
+    setConfirmDialog({
+      isOpen: true,
+      templateRef,
+      templateName
+    });
   };
 
-  // Handle start workout
-  const handleStartWorkout = (templateRef: string) => {
-    console.log('[WorkoutLibrary] Starting workout:', templateRef);
-    onStartWorkout?.(templateRef);
+  // Confirm remove workout - EXACT SAME PATTERN AS EXERCISELIBRARY
+  const confirmRemoveWorkout = async () => {
+    if (!userPubkey || !confirmDialog.templateRef) return;
+
+    setIsOperationLoading(true);
+    try {
+      await libraryManagementService.removeFromLibraryCollectionWithRefresh(
+        userPubkey,
+        'WORKOUT_LIBRARY',
+        confirmDialog.templateRef
+      );
+
+      showToast(
+        'Workout removed',
+        'success',
+        `${confirmDialog.templateName} has been removed from your library`
+      );
+
+      // Close dialog
+      setConfirmDialog({ isOpen: false, templateRef: '', templateName: '' });
+      
+      // Data will automatically refresh via LibraryDataProvider
+    } catch (error) {
+      console.error('[WorkoutLibrary] Failed to remove workout:', error);
+      showToast(
+        'Failed to remove workout',
+        'error',
+        'Please try again'
+      );
+    } finally {
+      setIsOperationLoading(false);
+    }
   };
 
-  // Filter and sort workouts
+  // Handle add workout (placeholder for future implementation)
+  const handleAddWorkout = () => {
+    showToast(
+      'Add Workout',
+      'info',
+      'Workout discovery and adding functionality coming soon!'
+    );
+  };
+
+  // Filter and sort workouts - EXACT SAME PATTERN AS EXERCISELIBRARY
   const processedWorkouts = React.useMemo(() => {
     if (!workoutLibrary.content) return [];
 
@@ -131,14 +183,6 @@ export function WorkoutLibrary({ onShowOnboarding, onStartWorkout }: WorkoutLibr
         break;
       case 'duration':
         filtered.sort((a, b) => (a.template.estimatedDuration || 0) - (b.template.estimatedDuration || 0));
-        break;
-      case 'difficulty':
-        const difficultyOrder = { 'beginner': 1, 'intermediate': 2, 'advanced': 3 };
-        filtered.sort((a, b) => {
-          const aLevel = difficultyOrder[a.template.difficulty as keyof typeof difficultyOrder] || 0;
-          const bLevel = difficultyOrder[b.template.difficulty as keyof typeof difficultyOrder] || 0;
-          return aLevel - bLevel;
-        });
         break;
     }
 
@@ -203,7 +247,12 @@ export function WorkoutLibrary({ onShowOnboarding, onStartWorkout }: WorkoutLibr
           </p>
         </div>
         
-        <Button variant="outline" size="sm" className="gap-2">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="gap-2"
+          onClick={handleAddWorkout}
+        >
           <Plus className="h-4 w-4" />
           Add Workout
         </Button>
@@ -273,13 +322,6 @@ export function WorkoutLibrary({ onShowOnboarding, onStartWorkout }: WorkoutLibr
           >
             Duration
           </Button>
-          <Button
-            variant={sortType === 'difficulty' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setSortType('difficulty')}
-          >
-            Difficulty
-          </Button>
         </div>
       </div>
 
@@ -302,128 +344,67 @@ export function WorkoutLibrary({ onShowOnboarding, onStartWorkout }: WorkoutLibr
           {processedWorkouts.map((item) => (
             <WorkoutCard
               key={item.templateRef}
-              item={item}
-              onRemove={() => handleRemoveWorkout(item.templateRef)}
-              onStart={() => handleStartWorkout(item.templateRef)}
+              variant="discovery"
+              workout={{
+                ...item.template,
+                title: item.template.name, // Map name to title for WorkoutCard
+                estimatedDuration: item.template.estimatedDuration || 30, // Provide default
+                difficulty: (item.template.difficulty === 'beginner' || item.template.difficulty === 'intermediate' || item.template.difficulty === 'advanced') 
+                  ? item.template.difficulty 
+                  : 'intermediate', // Cast to valid difficulty or default
+                tags: item.template.tags.flat(), // Flatten tags array
+                exercises: item.template.exercises.map(ex => ({
+                  name: ex.exerciseRef, // Use exerciseRef as name for now
+                  sets: ex.sets || 3,
+                  reps: ex.reps || 10,
+                  weight: ex.weight
+                }))
+              }}
+              onSelect={() => onStartWorkout?.(item.templateRef)}
+              onMenuAction={(action, workoutId) => {
+                // ✅ FIX: More robust lookup like ExerciseLibrary - dual lookup prevents failures
+                const workoutItem = workoutLibrary.content?.find(item => 
+                  item.template.id === workoutId || item.templateRef === workoutId
+                );
+                
+                if (!workoutItem) {
+                  console.error('❌ [WorkoutLibrary] Workout not found for ID:', workoutId);
+                  return;
+                }
+                
+                if (action === 'remove') {
+                  handleRemoveWorkout(workoutItem.templateRef, workoutItem.template.name);
+                } else if (action === 'start') {
+                  onStartWorkout?.(workoutItem.templateRef);
+                } else if (action === 'details') {
+                  // TODO: Implement workout details view
+                  showToast('Workout Details', 'info', 'Details view coming soon!');
+                } else if (action === 'copy') {
+                  // TODO: Implement copy naddr functionality
+                  showToast('Copy naddr', 'info', 'Copy functionality coming soon!');
+                } else if (action === 'share') {
+                  // TODO: Implement share functionality
+                  showToast('Share Workout', 'info', 'Share functionality coming soon!');
+                }
+              }}
             />
           ))}
         </div>
       )}
+
+      {/* Remove Workout Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={confirmDialog.isOpen}
+        onClose={() => setConfirmDialog({ isOpen: false, templateRef: '', templateName: '' })}
+        onConfirm={confirmRemoveWorkout}
+        title="Remove Workout"
+        description={`Are you sure you want to remove "${confirmDialog.templateName}" from your workout library? This action cannot be undone.`}
+        confirmText="Remove"
+        cancelText="Cancel"
+        variant="destructive"
+        isLoading={isOperationLoading}
+      />
     </div>
-  );
-}
-
-/**
- * Individual Workout Card Component
- */
-function WorkoutCard({ 
-  item, 
-  onRemove,
-  onStart
-}: { 
-  item: WorkoutLibraryItem; 
-  onRemove: () => void;
-  onStart: () => void;
-}) {
-  const [showActions, setShowActions] = useState(false);
-
-  // Format duration
-  const formatDuration = (seconds?: number) => {
-    if (!seconds) return 'Unknown';
-    const minutes = Math.round(seconds / 60);
-    return `${minutes} min`;
-  };
-
-  return (
-    <Card 
-      className="cursor-pointer hover:shadow-md transition-all duration-200 group"
-      onMouseEnter={() => setShowActions(true)}
-      onMouseLeave={() => setShowActions(false)}
-    >
-      <CardContent className="p-4">
-        <div className="space-y-3">
-          {/* Header with actions */}
-          <div className="flex items-start justify-between">
-            <h3 className="font-semibold text-lg line-clamp-1 group-hover:text-primary transition-colors">
-              {item.template.name}
-            </h3>
-            
-            {showActions && (
-              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onStart();
-                  }}
-                  className="text-primary hover:text-primary"
-                >
-                  <Play className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onRemove();
-                  }}
-                  className="text-destructive hover:text-destructive"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            )}
-          </div>
-          
-          {/* Duration */}
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-xs">
-              {formatDuration(item.template.estimatedDuration)}
-            </Badge>
-          </div>
-
-          {/* Description */}
-          {item.template.description && (
-            <p className="text-sm text-muted-foreground line-clamp-2">
-              {item.template.description}
-            </p>
-          )}
-
-          {/* Exercise count and difficulty */}
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>
-              {item.template.exercises?.length || 0} exercise{(item.template.exercises?.length || 0) !== 1 ? 's' : ''}
-            </span>
-            
-            {item.template.difficulty && (
-              <Badge 
-                variant={
-                  item.template.difficulty === 'beginner' ? 'default' :
-                  item.template.difficulty === 'intermediate' ? 'secondary' : 'destructive'
-                }
-                className="text-xs"
-              >
-                {item.template.difficulty}
-              </Badge>
-            )}
-          </div>
-
-          {/* Start workout button (always visible on mobile) */}
-          <Button 
-            onClick={(e) => {
-              e.stopPropagation();
-              onStart();
-            }}
-            className="w-full mt-2 gap-2 sm:hidden group-hover:flex"
-            size="sm"
-          >
-            <Play className="h-4 w-4" />
-            Start Workout
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
   );
 }
 
