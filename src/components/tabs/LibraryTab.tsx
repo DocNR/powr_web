@@ -1,18 +1,18 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Library, Search, BookOpen, Dumbbell, Calendar } from 'lucide-react';
+import { Search, Calendar } from 'lucide-react';
 import { useSubNavigation } from '@/providers/SubNavigationProvider';
 import { useLibraryData } from '@/providers/LibraryDataProvider';
 import { useWorkoutContext } from '@/hooks/useWorkoutContext';
 import { Input } from '@/components/powr-ui/primitives/Input';
 import { Button } from '@/components/powr-ui/primitives/Button';
 import { Card, CardContent } from '@/components/powr-ui/primitives/Card';
-import { WorkoutCard } from '@/components/powr-ui/workout/WorkoutCard';
-import { ExerciseCard } from '@/components/powr-ui/workout/ExerciseCard';
 import { WorkoutDetailModal } from '@/components/powr-ui/workout/WorkoutDetailModal';
 import { WorkoutSummaryModal } from '@/components/powr-ui/workout/WorkoutSummaryModal';
 import { ExerciseDetailModal } from '@/components/library/ExerciseDetailModal';
+import { ExerciseLibrary } from '@/components/library/ExerciseLibrary';
+import { WorkoutLibrary } from '@/components/library/WorkoutLibrary';
 import { SimpleLibraryOnboarding } from '@/components/library/SimpleLibraryOnboarding';
 import { useSimpleLibraryOnboarding } from '@/hooks/useSimpleLibraryOnboarding';
 import { libraryManagementService } from '@/lib/services/libraryManagement';
@@ -160,40 +160,9 @@ export function LibraryTab() {
     workoutSend({ type: 'CLOSE_SUMMARY' });
   };
 
-  // Exercise Detail Modal handlers
-  const handleExerciseSelect = (exerciseData: {
-    id: string;
-    name: string;
-    description?: string;
-    equipment?: string;
-    difficulty?: string;
-    muscleGroups?: string[];
-    format?: string[];
-    formatUnits?: string[];
-    authorPubkey?: string;
-    createdAt?: number;
-    eventId?: string;
-    eventTags?: string[];
-    eventContent?: string;
-    eventKind?: number;
-  }) => {
-    setSelectedExercise(exerciseData);
-    setIsExerciseModalOpen(true);
-  };
-
   const handleCloseExerciseModal = () => {
     setIsExerciseModalOpen(false);
     setSelectedExercise(null);
-  };
-
-  // CRUD handlers for library items
-  const handleRemoveItem = (itemRef: string, itemName: string, itemType: 'exercise' | 'workout') => {
-    setConfirmDialog({
-      isOpen: true,
-      itemRef,
-      itemName,
-      itemType
-    });
   };
 
   const confirmRemoveItem = async () => {
@@ -235,21 +204,19 @@ export function LibraryTab() {
 
   return (
     <>
-      {/* Header */}
-      <div className="text-center space-y-2 mb-6">
-        <div className="flex items-center justify-center gap-3">
-          <Library className="h-8 w-8 text-[color:var(--workout-primary)]" />
-          <h1 className="text-3xl font-bold tracking-tight">Library</h1>
-        </div>
-        <p className="text-muted-foreground text-lg">
-          Your personal fitness collection
-        </p>
-      </div>
-
       {/* Sub-tab content */}
       <div className="space-y-6">
-        {activeSubTab === 'exercises' && <ExercisesView onShowOnboarding={() => setIsModalOpen(true)} onExerciseSelect={handleExerciseSelect} onRemoveItem={handleRemoveItem} />}
-        {activeSubTab === 'workouts' && <WorkoutsView onShowOnboarding={() => setIsModalOpen(true)} onWorkoutSelect={handleWorkoutSelect} onRemoveItem={handleRemoveItem} />}
+        {activeSubTab === 'exercises' && (
+          <ExerciseLibrary 
+            onShowOnboarding={() => setIsModalOpen(true)} 
+          />
+        )}
+        {activeSubTab === 'workouts' && (
+          <WorkoutLibrary 
+            onShowOnboarding={() => setIsModalOpen(true)} 
+            onStartWorkout={(templateRef) => handleWorkoutSelect(templateRef, templateRef)}
+          />
+        )}
         {activeSubTab === 'collections' && <CollectionsView onShowOnboarding={() => setIsModalOpen(true)} />}
       </div>
 
@@ -357,334 +324,6 @@ export function LibraryTab() {
   );
 }
 
-// Exercises View Component
-function ExercisesView({ onShowOnboarding, onExerciseSelect, onRemoveItem }: { 
-  onShowOnboarding: () => void;
-  onExerciseSelect?: (exerciseData: {
-    id: string;
-    name: string;
-    description?: string;
-    equipment?: string;
-    difficulty?: string;
-    muscleGroups?: string[];
-    format?: string[];
-    formatUnits?: string[];
-    authorPubkey?: string;
-    createdAt?: number;
-    eventId?: string;
-    eventTags?: string[];
-    eventContent?: string;
-    eventKind?: number;
-  }) => void;
-  onRemoveItem?: (itemRef: string, itemName: string, itemType: 'exercise' | 'workout') => void;
-}) {
-  const [searchTerm, setSearchTerm] = useState('');
-  const { showToast } = useToast();
-  
-  // ✅ PERFORMANCE: Use shared library data from context (eliminates duplicate subscription)
-  const { exerciseLibrary } = useLibraryData();
-
-
-  if (exerciseLibrary.isLoading || exerciseLibrary.isResolving) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-          <p className="text-sm text-muted-foreground">
-            {exerciseLibrary.isResolving ? 'Resolving exercise references...' : 'Loading exercise library...'}
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  if (exerciseLibrary.error) {
-    return (
-      <div className="p-4 bg-destructive/10 rounded border border-destructive/20">
-        <h3 className="font-medium mb-2 text-destructive">⚠️ Error Loading Library</h3>
-        <p className="text-sm text-destructive/80">{exerciseLibrary.error}</p>
-      </div>
-    );
-  }
-
-  if (!exerciseLibrary.content || exerciseLibrary.content.length === 0) {
-    return (
-      <div className="text-center space-y-6 py-16">
-        <Dumbbell className="h-16 w-16 text-muted-foreground/50 mx-auto" />
-        <div className="space-y-2">
-          <h2 className="text-2xl font-semibold">No Exercises</h2>
-          <p className="text-muted-foreground">
-            Your exercise library is empty. Add some exercises to get started.
-          </p>
-        </div>
-        <Button className="mt-4" onClick={onShowOnboarding}>
-          Get Started with Exercises
-        </Button>
-      </div>
-    );
-  }
-
-  // Filter exercises based on search
-  const filteredExercises = searchTerm.trim() 
-    ? exerciseLibrary.content.filter(item => 
-        item.exercise.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.exercise.description?.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    : exerciseLibrary.content;
-
-  return (
-    <div className="space-y-6">
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          type="text"
-          placeholder="Search exercises..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10 h-12 text-base"
-        />
-      </div>
-
-      {/* Exercises Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {filteredExercises.map((item) => (
-          <ExerciseCard
-            key={item.exerciseRef}
-            variant="discovery"
-            exercise={{
-              id: item.exercise.id,
-              name: item.exercise.name,
-              description: item.exercise.description,
-              equipment: item.exercise.equipment,
-              muscleGroups: item.exercise.muscleGroups,
-              difficulty: item.exercise.difficulty as 'beginner' | 'intermediate' | 'advanced' | undefined,
-              author: { pubkey: item.exercise.authorPubkey },
-              eventId: item.exercise.eventId,
-                eventTags: (item.exercise.hashtags || []).map(tag => Array.isArray(tag) ? tag : [tag]),
-              eventContent: item.exercise.description,
-              eventKind: 33401
-            }}
-            onSelect={(exerciseId) => {
-              if (onExerciseSelect) {
-                const exerciseItem = exerciseLibrary.content?.find(ex => ex.exercise.id === exerciseId);
-                if (exerciseItem) {
-                  onExerciseSelect({
-                    id: exerciseItem.exercise.id,
-                    name: exerciseItem.exercise.name,
-                    description: exerciseItem.exercise.description,
-                    equipment: exerciseItem.exercise.equipment,
-                    difficulty: exerciseItem.exercise.difficulty,
-                    muscleGroups: exerciseItem.exercise.muscleGroups,
-                    format: exerciseItem.exercise.format,
-                    formatUnits: exerciseItem.exercise.format_units,
-                    authorPubkey: exerciseItem.exercise.authorPubkey,
-                    createdAt: exerciseItem.exercise.createdAt,
-                    eventId: exerciseItem.exercise.eventId,
-                    eventTags: exerciseItem.exercise.hashtags || [],
-                    eventContent: exerciseItem.exercise.description,
-                    eventKind: 33401
-                  });
-                }
-              }
-            }}
-              onMenuAction={(action, exerciseId) => {
-                const exerciseItem = exerciseLibrary.content?.find(ex => ex.exercise.id === exerciseId);
-                if (!exerciseItem) return;
-
-                switch (action) {
-                  case 'details':
-                    if (onExerciseSelect) {
-                      onExerciseSelect({
-                        id: exerciseItem.exercise.id,
-                        name: exerciseItem.exercise.name,
-                        description: exerciseItem.exercise.description,
-                        equipment: exerciseItem.exercise.equipment,
-                        difficulty: exerciseItem.exercise.difficulty,
-                        muscleGroups: exerciseItem.exercise.muscleGroups,
-                        format: exerciseItem.exercise.format,
-                        formatUnits: exerciseItem.exercise.format_units,
-                        authorPubkey: exerciseItem.exercise.authorPubkey,
-                        createdAt: exerciseItem.exercise.createdAt,
-                        eventId: exerciseItem.exercise.eventId,
-                        eventTags: (exerciseItem.exercise.hashtags || []).flat(),
-                        eventContent: exerciseItem.exercise.description,
-                        eventKind: 33401
-                      });
-                    }
-                    break;
-                  case 'remove':
-                    // Use the parent component's confirmation dialog
-                    if (onRemoveItem) {
-                      onRemoveItem(exerciseItem.exerciseRef, exerciseItem.exercise.name, 'exercise');
-                    }
-                    break;
-                  case 'copy':
-                  case 'share':
-                    showToast(
-                      `${action === 'copy' ? 'Copy naddr' : 'Share Exercise'}`,
-                      'info',
-                      `${action === 'copy' ? 'Copy' : 'Share'} functionality coming soon!`
-                    );
-                    break;
-                }
-              }}
-            showAuthor={true}
-            showEquipment={true}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// Workouts View Component
-function WorkoutsView({ onShowOnboarding, onWorkoutSelect, onRemoveItem }: { 
-  onShowOnboarding: () => void;
-  onWorkoutSelect?: (workoutId: string, templateRef?: string) => void;
-  onRemoveItem?: (itemRef: string, itemName: string, itemType: 'exercise' | 'workout') => void;
-}) {
-  const [searchTerm, setSearchTerm] = useState('');
-  const { showToast } = useToast();
-  
-  // ✅ PERFORMANCE: Use shared library data from context (eliminates duplicate subscription)
-  const { workoutLibrary } = useLibraryData();
-
-  if (workoutLibrary.isLoading || workoutLibrary.isResolving) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-          <p className="text-sm text-muted-foreground">
-            {workoutLibrary.isResolving ? 'Resolving workout references...' : 'Loading workout library...'}
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  if (workoutLibrary.error) {
-    return (
-      <div className="p-4 bg-destructive/10 rounded border border-destructive/20">
-        <h3 className="font-medium mb-2 text-destructive">⚠️ Error Loading Library</h3>
-        <p className="text-sm text-destructive/80">{workoutLibrary.error}</p>
-      </div>
-    );
-  }
-
-  if (!workoutLibrary.content || workoutLibrary.content.length === 0) {
-    return (
-      <div className="text-center space-y-6 py-16">
-        <BookOpen className="h-16 w-16 text-muted-foreground/50 mx-auto" />
-        <div className="space-y-2">
-          <h2 className="text-2xl font-semibold">No Workouts</h2>
-          <p className="text-muted-foreground">
-            Your workout library is empty. Add some workouts to get started.
-          </p>
-        </div>
-        <Button className="mt-4" onClick={onShowOnboarding}>
-          Get Started with Workouts
-        </Button>
-      </div>
-    );
-  }
-
-  // Filter workouts based on search
-  const filteredWorkouts = searchTerm.trim() 
-    ? workoutLibrary.content.filter(item => 
-        item.template.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.template.description?.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    : workoutLibrary.content;
-
-  return (
-    <div className="space-y-6">
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          type="text"
-          placeholder="Search workout templates..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10 h-12 text-base"
-        />
-      </div>
-
-      {/* Workouts Grid */}
-      {filteredWorkouts.length === 0 ? (
-        <div className="text-center py-16">
-          <Search className="h-16 w-16 text-muted-foreground/20 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold mb-2">No workouts found</h3>
-          <p className="text-muted-foreground">Try adjusting your search terms</p>
-        </div>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredWorkouts.map((item) => (
-            <WorkoutCard
-              key={item.templateRef}
-              variant="discovery"
-              workout={{
-                id: item.template.id,
-                title: item.template.name,
-                description: item.template.description,
-                exercises: item.template.exercises.map(ex => ({
-                  name: ex.exerciseRef.split(':')[2], // Extract exercise name from ref
-                  sets: ex.sets || 0,
-                  reps: ex.reps || 0,
-                  weight: ex.weight
-                })),
-                estimatedDuration: item.template.estimatedDuration || 0,
-                difficulty: item.template.difficulty as 'beginner' | 'intermediate' | 'advanced' | undefined,
-                author: { pubkey: item.template.authorPubkey },
-                eventId: item.template.eventId,
-                eventTags: item.template.tags.map(tag => Array.isArray(tag) ? tag : [tag]),
-                eventContent: item.template.description,
-                eventKind: 33402
-              }}
-              onSelect={(workoutId) => {
-                // Use the template reference from the library item
-                if (onWorkoutSelect) {
-                  onWorkoutSelect(workoutId, item.templateRef);
-                }
-              }}
-              onMenuAction={(action, workoutId) => {
-                const workoutItem = workoutLibrary.content?.find(w => w.template.id === workoutId);
-                if (!workoutItem) return;
-
-                switch (action) {
-                  case 'start':
-                  case 'details':
-                    if (onWorkoutSelect) {
-                      onWorkoutSelect(workoutId, workoutItem.templateRef);
-                    }
-                    break;
-                  case 'remove':
-                    // Use the parent component's confirmation dialog (same pattern as ExercisesView)
-                    if (onRemoveItem) {
-                      onRemoveItem(workoutItem.templateRef, workoutItem.template.name, 'workout');
-                    }
-                    break;
-                  case 'copy':
-                  case 'share':
-                    showToast(
-                      `${action === 'copy' ? 'Copy naddr' : 'Share Workout'}`,
-                      'info',
-                      `${action === 'copy' ? 'Copy' : 'Share'} functionality coming soon!`
-                    );
-                    break;
-                }
-              }}
-              showImage={true}
-              showAuthor={true}
-              showStats={true}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
 
 // Collections View Component
 function CollectionsView({ onShowOnboarding }: { onShowOnboarding: () => void }) {

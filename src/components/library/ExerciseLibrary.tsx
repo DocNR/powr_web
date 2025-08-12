@@ -17,14 +17,16 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Search, Dumbbell, Plus, Filter } from 'lucide-react';
+import { Search, Dumbbell, Plus, Filter, ChevronDown } from 'lucide-react';
 import { Input } from '@/components/powr-ui/primitives/Input';
 import { Button } from '@/components/powr-ui/primitives/Button';
 import { useLibraryData } from '@/providers/LibraryDataProvider';
 import { libraryManagementService } from '@/lib/services/libraryManagement';
 import { usePubkey } from '@/lib/auth/hooks';
 import { useToast } from '@/providers/ToastProvider';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { ExerciseCard } from '@/components/powr-ui/workout/ExerciseCard';
+import { ExerciseListView } from './ExerciseListView';
 import { ExerciseDetailModal } from './ExerciseDetailModal';
 import { ConfirmationDialog } from '@/components/powr-ui/primitives/ConfirmationDialog';
 import type { ExerciseLibraryItem } from '@/hooks/useLibraryDataWithCollections';
@@ -34,19 +36,20 @@ interface ExerciseLibraryProps {
 }
 
 type FilterType = 'all' | 'my-saved' | 'from-collections';
-type SortType = 'name' | 'recent' | 'muscle-group';
-
 export function ExerciseLibrary({ onShowOnboarding }: ExerciseLibraryProps) {
   const userPubkey = usePubkey();
   const { showToast } = useToast();
   // ✅ PERFORMANCE: Use shared library data from context (eliminates duplicate subscription)
   const { exerciseLibrary, error } = useLibraryData();
   
+  // ✅ SIMPLE SOLUTION: Use JavaScript media query instead of complex Tailwind responsive classes
+  const isMobile = useMediaQuery('(max-width: 768px)');
+  
   // Local state
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<FilterType>('all');
-  const [sortType, setSortType] = useState<SortType>('name');
   const [isCreatingCollection, setIsCreatingCollection] = useState(false);
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   
   // Exercise detail modal state
   const [selectedExercise, setSelectedExercise] = useState<ExerciseLibraryItem | null>(null);
@@ -199,25 +202,11 @@ export function ExerciseLibrary({ onShowOnboarding }: ExerciseLibraryProps) {
         break;
     }
 
-    // Apply sorting
-    switch (sortType) {
-      case 'name':
-        filtered.sort((a, b) => a.exercise.name.localeCompare(b.exercise.name));
-        break;
-      case 'recent':
-        filtered.sort((a, b) => (b.exercise.createdAt || 0) - (a.exercise.createdAt || 0));
-        break;
-      case 'muscle-group':
-        filtered.sort((a, b) => {
-          const aGroup = a.exercise.muscleGroups[0] || '';
-          const bGroup = b.exercise.muscleGroups[0] || '';
-          return aGroup.localeCompare(bGroup);
-        });
-        break;
-    }
+    // Default sort by name
+    filtered.sort((a, b) => a.exercise.name.localeCompare(b.exercise.name));
 
     return filtered;
-  }, [exerciseLibrary.content, searchTerm, filterType, sortType]);
+  }, [exerciseLibrary.content, searchTerm, filterType]);
 
   // Loading state
   if (exerciseLibrary.isLoading || exerciseLibrary.isResolving || isCreatingCollection) {
@@ -268,28 +257,8 @@ export function ExerciseLibrary({ onShowOnboarding }: ExerciseLibraryProps) {
 
   return (
     <div className="space-y-6">
-      {/* Header with stats */}
-      <div className="flex items-center justify-between">
-        <div className="space-y-1">
-          <h2 className="text-2xl font-bold">Exercise Library</h2>
-          <p className="text-sm text-muted-foreground">
-            {exerciseLibrary.content.length} exercise{exerciseLibrary.content.length !== 1 ? 's' : ''} in your collection
-          </p>
-        </div>
-        
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="gap-2"
-          onClick={handleAddExercise}
-        >
-          <Plus className="h-4 w-4" />
-          Add Exercise
-        </Button>
-      </div>
-
-      {/* Search and filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
+      {/* Search and controls */}
+      <div className="flex gap-2">
         {/* Search */}
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -298,61 +267,108 @@ export function ExerciseLibrary({ onShowOnboarding }: ExerciseLibraryProps) {
             placeholder="Search exercises..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
+            className="pl-10 h-10"
           />
         </div>
 
-        {/* Filter buttons */}
-        <div className="flex gap-2">
-          <Button
-            variant={filterType === 'all' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setFilterType('all')}
-            className="gap-2"
-          >
-            <Filter className="h-4 w-4" />
-            All
-          </Button>
-          <Button
-            variant={filterType === 'my-saved' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setFilterType('my-saved')}
-          >
-            My Saved
-          </Button>
-          <Button
-            variant={filterType === 'from-collections' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setFilterType('from-collections')}
-          >
-            Collections
-          </Button>
-        </div>
+        {/* Mobile: Filter dropdown, Desktop: Button group */}
+        {isMobile ? (
+          <div className="relative">
+            <Button
+              variant={filterType !== 'all' ? 'default' : 'outline'}
+              size="sm"
+              className="h-10 px-3 flex-shrink-0 gap-1"
+              onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+            >
+              <Filter className="h-4 w-4" />
+              <ChevronDown className="h-3 w-3" />
+            </Button>
+            
+            {/* Dropdown Menu */}
+            {showFilterDropdown && (
+              <>
+                {/* Backdrop */}
+                <div 
+                  className="dropdown-backdrop"
+                  onClick={() => setShowFilterDropdown(false)}
+                />
+                
+                {/* Menu */}
+                <div className="dropdown-menu absolute right-0 top-12 w-40">
+                  <div className="py-1">
+                    <button
+                      className={`dropdown-item ${filterType === 'all' ? 'dropdown-item-active' : ''}`}
+                      onClick={() => {
+                        setFilterType('all');
+                        setShowFilterDropdown(false);
+                      }}
+                    >
+                      All Exercises
+                      {filterType === 'all' && <div className="dropdown-indicator" />}
+                    </button>
+                    <button
+                      className={`dropdown-item ${filterType === 'my-saved' ? 'dropdown-item-active' : ''}`}
+                      onClick={() => {
+                        setFilterType('my-saved');
+                        setShowFilterDropdown(false);
+                      }}
+                    >
+                      My Saved
+                      {filterType === 'my-saved' && <div className="dropdown-indicator" />}
+                    </button>
+                    <button
+                      className={`dropdown-item ${filterType === 'from-collections' ? 'dropdown-item-active' : ''}`}
+                      onClick={() => {
+                        setFilterType('from-collections');
+                        setShowFilterDropdown(false);
+                      }}
+                    >
+                      Collections
+                      {filterType === 'from-collections' && <div className="dropdown-indicator" />}
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        ) : (
+          <div className="flex gap-2">
+            <Button
+              variant={filterType === 'all' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setFilterType('all')}
+              className="gap-2"
+            >
+              <Filter className="h-4 w-4" />
+              All
+            </Button>
+            <Button
+              variant={filterType === 'my-saved' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setFilterType('my-saved')}
+            >
+              My Saved
+            </Button>
+            <Button
+              variant={filterType === 'from-collections' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setFilterType('from-collections')}
+            >
+              Collections
+            </Button>
+          </div>
+        )}
 
-        {/* Sort buttons */}
-        <div className="flex gap-2">
-          <Button
-            variant={sortType === 'name' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setSortType('name')}
-          >
-            Name
-          </Button>
-          <Button
-            variant={sortType === 'recent' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setSortType('recent')}
-          >
-            Recent
-          </Button>
-          <Button
-            variant={sortType === 'muscle-group' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setSortType('muscle-group')}
-          >
-            Muscle
-          </Button>
-        </div>
+        {/* Add Exercise Button */}
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="h-10 w-10 p-0 rounded-full flex-shrink-0"
+          onClick={handleAddExercise}
+          title="Add Exercise"
+        >
+          <Plus className="h-4 w-4" />
+        </Button>
       </div>
 
       {/* Results count */}
@@ -362,14 +378,54 @@ export function ExerciseLibrary({ onShowOnboarding }: ExerciseLibraryProps) {
         </div>
       )}
 
-      {/* Exercise grid */}
+      {/* ✅ SIMPLE SOLUTION: JavaScript-based responsive rendering */}
       {processedExercises.length === 0 ? (
         <div className="text-center py-12">
           <Search className="h-12 w-12 text-muted-foreground/20 mx-auto mb-4" />
           <h3 className="text-lg font-semibold mb-2">No exercises found</h3>
           <p className="text-muted-foreground">Try adjusting your search or filters</p>
         </div>
+      ) : isMobile ? (
+        // Mobile: List View - Break out of container padding for full-width
+        <div className="-mx-6">
+          <ExerciseListView
+            exercises={processedExercises}
+            isInLibrary={() => true} // All exercises in library are "in library"
+            onAdd={() => {}} // Not used since all exercises are already in library
+            onRemove={(exerciseRef) => {
+              // Find the exercise to get its name
+              const exerciseItem = exerciseLibrary.content?.find(item => 
+                item.exerciseRef === exerciseRef
+              );
+              if (exerciseItem) {
+                handleRemoveExercise(exerciseItem.exerciseRef, exerciseItem.exercise.name);
+              }
+            }}
+            onMenuAction={(action, exerciseId) => {
+              if (action === 'details') {
+                handleExerciseClick(exerciseId);
+              } else if (action === 'remove') {
+                // Find the exercise to get its name and ref
+                const exerciseItem = exerciseLibrary.content?.find(item => 
+                  item.exercise.id === exerciseId || item.exerciseRef === exerciseId
+                );
+                if (exerciseItem) {
+                  handleRemoveExercise(exerciseItem.exerciseRef, exerciseItem.exercise.name);
+                }
+              } else if (action === 'substitute') {
+                // TODO: Implement substitute
+              } else if (action === 'copy') {
+                // TODO: Implement copy naddr
+              } else if (action === 'share') {
+                // TODO: Implement share
+              }
+            }}
+            onExerciseClick={handleExerciseClick}
+            isLoading={exerciseLibrary.isLoading || exerciseLibrary.isResolving}
+          />
+        </div>
       ) : (
+        // Desktop/Tablet: Card Grid
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {processedExercises.map((item) => (
             <ExerciseCard

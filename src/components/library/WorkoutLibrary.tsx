@@ -26,7 +26,9 @@ import { useLibraryData } from '@/providers/LibraryDataProvider';
 import { libraryManagementService } from '@/lib/services/libraryManagement';
 import { usePubkey } from '@/lib/auth/hooks';
 import { useToast } from '@/providers/ToastProvider';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { WorkoutCard } from '@/components/powr-ui/workout/WorkoutCard';
+import { WorkoutListView } from './WorkoutListView';
 import { ConfirmationDialog } from '@/components/powr-ui/primitives/ConfirmationDialog';
 
 interface WorkoutLibraryProps {
@@ -35,18 +37,18 @@ interface WorkoutLibraryProps {
 }
 
 type FilterType = 'all' | 'my-saved' | 'from-collections';
-type SortType = 'name' | 'recent' | 'duration';
-
 export function WorkoutLibrary({ onShowOnboarding, onStartWorkout }: WorkoutLibraryProps) {
   const userPubkey = usePubkey();
   const { showToast } = useToast();
   // ✅ PERFORMANCE: Use shared library data from context (eliminates duplicate subscription)
   const { workoutLibrary, error } = useLibraryData();
   
+  // Responsive behavior - same as ExerciseLibrary
+  const isMobile = useMediaQuery('(max-width: 768px)');
+  
   // Local state
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<FilterType>('all');
-  const [sortType, setSortType] = useState<SortType>('name');
   const [isCreatingCollection, setIsCreatingCollection] = useState(false);
 
   // CRUD operation state
@@ -173,21 +175,11 @@ export function WorkoutLibrary({ onShowOnboarding, onStartWorkout }: WorkoutLibr
         break;
     }
 
-    // Apply sorting
-    switch (sortType) {
-      case 'name':
-        filtered.sort((a, b) => a.template.name.localeCompare(b.template.name));
-        break;
-      case 'recent':
-        filtered.sort((a, b) => (b.template.createdAt || 0) - (a.template.createdAt || 0));
-        break;
-      case 'duration':
-        filtered.sort((a, b) => (a.template.estimatedDuration || 0) - (b.template.estimatedDuration || 0));
-        break;
-    }
+    // Default sort by name
+    filtered.sort((a, b) => a.template.name.localeCompare(b.template.name));
 
     return filtered;
-  }, [workoutLibrary.content, searchTerm, filterType, sortType]);
+  }, [workoutLibrary.content, searchTerm, filterType]);
 
   // Loading state
   if (workoutLibrary.isLoading || workoutLibrary.isResolving || isCreatingCollection) {
@@ -238,28 +230,8 @@ export function WorkoutLibrary({ onShowOnboarding, onStartWorkout }: WorkoutLibr
 
   return (
     <div className="space-y-6">
-      {/* Header with stats */}
-      <div className="flex items-center justify-between">
-        <div className="space-y-1">
-          <h2 className="text-2xl font-bold">Workout Library</h2>
-          <p className="text-sm text-muted-foreground">
-            {workoutLibrary.content.length} workout{workoutLibrary.content.length !== 1 ? 's' : ''} in your collection
-          </p>
-        </div>
-        
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="gap-2"
-          onClick={handleAddWorkout}
-        >
-          <Plus className="h-4 w-4" />
-          Add Workout
-        </Button>
-      </div>
-
-      {/* Search and filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
+      {/* Search and controls */}
+      <div className="flex gap-2">
         {/* Search */}
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -268,61 +240,59 @@ export function WorkoutLibrary({ onShowOnboarding, onStartWorkout }: WorkoutLibr
             placeholder="Search workouts..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
+            className="pl-10 h-10"
           />
         </div>
 
-        {/* Filter buttons */}
-        <div className="flex gap-2">
-          <Button
-            variant={filterType === 'all' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setFilterType('all')}
-            className="gap-2"
+        {/* Mobile: Compact dropdown, Desktop: Button group */}
+        {isMobile ? (
+          <select
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value as FilterType)}
+            className="h-10 px-3 rounded-md border border-input bg-background text-sm"
           >
-            <Filter className="h-4 w-4" />
-            All
-          </Button>
-          <Button
-            variant={filterType === 'my-saved' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setFilterType('my-saved')}
-          >
-            My Saved
-          </Button>
-          <Button
-            variant={filterType === 'from-collections' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setFilterType('from-collections')}
-          >
-            Collections
-          </Button>
-        </div>
+            <option value="all">All</option>
+            <option value="my-saved">My Saved</option>
+            <option value="from-collections">Collections</option>
+          </select>
+        ) : (
+          <div className="flex gap-2">
+            <Button
+              variant={filterType === 'all' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setFilterType('all')}
+              className="gap-2"
+            >
+              <Filter className="h-4 w-4" />
+              All
+            </Button>
+            <Button
+              variant={filterType === 'my-saved' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setFilterType('my-saved')}
+            >
+              My Saved
+            </Button>
+            <Button
+              variant={filterType === 'from-collections' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setFilterType('from-collections')}
+            >
+              Collections
+            </Button>
+          </div>
+        )}
 
-        {/* Sort buttons */}
-        <div className="flex gap-2">
-          <Button
-            variant={sortType === 'name' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setSortType('name')}
-          >
-            Name
-          </Button>
-          <Button
-            variant={sortType === 'recent' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setSortType('recent')}
-          >
-            Recent
-          </Button>
-          <Button
-            variant={sortType === 'duration' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setSortType('duration')}
-          >
-            Duration
-          </Button>
-        </div>
+        {/* Add Workout Button */}
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="h-10 w-10 p-0 rounded-full flex-shrink-0"
+          onClick={handleAddWorkout}
+          title="Add Workout"
+        >
+          <Plus className="h-4 w-4" />
+        </Button>
       </div>
 
       {/* Results count */}
@@ -332,14 +302,48 @@ export function WorkoutLibrary({ onShowOnboarding, onStartWorkout }: WorkoutLibr
         </div>
       )}
 
-      {/* Workout grid */}
+      {/* Responsive workout display - same pattern as ExerciseLibrary */}
       {processedWorkouts.length === 0 ? (
         <div className="text-center py-12">
           <Search className="h-12 w-12 text-muted-foreground/20 mx-auto mb-4" />
           <h3 className="text-lg font-semibold mb-2">No workouts found</h3>
           <p className="text-muted-foreground">Try adjusting your search or filters</p>
         </div>
+      ) : isMobile ? (
+        // Mobile: List view - Break out of container padding for full-width
+        <div className="-mx-6">
+          <WorkoutListView
+            workouts={processedWorkouts}
+            onWorkoutSelect={onStartWorkout}
+            onMenuAction={(action, templateRef) => {
+              const workoutItem = workoutLibrary.content?.find(item => 
+                item.templateRef === templateRef || item.template.id === templateRef
+              );
+              
+              if (!workoutItem) {
+                console.error('❌ [WorkoutLibrary] Workout not found for ref:', templateRef);
+                return;
+              }
+              
+              if (action === 'remove') {
+                handleRemoveWorkout(workoutItem.templateRef, workoutItem.template.name);
+              } else if (action === 'start' || action === 'menu') {
+                onStartWorkout?.(workoutItem.templateRef);
+              } else if (action === 'details') {
+                // Open workout detail modal - same as clicking the workout item
+                onStartWorkout?.(workoutItem.templateRef);
+              } else if (action === 'copy') {
+                // TODO: Implement copy naddr functionality
+                showToast('Copy naddr', 'info', 'Copy functionality coming soon!');
+              } else if (action === 'share') {
+                // TODO: Implement share functionality
+                showToast('Share Workout', 'info', 'Share functionality coming soon!');
+              }
+            }}
+          />
+        </div>
       ) : (
+        // Desktop: Grid view
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {processedWorkouts.map((item) => (
             <WorkoutCard
@@ -377,8 +381,8 @@ export function WorkoutLibrary({ onShowOnboarding, onStartWorkout }: WorkoutLibr
                 } else if (action === 'start') {
                   onStartWorkout?.(workoutItem.templateRef);
                 } else if (action === 'details') {
-                  // TODO: Implement workout details view
-                  showToast('Workout Details', 'info', 'Details view coming soon!');
+                  // Open workout detail modal - same as clicking the workout item
+                  onStartWorkout?.(workoutItem.templateRef);
                 } else if (action === 'copy') {
                   // TODO: Implement copy naddr functionality
                   showToast('Copy naddr', 'info', 'Copy functionality coming soon!');

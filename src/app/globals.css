@@ -473,8 +473,8 @@
   }
 }
 
-/* Enhanced zoom prevention for specific gestures */
 @layer utilities {
+  /* Enhanced zoom prevention for specific gestures */
   .no-zoom {
     touch-action: manipulation !important;
     -webkit-touch-callout: none !important;
@@ -486,5 +486,87 @@
   .prevent-double-tap-zoom {
     touch-action: manipulation;
     -webkit-touch-callout: none;
+  }
+
+  /* Dropdown Menu Styles - Reusable across the app with enhanced visibility */
+  .dropdown-menu {
+    @apply bg-popover text-popover-foreground border border-border rounded-md shadow-xl z-50;
+    /* Subtle backdrop blur with fallback */
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    /* Fallback for browsers that don't support backdrop-filter */
+    background: rgba(255, 255, 255, 0.98);
+    /* Add subtle animation */
+    animation: dropdown-appear 0.15s ease-out;
+  }
+  
+  /* Dark mode dropdown background */
+  .dark .dropdown-menu {
+    background: rgba(33, 39, 55, 0.98);
+  }
+  
+  /* Dropdown animation */
+  @keyframes dropdown-appear {
+    from {
+      opacity: 0;
+      transform: translateY(-4px) scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+  
+  .dropdown-item {
+    @apply w-full px-3 py-2 text-left text-sm transition-all duration-150 flex items-center gap-2 hover:bg-muted;
+    /* Enhanced hover effect */
+    border-radius: 4px;
+    margin: 1px 4px;
+  }
+  
+  .dropdown-item:hover {
+    transform: translateX(2px);
+  }
+  
+  .dropdown-item-active {
+    @apply bg-muted font-medium;
+    /* More visible active state */
+    background: rgba(var(--primary), 0.1);
+    color: rgb(var(--primary));
+  }
+  
+  .dropdown-backdrop {
+    @apply fixed inset-0 z-40;
+    /* More visible backdrop */
+    background: rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    animation: backdrop-appear 0.15s ease-out;
+  }
+  
+  /* Backdrop animation */
+  @keyframes backdrop-appear {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  
+  .dropdown-indicator {
+    @apply ml-auto w-2 h-2 bg-primary rounded-full;
+    /* Add subtle pulse animation */
+    animation: indicator-pulse 2s infinite;
+  }
+  
+  /* Indicator pulse animation */
+  @keyframes indicator-pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.6;
+    }
   }
 }

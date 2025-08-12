@@ -82,7 +82,6 @@ interface WorkoutCardProps {
   variant?: WorkoutCardVariant;
   workout: WorkoutTemplate | WorkoutRecord;
   onSelect?: (workoutId: string) => void;
-  onAuthorClick?: (pubkey: string) => void;
   onMenuAction?: (action: string, workoutId: string) => void;
   className?: string;
   showImage?: boolean;
@@ -103,7 +102,6 @@ export const WorkoutCard = memo(function WorkoutCard({
   variant = 'discovery',
   workout,
   onSelect,
-  onAuthorClick,
   onMenuAction,
   className,
   showImage = true,
@@ -233,9 +231,10 @@ export const WorkoutCard = memo(function WorkoutCard({
             <div className="flex items-center gap-3 text-sm mb-2">
               <span>{exerciseCount} exercises</span>
               <span>•</span>
-              <span>{duration} min</span>
-              <span>•</span>
-              <span>{Math.round(duration * 8)} cal</span>
+              <span>{workout.exercises.reduce((total, ex) => {
+                const setCount = Array.isArray(ex.sets) ? ex.sets.length : (ex.sets || 0);
+                return total + setCount;
+              }, 0)} sets</span>
             </div>
           )}
 
@@ -258,8 +257,6 @@ export const WorkoutCard = memo(function WorkoutCard({
                 </div>
                 <span>{getDifficultyDisplay(workout.difficulty)}</span>
               </div>
-              <span>•</span>
-              <span>Rating: 9.3</span>
             </div>
           )}
         </div>
@@ -350,8 +347,6 @@ export const WorkoutCard = memo(function WorkoutCard({
                 const setCount = Array.isArray(ex.sets) ? ex.sets.length : (ex.sets || 0);
                 return total + setCount;
               }, 0)} sets</span>
-              <span>•</span>
-              <span>{duration} min</span>
             </div>
           )}
 
@@ -445,7 +440,6 @@ export const WorkoutCard = memo(function WorkoutCard({
                   }, 0)} sets</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span>{duration}m</span>
                   {isTemplate && (
                     <span className={cn(
                       "px-2 py-1 rounded text-xs font-medium",
@@ -573,8 +567,6 @@ export const WorkoutCard = memo(function WorkoutCard({
                     const setCount = Array.isArray(ex.sets) ? ex.sets.length : (ex.sets || 0);
                     return total + setCount;
                   }, 0)} sets</span>
-                  <span>•</span>
-                  <span>{duration} min</span>
                 </div>
               )}
 
@@ -597,8 +589,6 @@ export const WorkoutCard = memo(function WorkoutCard({
                     </div>
                     <span className="capitalize">{workout.difficulty || 'intermediate'}</span>
                   </div>
-                  <span>•</span>
-                  <span>Rating: 9.{Math.floor(Math.random() * 9) + 1}</span>
                 </div>
               )}
             </div>
@@ -664,8 +654,6 @@ export const WorkoutCard = memo(function WorkoutCard({
                     const setCount = Array.isArray(ex.sets) ? ex.sets.length : (ex.sets || 0);
                     return total + setCount;
                   }, 0)} sets</span>
-                  <span>•</span>
-                  <span>{duration}m</span>
                   {isTemplate && (
                     <>
                       <span>•</span>
