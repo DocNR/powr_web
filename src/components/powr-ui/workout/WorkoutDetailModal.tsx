@@ -115,6 +115,7 @@ interface WorkoutDetailModalProps {
   onClose: () => void;
   onStartWorkout: () => void;
   onExerciseClick?: (exercise: Exercise) => void;
+  hideStartButton?: boolean; // NEW: Hide start button for active workouts
 }
 
 export const WorkoutDetailModal = ({
@@ -125,6 +126,7 @@ export const WorkoutDetailModal = ({
   onClose,
   onStartWorkout,
   onExerciseClick,
+  hideStartButton = false,
 }: WorkoutDetailModalProps) => {
   const [activeTab, setActiveTab] = useState('overview');
 
@@ -328,22 +330,24 @@ export const WorkoutDetailModal = ({
           {/* Main content */}
           {templateData && !isLoading && !error && (
             <>
-              {/* Start Workout Button */}
-              <div className="flex-shrink-0 p-6 pb-4">
-                <Button
-                  onClick={onStartWorkout}
-                  className="w-full h-12 bg-gradient-to-r from-orange-400 via-orange-500 to-red-500 hover:from-orange-500 hover:via-orange-600 hover:to-red-600 text-black font-semibold text-base rounded-xl flex items-center justify-center gap-2"
-                >
-                  <Play className="h-5 w-5 fill-current" />
-                  Start workout
-                </Button>
-              </div>
+              {/* Start Workout Button - Only show if not hidden */}
+              {!hideStartButton && (
+                <div className="flex-shrink-0 p-6 pb-4">
+                  <Button
+                    onClick={onStartWorkout}
+                    className="w-full h-12 bg-gradient-to-r from-orange-400 via-orange-500 to-red-500 hover:from-orange-500 hover:via-orange-600 hover:to-red-600 text-black font-semibold text-base rounded-xl flex items-center justify-center gap-2"
+                  >
+                    <Play className="h-5 w-5 fill-current" />
+                    Start workout
+                  </Button>
+                </div>
+              )}
 
               {/* Tabs and Content */}
               <div className="flex-1 flex flex-col overflow-hidden">
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-                  {/* Fixed Tab Headers */}
-                  <div className="px-6 flex-shrink-0">
+                  {/* Fixed Tab Headers with spacing from image */}
+                  <div className="px-6 pt-4 flex-shrink-0">
                     <TabsList className="grid w-full grid-cols-3">
                       <TabsTrigger 
                         value="overview"

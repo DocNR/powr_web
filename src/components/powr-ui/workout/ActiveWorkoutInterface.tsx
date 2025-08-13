@@ -12,6 +12,7 @@ import { WorkoutImageHandler } from './WorkoutImageHandler';
 import { ExerciseDetailModal } from '@/components/library/ExerciseDetailModal';
 import { SaveTemplateModal } from './SaveTemplateModal';
 import { WorkoutMenuDropdown } from './WorkoutMenuDropdown';
+import { WorkoutDetailModal } from './WorkoutDetailModal';
 import { WorkoutDescription } from './WorkoutDescription';
 import { ArrowLeft, Square, Plus } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -86,6 +87,9 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
   // NEW: Substitution picker state
   const [showSubstitutePicker, setShowSubstitutePicker] = useState(false);
   const [substituteExerciseIndex, setSubstituteExerciseIndex] = useState<number | null>(null);
+  
+  // NEW: Template info modal state
+  const [showTemplateInfo, setShowTemplateInfo] = useState(false);
   
   // NEW: Confirmation dialog state for smart workout confirmations
   const [confirmationDialog, setConfirmationDialog] = useState<{
@@ -392,7 +396,7 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
 
 
   // NEW: Superset creation handler - TEMPORARILY DISABLED
-  const handleCreateSuperset = (_exerciseIndex: number) => {
+  const handleCreateSuperset = () => {
     // Temporarily disabled - superset functionality coming soon
     console.log('🔗 Superset creation temporarily disabled - coming soon!');
     // setSupersetTriggerExerciseIndex(exerciseIndex);
@@ -602,32 +606,35 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
                 </div>
               </div>
 
-              {/* Workout Menu + Finish Button */}
-              <div className="flex items-center gap-2">
-                <WorkoutMenuDropdown 
-                  onMenuAction={(action) => {
-                    console.log('🔧 Workout menu action:', action);
-                    // TODO: Handle workout menu actions in Phase 2, Item 6
-                  }}
-                  workoutData={workoutData}
-                  templateData={templateData}
-                />
-                <Button
-                  variant="workout-success"
-                  onClick={() => setShowFinishDialog(true)}
-                  className="px-6"
-                >
-                  Finish
-                </Button>
-              </div>
+              {/* Finish Button Only */}
+              <Button
+                variant="workout-success"
+                onClick={() => setShowFinishDialog(true)}
+                className="px-6"
+              >
+                Finish
+              </Button>
             </div>
 
-            {/* Workout Title and Description Section */}
+            {/* Workout Title and Description Section with Menu */}
             {(workoutData?.title || templateData?.description) && (
               <div className="px-4 py-3 border-b border-border bg-muted/30">
-                <h2 className="text-lg font-semibold text-foreground mb-1">
-                  {workoutData?.title || 'Active Workout'}
-                </h2>
+                <div className="flex items-center justify-between mb-1">
+                  <h2 className="text-lg font-semibold text-foreground">
+                    {workoutData?.title || 'Active Workout'}
+                  </h2>
+                  <WorkoutMenuDropdown 
+                    onMenuAction={(action) => {
+                      console.log('🔧 Workout menu action:', action);
+                      if (action === 'template-info') {
+                        setShowTemplateInfo(true);
+                      }
+                      // TODO: Handle other workout menu actions in Phase 2, Item 6
+                    }}
+                    workoutData={workoutData}
+                    templateData={templateData}
+                  />
+                </div>
                 {templateData?.description && (
                   <WorkoutDescription 
                     description={templateData.description}
@@ -962,6 +969,43 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
           variant="destructive"
         />
       )}
+
+      {/* ✅ NEW: Template Info Modal - Shows template details during active workout */}
+      <WorkoutDetailModal
+        isOpen={showTemplateInfo}
+        onClose={() => setShowTemplateInfo(false)}
+        onStartWorkout={() => {}} // No-op since workout is already active
+        templateData={{
+          // Transform active workout data to expected format
+          title: workoutData?.title || templateData?.title,
+          description: templateData?.description,
+          tags: templateData?.tags,
+          content: templateData?.content,
+          eventKind: templateData?.eventKind,
+          // Create resolvedTemplate from workout data (prescribed values)
+          resolvedTemplate: {
+            name: workoutData?.title || templateData?.title || 'Active Workout',
+            description: templateData?.description || 'Workout template information',
+            exercises: workoutData?.exercises?.map((exercise: WorkoutExercise, _index: number) => ({
+              exerciseRef: exercise.exerciseRef,
+              sets: exercise.sets || 3, // Prescribed sets
+              reps: exercise.reps || 10, // Prescribed reps  
+              weight: exercise.weight || 0 // Prescribed weight
+            })) || []
+          },
+          // Create resolvedExercises from workout data
+          resolvedExercises: workoutData?.exercises?.map((exercise: WorkoutExercise, index: number) => ({
+            id: exercise.exerciseRef.split(':')[2] || `exercise-${index}`,
+            name: exercise.exerciseName || `Exercise ${index + 1}`,
+            equipment: 'Unknown', // We don't have equipment data in WorkoutExercise
+            description: `Prescribed: ${exercise.sets || 3} sets × ${exercise.reps || 10} reps${exercise.weight ? ` @ ${exercise.weight}kg` : ''}`,
+            muscleGroups: [], // We don't have muscle group data in WorkoutExercise
+            difficulty: 'intermediate'
+          })) || []
+        }}
+        hideStartButton={true} // Hide start button for active workouts
+        isLoading={false}
+      />
 
     </>
   );

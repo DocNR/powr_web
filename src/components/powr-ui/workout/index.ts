@@ -25,6 +25,8 @@ export { SetRow } from './SetRow';
 export { ExerciseSection } from './ExerciseSection';
 export { WorkoutMiniBar } from './WorkoutMiniBar';
 export { SaveTemplateModal } from './SaveTemplateModal';
+export { WorkoutMenuDropdown } from './WorkoutMenuDropdown';
+export { WorkoutDescription } from './WorkoutDescription';
 export { default as WorkoutCardSkeleton } from './WorkoutCardSkeleton';
 
 // Types are available for import directly from individual components

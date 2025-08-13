@@ -79,16 +79,21 @@ Follow the established NDK-first architecture while implementing missing UI func
   - Now properly opens workout detail modal on both mobile and desktop
   - Consistent behavior across all interaction patterns (click item, menu actions)
 
-#### 5. Active Workout Header & Menu
-- [ ] **Workout Title and Description Display**
+#### 5. Active Workout Header & Menu ✅ COMPLETE
+- [x] **Workout Title and Description Display**
   - Add workout title above first exercise in ActiveWorkoutInterface
   - Show workout description (truncated with expand option)
   - Provide visual context for what workout user is performing
-- [ ] **Workout Menu Implementation**
+- [x] **Workout Menu Implementation**
   - Add "..." menu button in workout header
   - Dropdown menu for workout-level actions and settings
   - Clean, accessible menu design consistent with ExerciseMenuDropdown
-- [ ] **Bugs**
+- [x] **Template Info Modal Integration**
+  - "Template Info" menu action opens WorkoutDetailModal during active workout
+  - Shows original template data (prescribed sets, reps, weights)
+  - Proper data transformation from active workout to modal format
+  - Added spacing between workout image and tab navigation
+- [x] **Bugs**
   - After reordering exercises, the active workout machine gets minimized instead of going to the regular active workout machine screen
 
 #### 6. Weight Units Conversion System
@@ -199,6 +204,7 @@ Follow the established NDK-first architecture while implementing missing UI func
   - Add existing exercises/workouts to user's NIP-51 collections (Kind 30003)
   - "Add to Library" buttons in detail modals (covered in item 9)
   - Update user's personal exercise and workout collections
+  - replace "In Library" badge in exercise library with small checkmark badge similar to spotify that indicates if an item is in the users library or from a collection 
 - [ ] **Remove from Personal Collections**
   - Remove exercises/workouts from user's NIP-51 collections
   - Confirmation dialogs for removal actions

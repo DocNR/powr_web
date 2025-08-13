@@ -31,6 +31,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Active Workout Header & Menu COMPLETE (August 13, 2025) ✅**
+  
+  **User Impact**: Users can now access template information during active workouts via the workout menu, providing easy reference to original template details while exercising. "Template Info" menu action opens WorkoutDetailModal showing prescribed sets, reps, weights, exercise descriptions, and equipment requirements. Enhanced workout header displays title and description with proper spacing and visual hierarchy. Users can reference template information without losing workout context or progress.
+  
+  **Developer Notes**: Implemented WorkoutMenuDropdown integration with ActiveWorkoutInterface, added data transformation from active workout context to WorkoutDetailModal expected format (resolvedTemplate/resolvedExercises structure). Fixed WorkoutDetailModal spacing with pt-4 padding between image and tabs. Enhanced template info modal with hideStartButton prop and proper data mapping from WorkoutExercise to modal format. All TypeScript errors resolved with proper type annotations.
+  
+  **Architecture Changes**: Established template info access patterns during active workouts using existing WorkoutDetailModal component. Data transformation layer maps active workout data to modal expected format while preserving prescribed values display. Foundation ready for comprehensive workout reference system during exercise execution.
+
 - **Smart Workout Confirmations - Critical Safety Implementation COMPLETE (August 13, 2025) ✅**
   
   **User Impact**: Users are now protected from accidentally losing workout progress when removing or substituting exercises with completed sets. Simple confirmation dialogs appear only when needed - operations on fresh exercises proceed directly without confirmation, while exercises with ANY completed sets show clear warnings ("Remove Push-ups? You'll lose your completed sets."). Enhanced substitution flow opens exercise picker after confirmation, enabling seamless exercise replacement while preserving workout safety.
