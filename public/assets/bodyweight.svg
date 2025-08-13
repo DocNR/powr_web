@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="24" height="24" viewBox="0 0 24 24"
+     fill="none" stroke="currentColor" stroke-width="2"
+     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <!-- head -->
+  <circle cx="12" cy="5.5" r="1.75"/>
+
+  <!-- torso -->
+  <line x1="12" y1="7.5" x2="12" y2="12.5"/>
+
+  <!-- left arm (hand on hip) -->
+  <path d="M12 8.5 L9 10.5 L8.25 12.25"/>
+
+  <!-- right arm (hand on hip) -->
+  <path d="M12 8.5 L15 10.5 L15.75 12.25"/>
+
+  <!-- left leg -->
+  <path d="M12 12.5 L9 19"/>
+
+  <!-- right leg -->
+  <path d="M12 12.5 L15 19"/>
+</svg>

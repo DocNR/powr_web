@@ -117,7 +117,7 @@ function ExerciseListItem({
   return (
     <div className="relative">
       <div 
-        className="py-3 transition-colors cursor-pointer hover:bg-muted/50"
+        className="py-2 transition-colors cursor-pointer hover:bg-muted/50"
         onClick={handleExerciseClick}
       >
         <div className="px-4 flex items-center gap-3">
@@ -145,35 +145,20 @@ function ExerciseListItem({
           <h3 className="font-semibold truncate text-foreground">
             {exercise.exercise.name}
           </h3>
-          <div className="flex items-center space-x-2 mt-1">
-            <span className="text-sm text-muted-foreground">
+          <div className="flex items-center space-x-2 mt-1 overflow-hidden">
+            <span className="text-sm text-muted-foreground flex-shrink-0">
               {exercise.exercise.equipment || 'General'}
             </span>
-            {/* Show primary muscle group */}
+            {/* Show primary muscle group with truncation */}
             {exercise.exercise.muscleGroups && exercise.exercise.muscleGroups.length > 0 && (
               <>
-                <span className="text-muted-foreground">•</span>
-                <span className="text-xs text-muted-foreground">
+                <span className="text-muted-foreground flex-shrink-0">•</span>
+                <span className="text-xs text-muted-foreground min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
                   {exercise.exercise.muscleGroups[0]}
                 </span>
               </>
             )}
           </div>
-          {/* Additional muscle groups */}
-          {exercise.exercise.muscleGroups && exercise.exercise.muscleGroups.length > 1 && (
-            <div className="flex items-center space-x-1 mt-1">
-              {exercise.exercise.muscleGroups.slice(1, 3).map((muscle) => (
-                <span key={muscle} className="text-xs text-muted-foreground">
-                  {muscle}
-                </span>
-              ))}
-              {exercise.exercise.muscleGroups.length > 3 && (
-                <span className="text-xs text-muted-foreground">
-                  +{exercise.exercise.muscleGroups.length - 3} more
-                </span>
-              )}
-            </div>
-          )}
         </div>
         
         {/* Right side actions */}

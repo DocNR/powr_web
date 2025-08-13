@@ -9,7 +9,6 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
-import { Badge } from '@/components/powr-ui/primitives/Badge';
 import { Button } from '@/components/powr-ui/primitives/Button';
 import { MoreVertical, Eye, Trash2, Copy, Share, Clock } from 'lucide-react';
 
@@ -120,7 +119,7 @@ function WorkoutListItem({
   return (
     <div className="relative">
       <div 
-        className="py-3 transition-colors cursor-pointer hover:bg-muted/50"
+        className="py-2 transition-colors cursor-pointer hover:bg-muted/50"
         onClick={handleWorkoutClick}
       >
         <div className="px-4 flex items-center gap-3">
@@ -143,44 +142,37 @@ function WorkoutListItem({
             <h3 className="font-semibold truncate text-foreground">
               {workout.template.name}
             </h3>
-            <div className="flex items-center space-x-2 mt-1">
+            <div className="flex items-center space-x-2 mt-1 overflow-hidden">
               {/* Primary stat - exercise count */}
-              <span className="text-sm text-muted-foreground">
+              <span className="text-sm text-muted-foreground flex-shrink-0">
                 {workout.template.exercises.length} exercises
               </span>
               
-              {/* Additional stats */}
-              {durationInMinutes && (
-                <>
-                  <span className="text-muted-foreground">•</span>
-                  <div className="flex items-center gap-1">
-                    <Clock className="h-3 w-3 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">
-                      {durationInMinutes}min
+              {/* Additional stats with truncation */}
+              <div className="flex items-center space-x-2 min-w-0 truncate">
+                {durationInMinutes && (
+                  <>
+                    <span className="text-muted-foreground flex-shrink-0">•</span>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <Clock className="h-3 w-3 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">
+                        {durationInMinutes}min
+                      </span>
+                    </div>
+                  </>
+                )}
+                
+                {/* Difficulty text - with proper ellipsis */}
+                {workout.template.difficulty && (
+                  <>
+                    <span className="text-muted-foreground flex-shrink-0">•</span>
+                    <span className="text-xs text-muted-foreground min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
+                      {workout.template.difficulty}
                     </span>
-                  </div>
-                </>
-              )}
-              
-              {/* Difficulty badge */}
-              {workout.template.difficulty && (
-                <>
-                  <span className="text-muted-foreground">•</span>
-                  <Badge size="xs" variant="secondary">
-                    {workout.template.difficulty}
-                  </Badge>
-                </>
-              )}
-            </div>
-            
-            {/* Description (if available) */}
-            {workout.template.description && (
-              <div className="mt-1">
-                <span className="text-xs text-muted-foreground line-clamp-1">
-                  {workout.template.description}
-                </span>
+                  </>
+                )}
               </div>
-            )}
+            </div>
           </div>
           
           {/* Right side actions */}

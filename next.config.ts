@@ -1,8 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Allow cross-origin requests for mobile development
-  allowedDevOrigins: ['192.168.6.90:3000', '192.168.6.90:3001', '192.168.6.90:3002'],
+  // Allow cross-origin requests for mobile development (configure for your local network)
+  // allowedDevOrigins: ['YOUR_LOCAL_IP:3000', 'YOUR_LOCAL_IP:3001', 'YOUR_LOCAL_IP:3002'],
   
   // Disable ESLint during builds (test files cause linting errors but are excluded from production)
   eslint: {

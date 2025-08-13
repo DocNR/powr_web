@@ -30,6 +30,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Mobile List View UI Enhancement COMPLETE (August 12, 2025) ✅**
+  
+  **User Impact**: Library browsing now features clean, consistent Spotify-style list views on mobile with proper container height and dropdown menu functionality. Exercise library uses minimal black and white styling eliminating distracting colors, while workout library maintains the same clean aesthetic. Both libraries now extend properly to the bottom tab navigator with functional dropdown menus that display completely without being cut off. Fixed critical issue where "View Details" menu action in workout library wasn't working - now properly opens workout detail modal on both mobile and desktop.
+  
+  **Developer Notes**: Fixed WorkoutListView container height issue by adding `min-h-screen` class and bottom padding (`h-20`) ensuring full viewport coverage. Updated ExerciseListView styling to match WorkoutListView with clean black and white design - removed colored text and replaced muscle group badges with plain text while preserving functional "In Library" badges. Fixed WorkoutLibrary menu action handlers in both mobile list view and desktop grid view to properly handle "View Details" action by calling `onStartWorkout?.(workoutItem.templateRef)` - same as clicking the workout item itself.
+  
+  **Architecture Changes**: Established consistent mobile list view patterns across both exercise and workout libraries. Clean container height management ensures dropdown menus have proper space to display. Unified styling approach with functional badges preserved where meaningful (library membership indication). Consistent menu action handling ensures "View Details" opens workout detail modal across all interaction patterns. Foundation ready for consistent mobile-first library experience.
+
 ### Fixed
 - **Library System Technical Debt Cleanup COMPLETE (August 10, 2025) ✅**
   
