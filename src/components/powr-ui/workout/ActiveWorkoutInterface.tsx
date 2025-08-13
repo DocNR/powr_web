@@ -11,8 +11,11 @@ import { ExerciseReorderModal } from './ExerciseReorderModal';
 import { WorkoutImageHandler } from './WorkoutImageHandler';
 import { ExerciseDetailModal } from '@/components/library/ExerciseDetailModal';
 import { SaveTemplateModal } from './SaveTemplateModal';
+import { WorkoutMenuDropdown } from './WorkoutMenuDropdown';
+import { WorkoutDescription } from './WorkoutDescription';
 import { ArrowLeft, Square, Plus } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { ConfirmationDialog } from '@/components/powr-ui/primitives/ConfirmationDialog';
 import { cn } from '@/lib/utils';
 import type { 
   CompletedSet, 
@@ -80,6 +83,20 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
   const [supersetTriggerExerciseIndex, setSupersetTriggerExerciseIndex] = useState<number | null>(null);
   const [showExerciseReorder, setShowExerciseReorder] = useState(false);
   
+  // NEW: Substitution picker state
+  const [showSubstitutePicker, setShowSubstitutePicker] = useState(false);
+  const [substituteExerciseIndex, setSubstituteExerciseIndex] = useState<number | null>(null);
+  
+  // NEW: Confirmation dialog state for smart workout confirmations
+  const [confirmationDialog, setConfirmationDialog] = useState<{
+    isOpen: boolean;
+    type: 'remove' | 'substitute';
+    exerciseIndex: number;
+    exerciseName: string;
+    message: string;
+    onConfirm: () => void;
+  } | null>(null);
+  
   // NEW: Local superset state (will be moved to XState in Phase 4)
   const [supersetGroups, setSupersetGroups] = useState<Array<{
     id: string;
@@ -103,11 +120,11 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
     state.context?.workoutData?.extraSetsRequested || {}
   );
 
-  // ✅ NEW: Monitor lifecycle state for template save prompt
+  // ✅ FIXED: Always call useSelector, but handle null actor safely
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const lifecycleState = workoutLifecycleActor ? useSelector(workoutLifecycleActor, (state: any) => state) : null;
+  const lifecycleState = useSelector(workoutLifecycleActor || { getSnapshot: () => null, subscribe: () => ({ unsubscribe: () => {} }) }, (state: any) => workoutLifecycleActor ? state : null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const templateAnalysis = workoutLifecycleActor ? useSelector(workoutLifecycleActor, (state: any) => state.context?.templateAnalysis) : null;
+  const templateAnalysis = useSelector(workoutLifecycleActor || { getSnapshot: () => null, subscribe: () => ({ unsubscribe: () => {} }) }, (state: any) => workoutLifecycleActor ? state.context?.templateAnalysis : null);
   
   // Check if we should show the template save modal
   const showTemplateSaveModal = lifecycleState?.matches?.('templateSavePrompt') && templateAnalysis?.hasModifications;
@@ -291,6 +308,11 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
   };
 
 
+  // NEW: Helper function to check if exercise has completed sets
+  const hasCompletedSets = (exerciseIndex: number): boolean => {
+    return workoutData.completedSets.some((set: CompletedSet) => set.exerciseIndex === exerciseIndex);
+  };
+
   // CRUD Interface Handlers
   const handleAddExercises = (exerciseRefs: string[], insertIndex?: number) => {
     exerciseRefs.forEach(exerciseRef => {
@@ -303,23 +325,74 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
   };
 
   const handleRemoveExercise = (exerciseIndex: number) => {
-    actorSend({
-      type: 'REMOVE_EXERCISE',
-      exerciseIndex
-    });
+    const exercise = exercises[exerciseIndex];
+    
+    if (hasCompletedSets(exerciseIndex)) {
+      // Show confirmation dialog for exercises with completed sets
+      setConfirmationDialog({
+        isOpen: true,
+        type: 'remove',
+        exerciseIndex,
+        exerciseName: exercise.name,
+        message: `Remove ${exercise.name}? You'll lose your completed sets.`,
+        onConfirm: () => {
+          actorSend({
+            type: 'REMOVE_EXERCISE',
+            exerciseIndex
+          });
+          setConfirmationDialog(null);
+        }
+      });
+    } else {
+      // Direct action for exercises with no completed sets
+      actorSend({
+        type: 'REMOVE_EXERCISE',
+        exerciseIndex
+      });
+    }
   };
 
-  const handleSubstituteExercise = (exerciseIndex: number, newExerciseRef: string) => {
-    actorSend({
-      type: 'SUBSTITUTE_EXERCISE',
-      exerciseIndex,
-      newExerciseRef
-    });
+  const handleSubstituteExercise = (exerciseIndex: number) => {
+    const exercise = exercises[exerciseIndex];
+    
+    if (hasCompletedSets(exerciseIndex)) {
+      // Show confirmation dialog for exercises with completed sets
+      setConfirmationDialog({
+        isOpen: true,
+        type: 'substitute',
+        exerciseIndex,
+        exerciseName: exercise.name,
+        message: `Substitute ${exercise.name}? You'll lose your completed sets.`,
+        onConfirm: () => {
+          // After confirmation, open the substitution picker
+          setSubstituteExerciseIndex(exerciseIndex);
+          setShowSubstitutePicker(true);
+          setConfirmationDialog(null);
+        }
+      });
+    } else {
+      // Direct action for exercises with no completed sets - open picker immediately
+      setSubstituteExerciseIndex(exerciseIndex);
+      setShowSubstitutePicker(true);
+    }
+  };
+
+  // NEW: Handle actual substitution after exercise is selected from picker
+  const handleSubstituteExerciseComplete = (newExerciseRef: string) => {
+    if (substituteExerciseIndex !== null) {
+      actorSend({
+        type: 'SUBSTITUTE_EXERCISE',
+        exerciseIndex: substituteExerciseIndex,
+        newExerciseRef
+      });
+      setShowSubstitutePicker(false);
+      setSubstituteExerciseIndex(null);
+    }
   };
 
 
   // NEW: Superset creation handler - TEMPORARILY DISABLED
-  const handleCreateSuperset = (exerciseIndex: number) => {
+  const handleCreateSuperset = (_exerciseIndex: number) => {
     // Temporarily disabled - superset functionality coming soon
     console.log('🔗 Superset creation temporarily disabled - coming soon!');
     // setSupersetTriggerExerciseIndex(exerciseIndex);
@@ -502,7 +575,7 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
             "md:bg-background/80 md:backdrop-blur-lg", // More transparency on desktop with backdrop
             className
           )}>
-            {/* Clean 3-Element Header */}
+            {/* Enhanced Header with Workout Menu */}
             <div className="flex items-center justify-between p-4 bg-background border-b border-border flex-shrink-0">
               {/* Minimize Button */}
               <Button
@@ -529,15 +602,41 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
                 </div>
               </div>
 
-              {/* Finish Button */}
-              <Button
-                variant="workout-success"
-                onClick={() => setShowFinishDialog(true)}
-                className="px-6"
-              >
-                Finish
-              </Button>
+              {/* Workout Menu + Finish Button */}
+              <div className="flex items-center gap-2">
+                <WorkoutMenuDropdown 
+                  onMenuAction={(action) => {
+                    console.log('🔧 Workout menu action:', action);
+                    // TODO: Handle workout menu actions in Phase 2, Item 6
+                  }}
+                  workoutData={workoutData}
+                  templateData={templateData}
+                />
+                <Button
+                  variant="workout-success"
+                  onClick={() => setShowFinishDialog(true)}
+                  className="px-6"
+                >
+                  Finish
+                </Button>
+              </div>
             </div>
+
+            {/* Workout Title and Description Section */}
+            {(workoutData?.title || templateData?.description) && (
+              <div className="px-4 py-3 border-b border-border bg-muted/30">
+                <h2 className="text-lg font-semibold text-foreground mb-1">
+                  {workoutData?.title || 'Active Workout'}
+                </h2>
+                {templateData?.description && (
+                  <WorkoutDescription 
+                    description={templateData.description}
+                    maxLines={2}
+                    expandable={true}
+                  />
+                )}
+              </div>
+            )}
 
             {/* Exercise List - Scrollable with comfortable padding */}
             <div className="flex-1 overflow-y-auto px-4 pb-20 space-y-2">
@@ -745,6 +844,30 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
         description="Select exercises to add to your workout"
       />
 
+      {/* Substitution Exercise Picker */}
+      <ExercisePicker
+        isOpen={showSubstitutePicker}
+        onClose={() => {
+          setShowSubstitutePicker(false);
+          setSubstituteExerciseIndex(null);
+        }}
+        onSelectExercise={(exerciseRef) => {
+          handleSubstituteExerciseComplete(exerciseRef);
+        }}
+        mode="single"
+        title="Substitute Exercise"
+        description={
+          substituteExerciseIndex !== null 
+            ? `Replace "${exercises[substituteExerciseIndex]?.name}" with a different exercise`
+            : "Select a replacement exercise"
+        }
+        excludeExerciseRefs={
+          substituteExerciseIndex !== null 
+            ? [exercises[substituteExerciseIndex]?.exerciseRef].filter(Boolean)
+            : []
+        }
+      />
+
       {/* Exercise Detail Modal */}
       {selectedExerciseRef && (
         <ExerciseDetailModal
@@ -823,6 +946,20 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
           }}
           isOwner={templateAnalysis.isOwner}
           suggestedName={templateAnalysis.suggestedName}
+        />
+      )}
+
+      {/* ✅ NEW: Smart Workout Confirmation Dialog */}
+      {confirmationDialog && (
+        <ConfirmationDialog
+          isOpen={confirmationDialog.isOpen}
+          onClose={() => setConfirmationDialog(null)}
+          onConfirm={confirmationDialog.onConfirm}
+          title={confirmationDialog.type === 'remove' ? 'Remove Exercise' : 'Substitute Exercise'}
+          description={confirmationDialog.message}
+          confirmText={confirmationDialog.type === 'remove' ? 'Remove' : 'Substitute'}
+          cancelText="Cancel"
+          variant="destructive"
         />
       )}
 

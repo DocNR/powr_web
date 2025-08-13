@@ -31,6 +31,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Smart Workout Confirmations - Critical Safety Implementation COMPLETE (August 13, 2025) ✅**
+  
+  **User Impact**: Users are now protected from accidentally losing workout progress when removing or substituting exercises with completed sets. Simple confirmation dialogs appear only when needed - operations on fresh exercises proceed directly without confirmation, while exercises with ANY completed sets show clear warnings ("Remove Push-ups? You'll lose your completed sets."). Enhanced substitution flow opens exercise picker after confirmation, enabling seamless exercise replacement while preserving workout safety.
+  
+  **Developer Notes**: Implemented smart confirmation system using existing ConfirmationDialog component with simple binary logic (ANY completed sets = show confirmation, none = direct action). Updated ExerciseMenuDropdown to delegate substitution picker responsibility to parent component. Enhanced ActiveWorkoutInterface with substitution picker state management and handleSubstituteExerciseComplete flow. Used existing hasCompletedSets helper function checking workoutData.completedSets for exerciseIndex matches. No new services or complex state management required.
+  
+  **Architecture Changes**: Established clean separation of concerns where menu dropdown handles menu actions while parent component manages complex picker state. Confirmation dialogs gate existing XState CRUD events (REMOVE_EXERCISE, SUBSTITUTE_EXERCISE) without changing core workout machine logic. Foundation ready for similar safety patterns across other destructive workout operations while maintaining fast, friction-free operations for fresh exercises.
+
+### Added
 - **Mobile List View UI Enhancement COMPLETE (August 12, 2025) ✅**
   
   **User Impact**: Library browsing now features clean, consistent Spotify-style list views on mobile with proper container height and dropdown menu functionality. Exercise library uses minimal black and white styling eliminating distracting colors, while workout library maintains the same clean aesthetic. Both libraries now extend properly to the bottom tab navigator with functional dropdown menus that display completely without being cut off. Fixed critical issue where "View Details" menu action in workout library wasn't working - now properly opens workout detail modal on both mobile and desktop.

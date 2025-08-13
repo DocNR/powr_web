@@ -10,9 +10,8 @@
  * - Exercise Preferences (weight units, etc.)
  */
 
-import React, { useState } from 'react';
+import React from 'react';
 import { MoreHorizontal, ArrowUpDown, Replace, Trash2, Link } from 'lucide-react';
-import { ExercisePicker } from './ExercisePicker';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,7 +26,7 @@ interface ExerciseMenuDropdownProps {
   exerciseId: string;
   totalExercises: number;
   // CRUD operation handlers
-  onSubstituteExercise?: (exerciseIndex: number, newExerciseRef: string) => void;
+  onSubstituteExercise?: (exerciseIndex: number) => void; // Changed: no newExerciseRef parameter
   onRemoveExercise?: (exerciseIndex: number) => void;
   onReorderExercises?: () => void; // NEW: Reorder exercises handler
   // Future extensibility props
@@ -50,28 +49,24 @@ export const ExerciseMenuDropdown: React.FC<ExerciseMenuDropdownProps> = ({
   onExercisePreferences,
   className = ''
 }) => {
-  // State for ExercisePicker
-  const [showSubstitutePicker, setShowSubstitutePicker] = useState(false);
-
   return (
-    <>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button 
-            className={`text-primary hover:text-primary/80 transition-colors p-1 -m-1 cursor-pointer hover:bg-primary/10 rounded ${className}`}
-            aria-label={`Exercise options for ${exerciseName}`}
-          >
-            <MoreHorizontal className="h-4 w-4" />
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-48">
-          {/* Exercise Modification Section */}
-          {onSubstituteExercise && (
-            <DropdownMenuItem onClick={() => setShowSubstitutePicker(true)}>
-              <Replace className="h-4 w-4 mr-2" />
-              Substitute Exercise
-            </DropdownMenuItem>
-          )}
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button 
+          className={`text-primary hover:text-primary/80 transition-colors p-1 -m-1 cursor-pointer hover:bg-primary/10 rounded ${className}`}
+          aria-label={`Exercise options for ${exerciseName}`}
+        >
+          <MoreHorizontal className="h-4 w-4" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-48">
+        {/* Exercise Modification Section */}
+        {onSubstituteExercise && (
+          <DropdownMenuItem onClick={() => onSubstituteExercise(exerciseIndex)}>
+            <Replace className="h-4 w-4 mr-2" />
+            Substitute Exercise
+          </DropdownMenuItem>
+        )}
           
           {/* Create Superset - Temporarily Disabled */}
           {onCreateSuperset && (
@@ -129,24 +124,7 @@ export const ExerciseMenuDropdown: React.FC<ExerciseMenuDropdownProps> = ({
             </DropdownMenuItem>
           )}
         </DropdownMenuContent>
-      </DropdownMenu>
-
-      {/* Exercise Picker for Substitution */}
-      {onSubstituteExercise && (
-        <ExercisePicker
-          isOpen={showSubstitutePicker}
-          onClose={() => setShowSubstitutePicker(false)}
-          onSelectExercise={(exerciseRef) => {
-            onSubstituteExercise(exerciseIndex, exerciseRef);
-            setShowSubstitutePicker(false);
-          }}
-          mode="single"
-          title="Substitute Exercise"
-          description={`Replace "${exerciseName}" with a different exercise`}
-          excludeExerciseRefs={[exerciseId]} // Don't show current exercise
-        />
-      )}
-    </>
+    </DropdownMenu>
   );
 };
 
