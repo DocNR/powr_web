@@ -9,7 +9,7 @@
 
 import { useEffect, useState } from 'react';
 import { Shield, Globe, Unlock, Zap, Users, ArrowRight } from 'lucide-react';
-import { useIsAuthenticated, useEphemeralLogin } from '@/lib/auth/hooks';
+import { useIsAuthenticated, useEphemeralLogin, useAutoLogin } from '@/lib/auth/hooks';
 import { initializeNDK } from '@/lib/ndk';
 import { LoginDialog } from '@/components/auth/LoginDialog';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -21,6 +21,7 @@ import { Logo } from '@/components/ui/logo';
 export default function Home() {
   const isAuthenticated = useIsAuthenticated();
   const ephemeralLogin = useEphemeralLogin();
+  const autoLogin = useAutoLogin();
   const [mounted, setMounted] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
@@ -29,7 +30,7 @@ export default function Home() {
     setMounted(true);
   }, []);
 
-  // Initialize NDK on app start
+  // Initialize NDK and attempt auto-login on app start
   useEffect(() => {
     if (!mounted) return;
     
@@ -38,13 +39,22 @@ export default function Home() {
         console.log('[App] Initializing NDK...');
         await initializeNDK();
         console.log('[App] NDK initialized successfully');
+        
+        // Attempt auto-login after NDK is ready
+        console.log('[App] Attempting auto-login...');
+        const loginSuccess = await autoLogin();
+        if (loginSuccess) {
+          console.log('[App] Auto-login successful');
+        } else {
+          console.log('[App] Auto-login not available or failed');
+        }
       } catch (error) {
         console.error('[App] Initialization failed:', error);
       }
     };
 
     initializeApp();
-  }, [mounted]);
+  }, [mounted, autoLogin]);
 
   const handleTryDemo = async () => {
     console.log('[Landing Page] Try Demo button clicked');

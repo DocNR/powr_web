@@ -419,7 +419,7 @@ export function useNip07Available(): boolean {
  * Auto-login on app startup
  */
 export function useAutoLogin() {
-  const [account] = useAtom(accountAtom);
+  const [account, setAccount] = useAtom(accountAtom);
   const [accounts, setAccounts] = useAtom(accountsAtom);
   const [loginMethod, setLoginMethod] = useAtom(methodAtom);
   const nip07Login = useNip07Login();
@@ -467,7 +467,10 @@ export function useAutoLogin() {
           ]);
           
           ndk.signer = signer;
-          console.log('[Auto Login] NIP-46 session restored successfully!');
+          
+          // ✅ CRITICAL FIX: Update authentication state after successful restoration
+          setAccount(storedAccount);
+          console.log('[Auto Login] NIP-46 session restored successfully! User:', storedAccount.pubkey.slice(0, 16) + '...');
           return true;
           
         } catch (error) {
