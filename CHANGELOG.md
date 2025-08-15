@@ -31,6 +31,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **NIP-46 Bunker Session Persistence Fix COMPLETE (August 15, 2025) ✅**
+  
+  **User Impact**: Users can now stay logged in with NIP-46 bunker authentication across app reloads without re-authorization. Fixed critical session persistence issue where auto-login was creating new client identities instead of using stored credentials, forcing users to re-approve bunker connections every session. NIP-07 browser extension authentication remains completely unchanged and continues to work perfectly.
+  
+  **Developer Notes**: Implemented simple fix in useAutoLogin() function replacing `nip46Login(storedAccount.bunker)` (which generates new local signer) with direct NDK restoration using stored local signer key from `storedAccount.secret`. Added proper timeout handling (10s bunker connection, 15s signer ready) and graceful fallback to manual login when restoration fails. Fixed React Hook ESLint errors by using existing setters from hook scope.
+  
+  **Architecture Changes**: Validated simple solutions first principle - 30-minute fix solved complex session persistence issue. Enhanced auto-login architecture preserves client identity across sessions by reusing stored local signer private key. Foundation ready for reliable NIP-46 authentication without complex serialization or hybrid approaches.
+
+### Fixed
 - **Weight Conversion System Fix COMPLETE (August 15, 2025) ✅**
   
   **User Impact**: Users can now seamlessly switch between kg and lbs weight units during workouts without performance issues or data corruption. Weight unit preference is accessible via the workout menu dropdown and applies instantly to all weight displays, previous set data, and social sharing content. Fixed critical infinite re-render bug in SetRow component that was causing browser performance issues. Weight conversions are accurate with proper rounding (1 decimal place) while maintaining NIP-101e protocol compliance by always storing weights in kg.

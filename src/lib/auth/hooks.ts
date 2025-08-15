@@ -420,10 +420,9 @@ export function useNip07Available(): boolean {
  */
 export function useAutoLogin() {
   const [account] = useAtom(accountAtom);
-  const [accounts] = useAtom(accountsAtom);
-  const [loginMethod] = useAtom(methodAtom);
+  const [accounts, setAccounts] = useAtom(accountsAtom);
+  const [loginMethod, setLoginMethod] = useAtom(methodAtom);
   const nip07Login = useNip07Login();
-  const nip46Login = useNip46Login();
 
   return async (): Promise<boolean> => {
     // Skip if already authenticated
@@ -440,9 +439,44 @@ export function useAutoLogin() {
       if (loginMethod === 'nip07') {
         const result = await nip07Login();
         return result.success;
-      } else if (loginMethod === 'nip46' && storedAccount.bunker) {
-        const result = await nip46Login(storedAccount.bunker);
-        return result.success;
+      } else if (loginMethod === 'nip46' && storedAccount.bunker && storedAccount.secret && storedAccount.relays) {
+        try {
+          console.log('[Auto Login] Restoring NIP-46 session with stored local signer...');
+          
+          const ndk = await getNDK();
+          
+          // Use stored local signer key instead of generating new one
+          const localSigner = new NDKPrivateKeySigner(storedAccount.secret);
+          const bunkerNDK = new NDK({ 
+            explicitRelayUrls: storedAccount.relays, 
+            signer: localSigner 
+          });
+          
+          // Connect with timeout
+          await Promise.race([
+            bunkerNDK.connect(),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Bunker connection timeout')), 10000))
+          ]);
+          
+          const signer = new NDKNip46Signer(bunkerNDK, storedAccount.bunker, localSigner);
+          
+          // Wait for signer ready with timeout
+          await Promise.race([
+            signer.blockUntilReady(),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Signer ready timeout')), 15000))
+          ]);
+          
+          ndk.signer = signer;
+          console.log('[Auto Login] NIP-46 session restored successfully!');
+          return true;
+          
+        } catch (error) {
+          console.warn('[Auto Login] Session restoration failed:', error);
+          // Clear invalid stored data and fallback to manual login
+          setAccounts(accounts.filter(a => a.pubkey !== storedAccount.pubkey));
+          setLoginMethod(null);
+          return false;
+        }
       }
 
       return false;
