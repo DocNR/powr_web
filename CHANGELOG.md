@@ -35,6 +35,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   
   **User Impact**: Users can now stay logged in with NIP-46 bunker authentication across app reloads without re-authorization. Fixed critical session persistence issue where auto-login was creating new client identities instead of using stored credentials, forcing users to re-approve bunker connections every session. NIP-07 browser extension authentication remains completely unchanged and continues to work perfectly.
   
+  **Developer Notes**: Root cause was `accountAtom` using regular `atom<Account | null>(null)` instead of `atomWithStorage` for persistence. Fixed by converting to `atomWithStorage<Account | null>` with localStorage persistence and proper JSON storage handling. Enhanced `useAutoLogin()` function with comprehensive logging for NIP-46 restoration process. Simple fix solved complex session persistence issue by ensuring account state persists across page refreshes.
+  
+  **Architecture Changes**: Validated simple solutions first principle - state persistence issue was solved by proper atomic state management rather than complex authentication workarounds. Enhanced auto-login architecture preserves client identity across sessions. Foundation ready for reliable NIP-46 authentication without complex serialization approaches.
+
+### Fixed
+- **NIP-46 Bunker Session Persistence Fix COMPLETE (August 15, 2025) ✅**
+  
+  **User Impact**: Users can now stay logged in with NIP-46 bunker authentication across app reloads without re-authorization. Fixed critical session persistence issue where auto-login was creating new client identities instead of using stored credentials, forcing users to re-approve bunker connections every session. NIP-07 browser extension authentication remains completely unchanged and continues to work perfectly.
+  
   **Developer Notes**: Implemented simple fix in useAutoLogin() function replacing `nip46Login(storedAccount.bunker)` (which generates new local signer) with direct NDK restoration using stored local signer key from `storedAccount.secret`. Added proper timeout handling (10s bunker connection, 15s signer ready) and graceful fallback to manual login when restoration fails. Fixed React Hook ESLint errors by using existing setters from hook scope.
   
   **Architecture Changes**: Validated simple solutions first principle - 30-minute fix solved complex session persistence issue. Enhanced auto-login architecture preserves client identity across sessions by reusing stored local signer private key. Foundation ready for reliable NIP-46 authentication without complex serialization or hybrid approaches.

@@ -11,7 +11,25 @@ import { atomWithStorage, createJSONStorage } from 'jotai/utils';
 import type { Account, LoginMethod } from './types';
 
 // Core authentication atoms (following Chachi's exact structure)
-export const accountAtom = atom<Account | null>(null);
+export const accountAtom = atomWithStorage<Account | null>(
+  'powr-current-account',
+  null,
+  createJSONStorage<Account | null>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage;
+    }
+    // Return a mock storage for SSR
+    return {
+      getItem: () => null,
+      setItem: () => {},
+      removeItem: () => {},
+      clear: () => {},
+      length: 0,
+      key: () => null
+    } as Storage;
+  })
+  // Remove getOnInit: true to prevent hydration mismatch
+);
 
 export const accountsAtom = atomWithStorage<Account[]>(
   'powr-accounts',

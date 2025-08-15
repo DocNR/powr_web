@@ -441,41 +441,82 @@ export function useAutoLogin() {
         return result.success;
       } else if (loginMethod === 'nip46' && storedAccount.bunker && storedAccount.secret && storedAccount.relays) {
         try {
-          console.log('[Auto Login] Restoring NIP-46 session with stored local signer...');
+          console.log('[Auto Login] Starting NIP-46 restoration...');
+          console.log('[Auto Login] Stored account found:', {
+            pubkey: storedAccount.pubkey.slice(0, 16) + '...',
+            hasBunker: !!storedAccount.bunker,
+            hasSecret: !!storedAccount.secret,
+            hasRelays: !!storedAccount.relays,
+            relayCount: storedAccount.relays?.length
+          });
           
           const ndk = await getNDK();
+          console.log('[Auto Login] NDK instance obtained');
           
           // Use stored local signer key instead of generating new one
+          console.log('[Auto Login] Creating local signer from stored secret...');
           const localSigner = new NDKPrivateKeySigner(storedAccount.secret);
+          const localUser = await localSigner.user();
+          console.log('[Auto Login] Local signer created. Client pubkey:', localUser.pubkey.slice(0, 16) + '...');
+          
+          console.log('[Auto Login] Creating bunker NDK with relays:', storedAccount.relays);
           const bunkerNDK = new NDK({ 
             explicitRelayUrls: storedAccount.relays, 
             signer: localSigner 
           });
           
           // Connect with timeout
+          console.log('[Auto Login] Connecting to bunker relays...');
           await Promise.race([
             bunkerNDK.connect(),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Bunker connection timeout')), 10000))
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Bunker connection timeout after 10s')), 10000))
           ]);
+          console.log('[Auto Login] Bunker relay connection successful');
           
+          console.log('[Auto Login] Creating NIP-46 signer with bunker:', storedAccount.bunker.slice(0, 50) + '...');
           const signer = new NDKNip46Signer(bunkerNDK, storedAccount.bunker, localSigner);
           
           // Wait for signer ready with timeout
-          await Promise.race([
+          console.log('[Auto Login] Waiting for signer to be ready...');
+          const user = await Promise.race([
             signer.blockUntilReady(),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Signer ready timeout')), 15000))
+            new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Signer ready timeout after 15s')), 15000))
           ]);
           
+          if (!user || !user.pubkey) {
+            throw new Error('Signer ready but no user returned');
+          }
+          
+          console.log('[Auto Login] Signer ready! Remote user pubkey:', user.pubkey.slice(0, 16) + '...');
+          
+          // Verify the pubkey matches stored account
+          if (user.pubkey !== storedAccount.pubkey) {
+            console.warn('[Auto Login] Pubkey mismatch - stored:', storedAccount.pubkey.slice(0, 16), 'signer:', user.pubkey.slice(0, 16));
+          }
+          
+          console.log('[Auto Login] Setting NDK signer...');
           ndk.signer = signer;
           
-          // ✅ CRITICAL FIX: Update authentication state after successful restoration
+          console.log('[Auto Login] Setting account state...');
           setAccount(storedAccount);
+          
           console.log('[Auto Login] NIP-46 session restored successfully! User:', storedAccount.pubkey.slice(0, 16) + '...');
           return true;
           
         } catch (error) {
-          console.warn('[Auto Login] Session restoration failed:', error);
+          console.error('[Auto Login] Session restoration failed:', {
+            error: error instanceof Error ? error.message : error,
+            stack: error instanceof Error ? error.stack : undefined,
+            storedAccount: {
+              pubkey: storedAccount.pubkey.slice(0, 16) + '...',
+              hasBunker: !!storedAccount.bunker,
+              hasSecret: !!storedAccount.secret,
+              relayCount: storedAccount.relays?.length
+            }
+          });
+          
           // Clear invalid stored data and fallback to manual login
+          console.log('[Auto Login] Clearing invalid stored data...');
           setAccounts(accounts.filter(a => a.pubkey !== storedAccount.pubkey));
           setLoginMethod(null);
           return false;
