@@ -84,7 +84,7 @@ const ToastClose = React.forwardRef<
   <ToastPrimitives.Close
     ref={ref}
     className={cn(
-      'absolute right-2 top-2 rounded-md p-1 text-foreground/50 opacity-0 transition-opacity hover:text-foreground focus:opacity-100 focus:outline-none focus:ring-2 group-hover:opacity-100 group-[.destructive]:text-red-300 group-[.destructive]:hover:text-red-50 group-[.destructive]:focus:ring-red-400 group-[.destructive]:focus:ring-offset-red-600',
+      'absolute right-2 top-2 rounded-md p-1 text-foreground/50 opacity-70 transition-opacity hover:text-foreground hover:opacity-100 focus:opacity-100 focus:outline-none focus:ring-2 group-hover:opacity-100 group-[.destructive]:text-red-300 group-[.destructive]:hover:text-red-50 group-[.destructive]:focus:ring-red-400 group-[.destructive]:focus:ring-offset-red-600 md:opacity-0 md:group-hover:opacity-100',
       className
     )}
     toast-close=""
@@ -173,6 +173,38 @@ const Toaster = () => {
       <ToastViewport />
     </ToastProvider>
   );
+};
+
+// Helper functions for programmatic toast creation
+// These work with the useToast hook to show toasts
+let toastDispatch: ((toast: { title: string; description?: string; variant?: 'success' | 'error' | 'info' | 'default' }) => void) | null = null;
+
+export const setToastDispatch = (dispatch: typeof toastDispatch) => {
+  toastDispatch = dispatch;
+};
+
+export const showSuccessToast = (title: string, description?: string) => {
+  if (toastDispatch) {
+    toastDispatch({ title, description, variant: 'success' });
+  } else {
+    console.warn('Toast dispatch not initialized. Make sure ToastProvider is mounted.');
+  }
+};
+
+export const showErrorToast = (title: string, description?: string) => {
+  if (toastDispatch) {
+    toastDispatch({ title, description, variant: 'error' });
+  } else {
+    console.warn('Toast dispatch not initialized. Make sure ToastProvider is mounted.');
+  }
+};
+
+export const showInfoToast = (title: string, description?: string) => {
+  if (toastDispatch) {
+    toastDispatch({ title, description, variant: 'info' });
+  } else {
+    console.warn('Toast dispatch not initialized. Make sure ToastProvider is mounted.');
+  }
 };
 
 export {

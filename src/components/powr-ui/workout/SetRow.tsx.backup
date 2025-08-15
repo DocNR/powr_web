@@ -1,20 +1,18 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Input } from '@/components/powr-ui/primitives/Input';
 import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useWeightUnits } from '@/providers/WeightUnitsProvider';
+import { useWeightUnits } from '@/hooks/useWeightUnits';
 import { 
   convertWeightForDisplay, 
-  convertWeightForStorage, 
-  convertWeightForFinalStorage,
-  formatWeightDisplay,
-  parseWeightInput 
+  convertWeightForStorage
 } from '@/lib/utils/weightConversion';
+import type { WeightUnit } from '@/lib/utils/weightConversion';
 
 interface SetData {
-  weight: number; // Always stored in kg (NIP-101e compliant)
+  weight: number;
   reps: number;
   rpe?: number;
   setType?: 'warmup' | 'normal' | 'drop' | 'failure';
@@ -48,67 +46,79 @@ export const SetRow: React.FC<SetRowProps> = ({
   setIndex,
   onSelectSet
 }) => {
+  // Get current weight unit preference
   const { weightUnit } = useWeightUnits();
 
-  // NEW: Separate input state from stored weight to prevent conversion feedback loops
-  const [weightInputValue, setWeightInputValue] = useState('');
-  const [weightInKg, setWeightInKg] = useState(
-    defaultData?.weight || previousSetData?.weight || 0
-  );
-  const [reps, setReps] = useState(
-    defaultData?.reps?.toString() || previousSetData?.reps?.toString() || ''
-  );
-  const [rpe, setRpe] = useState(
-    defaultData?.rpe?.toString() || previousSetData?.rpe?.toString() || '7'
-  );
-  const [completed, setCompleted] = useState(isCompleted);
+  // State for form inputs
+  const [weight, setWeight] = useState('');
+  const [reps, setReps] = useState('');
+  const [rpe, setRpe] = useState('7');
+  
+  // Use ref to track the last weight unit to avoid stale closures
+  const lastWeightUnitRef = useRef<WeightUnit>(weightUnit);
+  const isInitializedRef = useRef(false);
 
-  // Track if user has modified values to prevent overriding their input
-  const [lastInitializedSetNumber, setLastInitializedSetNumber] = useState(setNumber);
-
-  // Update completed state when prop changes
+  // Initialize form data when set number or default data changes
   useEffect(() => {
-    setCompleted(isCompleted);
-  }, [isCompleted]);
-
-  // Initialize weight input display when switching sets or weight unit changes
-  useEffect(() => {
-    if (setNumber !== lastInitializedSetNumber && !isCompleted) {
-      // Reset for new set
-      const initialWeight = defaultData?.weight || previousSetData?.weight || 0;
-      setWeightInKg(initialWeight);
+    if (!isCompleted) {
+      const weightInKg = defaultData?.weight || previousSetData?.weight || 0;
+      const initialWeight = weightInKg === 0 ? '' : convertWeightForDisplay(weightInKg, weightUnit).toString();
+      
+      setWeight(initialWeight);
       setReps(defaultData?.reps?.toString() || previousSetData?.reps?.toString() || '');
       setRpe(defaultData?.rpe?.toString() || previousSetData?.rpe?.toString() || '7');
-      setLastInitializedSetNumber(setNumber);
-      
-      // Set input display value
-      if (initialWeight === 0) {
-        setWeightInputValue('');
-      } else {
-        const displayWeight = convertWeightForDisplay(initialWeight, weightUnit);
-        setWeightInputValue(displayWeight.toString());
-      }
+      lastWeightUnitRef.current = weightUnit;
+      isInitializedRef.current = true;
     }
-  }, [setNumber, lastInitializedSetNumber, defaultData, previousSetData, isCompleted, weightUnit]);
+  }, [setNumber, defaultData, previousSetData, isCompleted, weightUnit]);
 
-  // Update weight input display when weight unit changes (but keep user's input if they're typing)
+  // Handle weight unit changes - convert current weight value without causing infinite re-renders
   useEffect(() => {
-    if (weightInKg > 0 && weightInputValue === '') {
-      const displayWeight = convertWeightForDisplay(weightInKg, weightUnit);
-      setWeightInputValue(displayWeight.toString());
+    // Only convert if we've been initialized and the weight unit actually changed
+    if (isInitializedRef.current && lastWeightUnitRef.current !== weightUnit && !isCompleted) {
+      const currentWeightNum = parseFloat(weight);
+      
+      if (!isNaN(currentWeightNum) && currentWeightNum > 0) {
+        // Convert from last unit to kg, then to new unit
+        const weightInKg = convertWeightForStorage(currentWeightNum, lastWeightUnitRef.current);
+        const newDisplayWeight = convertWeightForDisplay(weightInKg, weightUnit);
+        
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🔧 SetRow: Weight unit conversion', {
+            setNumber,
+            fromUnit: lastWeightUnitRef.current,
+            toUnit: weightUnit,
+            oldWeight: currentWeightNum,
+            newWeight: newDisplayWeight,
+            weightInKg
+          });
+        }
+        
+        setWeight(newDisplayWeight.toString());
+      }
+      
+      // Update the ref to the new unit
+      lastWeightUnitRef.current = weightUnit;
+    } else if (!isInitializedRef.current) {
+      // Just update the ref if we haven't been initialized yet
+      lastWeightUnitRef.current = weightUnit;
     }
-  }, [weightUnit, weightInKg, weightInputValue]);
+  }, [weightUnit, isCompleted]); // Removed weight from dependencies to prevent infinite loop
 
-  // Enhanced input handlers - no real-time conversion, just input validation
+  // Memoized display weight for previous set reference
+  const previousSetDisplayWeight = useMemo(() => {
+    if (!previousSetData) return '---';
+    if (previousSetData.weight === 0) return `BW × ${previousSetData.reps}`;
+    return `${convertWeightForDisplay(previousSetData.weight, weightUnit)} × ${previousSetData.reps}`;
+  }, [previousSetData, weightUnit]);
+
+  // Enhanced input handlers to prevent invalid characters and improve UX
   const handleWeightChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     // Allow empty, numbers, decimal points, and negative sign at start
+    // This regex allows: empty string, negative numbers, decimals
     if (value === '' || /^-?\d*\.?\d*$/.test(value)) {
-      setWeightInputValue(value);
-      // Only update stored weight for validation, no rounding yet
-      const parsedWeight = parseWeightInput(value);
-      const weightInKgValue = convertWeightForStorage(parsedWeight, weightUnit);
-      setWeightInKg(weightInKgValue);
+      setWeight(value);
     }
   };
 
@@ -128,38 +138,32 @@ export const SetRow: React.FC<SetRowProps> = ({
     }
   };
 
-  // Handle completion and uncompletion
+  // Completion handler with weight conversion to kg for storage
   const handleComplete = () => {
-    if (completed) {
-      // Uncomplete the set - use current stored weight (no rounding)
-      const setData: SetData = {
-        weight: weightInKg, // Current stored weight in kg
-        reps: parseInt(reps) || 0,
-        rpe: parseFloat(rpe) || 7,
-        setType: defaultData?.setType || 'normal',
-        completed: false
-      };
+    // Convert weight from display unit to kg for storage (NIP-101e compliance)
+    const displayWeight = parseFloat(weight) || 0;
+    const weightInKg = convertWeightForStorage(displayWeight, weightUnit);
+    
+    const setData: SetData = {
+      weight: weightInKg, // Store in kg for NIP-101e compliance
+      reps: parseInt(reps) || 0,
+      rpe: parseFloat(rpe) || 7,
+      setType: defaultData?.setType || 'normal',
+      completed: true
+    };
 
-      setCompleted(false);
-      onComplete(setData);
-    } else {
-      // Complete the set - apply final storage rounding for NIP-101e compliance
-      const parsedWeight = parseWeightInput(weightInputValue);
-      const finalWeight = convertWeightForFinalStorage(parsedWeight, weightUnit);
-      
-      const setData: SetData = {
-        weight: finalWeight, // Rounded weight for final storage
-        reps: parseInt(reps) || 0,
-        rpe: parseFloat(rpe) || 7,
-        setType: defaultData?.setType || 'normal',
-        completed: true
-      };
-
-      // Update internal state to match final storage
-      setWeightInKg(finalWeight);
-      setCompleted(true);
-      onComplete(setData);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔧 SetRow: handleComplete - weight conversion', {
+        setNumber,
+        displayWeight,
+        displayUnit: weightUnit,
+        weightInKg,
+        setData
+      });
     }
+
+    // Always use the working completion path
+    onComplete(setData);
   };
 
   // NEW: Handle clicking on the set row to select it
@@ -169,11 +173,12 @@ export const SetRow: React.FC<SetRowProps> = ({
     }
   };
 
-  // IMPROVED: More forgiving validation logic using weightInputValue
+
+  // IMPROVED: More forgiving validation logic
   const isWeightValid = () => {
     // Allow empty string (user is typing) or valid numbers (including negative)
-    if (weightInputValue === '') return true; // Allow empty while typing
-    const weightNum = parseFloat(weightInputValue);
+    if (weight === '') return true; // Allow empty while typing
+    const weightNum = parseFloat(weight);
     return !isNaN(weightNum); // Any valid number including negative
   };
 
@@ -194,24 +199,16 @@ export const SetRow: React.FC<SetRowProps> = ({
   // FIXED: Complete validation - for completion, we need actual values (not just valid)
   const canComplete = reps !== '' && parseInt(reps) > 0 && isWeightValid() && isRpeValid();
 
-  // Format previous set data for display with weight unit conversion
-  const formatPreviousSetData = (data: SetData | undefined): string => {
-    if (!data) return '---';
-    
-    const weightDisplay = formatWeightDisplay(data.weight, weightUnit);
-    return `${weightDisplay} × ${data.reps}`;
-  };
-
   // Display mode for completed sets - Compact mobile-optimized layout
-  if (completed) {
+  if (isCompleted) {
     return (
       <div 
         className={cn(
-          "flex items-center gap-2 py-2 px-1 bg-workout-success-bg/50 transition-colors cursor-pointer",
+          "flex items-center gap-2 py-2 px-1 bg-workout-success-bg/50 transition-colors",
           isActive && "ring-1 ring-workout-success",
           className
         )}
-        onClick={handleComplete} // Allow clicking to uncomplete
+        onClick={handleSetClick}
       >
         {/* Set Number - Smaller circle */}
         <div className="flex items-center justify-center w-8 h-8 bg-workout-success text-white rounded-full text-sm font-medium flex-shrink-0">
@@ -220,13 +217,13 @@ export const SetRow: React.FC<SetRowProps> = ({
 
         {/* Previous Set Reference - Compact */}
         <div className="w-16 flex items-center justify-center text-xs text-workout-text flex-shrink-0">
-          {formatPreviousSetData(previousSetData)}
+          {previousSetDisplayWeight}
         </div>
 
         {/* Completed Weight - Display Only */}
         <div className="flex-1 min-w-0 flex items-center justify-center">
           <span className="text-base font-medium text-workout-text">
-            {formatWeightDisplay(weightInKg, weightUnit)}
+            {parseFloat(weight) > 0 ? `${weight} ${weightUnit}` : 'BW'}
           </span>
         </div>
 
@@ -244,9 +241,9 @@ export const SetRow: React.FC<SetRowProps> = ({
           </span>
         </div>
 
-        {/* Completed Checkbox - Clickable to uncomplete */}
+        {/* Completed Checkbox - Display Only */}
         <div className="flex-shrink-0">
-          <div className="h-10 w-10 flex items-center justify-center rounded border border-workout-success bg-workout-success text-white cursor-pointer hover:bg-workout-success/80 transition-colors">
+          <div className="h-10 w-10 flex items-center justify-center rounded border border-workout-success bg-workout-success text-white">
             <Check className="h-4 w-4" />
           </div>
         </div>
@@ -271,7 +268,7 @@ export const SetRow: React.FC<SetRowProps> = ({
 
       {/* Previous Set Reference - Compact */}
       <div className="w-16 flex items-center justify-center text-xs text-muted-foreground flex-shrink-0">
-        {formatPreviousSetData(previousSetData)}
+        {previousSetDisplayWeight}
       </div>
 
       {/* Weight Input - Compact */}
@@ -280,9 +277,9 @@ export const SetRow: React.FC<SetRowProps> = ({
           id={`weight-${setNumber}`}
           type="number"
           inputMode="decimal"
-          placeholder={weightInKg === 0 ? 'BW' : '0'}
-          value={weightInputValue}
-          onChange={handleWeightChange}  // Use enhanced handler with weight conversion
+          placeholder="0"
+          value={weight}
+          onChange={handleWeightChange}  // Use enhanced handler
           onFocus={handleSetClick}
           className={cn(
             "h-10 text-base font-medium text-center bg-transparent border-0 focus:ring-1 focus:ring-ring rounded",

@@ -14,6 +14,7 @@ import { SaveTemplateModal } from './SaveTemplateModal';
 import { WorkoutMenuDropdown } from './WorkoutMenuDropdown';
 import { WorkoutDetailModal } from './WorkoutDetailModal';
 import { WorkoutDescription } from './WorkoutDescription';
+import { useWeightUnits } from '@/providers/WeightUnitsProvider';
 import { ArrowLeft, Square, Plus } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { ConfirmationDialog } from '@/components/powr-ui/primitives/ConfirmationDialog';
@@ -117,6 +118,10 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
   const timingInfo = useSelector(activeWorkoutActor, (state: any) => state.context?.timingInfo);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const actorState = useSelector(activeWorkoutActor, (state: any) => state);
+  
+  // ✅ WEIGHT UNIT FIX: Get weight unit for component keys
+  const { weightUnit } = useWeightUnits();
+  
   
   // ✅ ADDED: Select extraSetsRequested from actor context (THE FIX!)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -647,87 +652,33 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
 
             {/* Exercise List - Scrollable with comfortable padding */}
             <div className="flex-1 overflow-y-auto px-4 pb-20 space-y-2">
-              {(() => {
-                const renderedExercises: React.ReactNode[] = [];
-                const processedIndices = new Set<number>();
+              {/* ✅ SIMPLIFIED: Render individual exercises only (superset complexity removed for weight unit fix) */}
+              {exercises.map((exercise: ExerciseData, exerciseIndex: number) => {
+                const smartSetIndex = calculateCurrentSetIndex(exerciseIndex);
+                const shouldHighlightAddSet = smartSetIndex === -2;
 
-                exercises.forEach((exercise: ExerciseData, exerciseIndex: number) => {
-                  // Skip if already processed as part of a superset
-                  if (processedIndices.has(exerciseIndex)) return;
-
-                  const superset = getExerciseSuperset(exerciseIndex);
-                  
-                  if (superset) {
-                    // Render superset group
-                    const supersetExercises = superset.exerciseIndices.map(index => {
-                      processedIndices.add(index);
-                      const ex = exercises[index];
-                      const smartSetIndex = calculateCurrentSetIndex(index);
-                      const shouldHighlightAddSet = smartSetIndex === -2;
-
-                      return (
-                        <ExerciseSection
-                          key={`${ex.id}-${index}`}
-                          exercise={ex}
-                          shouldHighlightAddSet={shouldHighlightAddSet}
-                          onSetComplete={(exerciseId: string, setIndex: number, setData: SetData) => 
-                            handleSetComplete(exerciseId, setIndex, setData)
-                          }
-                          onAddSet={(exerciseId: string) => handleAddSet(exerciseId)}
-                          onExerciseNameClick={() => handleExerciseNameClick(ex.exerciseRef)}
-                          onSelectSet={handleSetSelect}
-                          exerciseIndex={index}
-                          // CRUD operation handlers
-                          onRemoveExercise={handleRemoveExercise}
-                          onSubstituteExercise={handleSubstituteExercise}
-                          onReorderExercises={handleReorderExercises}
-                          onCreateSuperset={handleCreateSuperset}
-                          totalExercises={exercises.length}
-                        />
-                      );
-                    });
-
-                    renderedExercises.push(
-                      <SupersetGroup
-                        key={superset.id}
-                        groupId={superset.id}
-                        exerciseNames={superset.exerciseNames}
-                        onRemoveSuperset={handleRemoveSuperset}
-                      >
-                        {supersetExercises}
-                      </SupersetGroup>
-                    );
-                  } else {
-                    // Render individual exercise
-                    processedIndices.add(exerciseIndex);
-                    const smartSetIndex = calculateCurrentSetIndex(exerciseIndex);
-                    const shouldHighlightAddSet = smartSetIndex === -2;
-
-                    renderedExercises.push(
-                      <ExerciseSection
-                        key={`${exercise.id}-${exerciseIndex}`}
-                        exercise={exercise}
-                        shouldHighlightAddSet={shouldHighlightAddSet}
-                        onSetComplete={(exerciseId: string, setIndex: number, setData: SetData) => 
-                          handleSetComplete(exerciseId, setIndex, setData)
-                        }
-                        onAddSet={(exerciseId: string) => handleAddSet(exerciseId)}
-                        onExerciseNameClick={() => handleExerciseNameClick(exercise.exerciseRef)}
-                        onSelectSet={handleSetSelect}
-                        exerciseIndex={exerciseIndex}
-                        // CRUD operation handlers
-                        onRemoveExercise={handleRemoveExercise}
-                        onSubstituteExercise={handleSubstituteExercise}
-                        onReorderExercises={handleReorderExercises}
-                        onCreateSuperset={handleCreateSuperset}
-                        totalExercises={exercises.length}
-                      />
-                    );
-                  }
-                });
-
-                return renderedExercises;
-              })()}
+                return (
+                  <ExerciseSection
+                    key={`${exercise.id}-${exerciseIndex}`} // ✅ SIMPLE SOLUTION: Remove weightUnit from key since prop passing handles re-renders
+                    exercise={exercise}
+                    weightUnit={weightUnit} // ✅ SIMPLE SOLUTION: Pass weightUnit as prop
+                    shouldHighlightAddSet={shouldHighlightAddSet}
+                    onSetComplete={(exerciseId: string, setIndex: number, setData: SetData) => 
+                      handleSetComplete(exerciseId, setIndex, setData)
+                    }
+                    onAddSet={(exerciseId: string) => handleAddSet(exerciseId)}
+                    onExerciseNameClick={() => handleExerciseNameClick(exercise.exerciseRef)}
+                    onSelectSet={handleSetSelect}
+                    exerciseIndex={exerciseIndex}
+                    // CRUD operation handlers
+                    onRemoveExercise={handleRemoveExercise}
+                    onSubstituteExercise={handleSubstituteExercise}
+                    onReorderExercises={handleReorderExercises}
+                    onCreateSuperset={handleCreateSuperset}
+                    totalExercises={exercises.length}
+                  />
+                );
+              })}
               
               {/* Add Exercise Button - Enhanced with semantic styling */}
               <div className="pt-4">

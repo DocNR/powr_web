@@ -10,6 +10,7 @@ import type { CompletedWorkout } from './workoutEventGeneration';
 import type { ParsedWorkoutEvent } from './dataParsingService';
 import { workoutAnalyticsService } from './workoutAnalytics';
 import { nip19 } from 'nostr-tools';
+import { convertWeightForDisplay, formatWeightDisplay, type WeightUnit } from '@/lib/utils/weightConversion';
 
 export interface WorkoutSocialContent {
   content: string;
@@ -117,7 +118,7 @@ ${workoutData.title}
    * Generate detailed exercise breakdown for social content
    * Groups sets by exercise and formats them nicely
    */
-  generateExerciseDetails(workoutData: CompletedWorkout): string {
+  generateExerciseDetails(workoutData: CompletedWorkout, weightUnit: WeightUnit = 'kg'): string {
     const completedSets = workoutData.completedSets || [];
     
     if (completedSets.length === 0) {
@@ -157,15 +158,21 @@ ${workoutData.title}
       
       if (hasWeight) {
         if (sameWeight) {
-          exerciseLine += ` @ ${weights[0]}kg`;
+          // Convert single weight to display unit
+          const displayWeight = convertWeightForDisplay(weights[0], weightUnit);
+          exerciseLine += ` @ ${formatWeightDisplay(displayWeight, weightUnit)}`;
         } else {
           // Show weight range if different weights
           const minWeight = Math.min(...weights.filter(w => w > 0));
           const maxWeight = Math.max(...weights);
           if (minWeight === maxWeight) {
-            exerciseLine += ` @ ${minWeight}kg`;
+            const displayWeight = convertWeightForDisplay(minWeight, weightUnit);
+            exerciseLine += ` @ ${formatWeightDisplay(displayWeight, weightUnit)}`;
           } else {
-            exerciseLine += ` @ ${minWeight}-${maxWeight}kg`;
+            const displayMinWeight = convertWeightForDisplay(minWeight, weightUnit);
+            const displayMaxWeight = convertWeightForDisplay(maxWeight, weightUnit);
+            const unitLabel = weightUnit === 'lbs' ? 'lbs' : 'kg';
+            exerciseLine += ` @ ${displayMinWeight}-${displayMaxWeight}${unitLabel}`;
           }
         }
       } else {
@@ -191,10 +198,10 @@ ${workoutData.title}
    * Total: [X] exercises, [X] sets, [X] reps
    * #POWR"
    */
-  generateWorkoutSocialContent(workoutData: CompletedWorkout): string {
+  generateWorkoutSocialContent(workoutData: CompletedWorkout, weightUnit: WeightUnit = 'kg'): string {
     const stats = this.calculateSingleWorkoutStats(workoutData);
     const formattedDuration = this.formatDuration(stats.duration);
-    const exerciseDetails = this.generateExerciseDetails(workoutData);
+    const exerciseDetails = this.generateExerciseDetails(workoutData, weightUnit);
     
     const content = `Workout Complete! 💪
 ${workoutData.title}
@@ -211,8 +218,8 @@ Total: ${stats.exerciseCount} exercises, ${stats.totalSets} sets, ${stats.totalR
   /**
    * Generate enhanced social content with additional context
    */
-  generateEnhancedSocialContent(workoutData: CompletedWorkout): WorkoutSocialContent {
-    const baseContent = this.generateWorkoutSocialContent(workoutData);
+  generateEnhancedSocialContent(workoutData: CompletedWorkout, weightUnit: WeightUnit = 'kg'): WorkoutSocialContent {
+    const baseContent = this.generateWorkoutSocialContent(workoutData, weightUnit);
     const stats = this.calculateSingleWorkoutStats(workoutData);
     
     // Add optional intensity context if RPE data is available
@@ -239,7 +246,7 @@ Total: ${stats.exerciseCount} exercises, ${stats.totalSets} sets, ${stats.totalR
   /**
    * Generate achievement-focused social content for milestone workouts
    */
-  generateAchievementContent(workoutData: CompletedWorkout): string {
+  generateAchievementContent(workoutData: CompletedWorkout, weightUnit: WeightUnit = 'kg'): string {
     const stats = this.calculateSingleWorkoutStats(workoutData);
     
     // Check for notable achievements
@@ -261,7 +268,7 @@ Total: ${stats.exerciseCount} exercises, ${stats.totalSets} sets, ${stats.totalR
       achievements.push('Full Body');
     }
     
-    let content = this.generateWorkoutSocialContent(workoutData);
+    let content = this.generateWorkoutSocialContent(workoutData, weightUnit);
     
     if (achievements.length > 0) {
       content += ` • ${achievements.join(' • ')}`;

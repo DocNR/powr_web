@@ -17,6 +17,7 @@ import {
   DialogDescription 
 } from '@/components/ui/dialog';
 import { socialSharingService } from '@/lib/services/socialSharingService';
+import { useWeightUnits } from '@/providers/WeightUnitsProvider';
 import type { CompletedWorkout } from '@/lib/services/workoutEventGeneration';
 
 interface WorkoutSummaryModalProps {
@@ -35,16 +36,17 @@ export const WorkoutSummaryModal: React.FC<WorkoutSummaryModalProps> = ({
   onSkipSharing
 }) => {
   const [socialContent, setSocialContent] = useState('');
+  const { weightUnit } = useWeightUnits();
 
   // Calculate workout statistics using social sharing service
   const workoutStats = useMemo(() => {
     return socialSharingService.calculateSingleWorkoutStats(workoutData);
   }, [workoutData]);
 
-  // Generate default social content
+  // Generate default social content with user's weight unit preference
   const defaultSocialContent = useMemo(() => {
-    return socialSharingService.generateWorkoutSocialContent(workoutData);
-  }, [workoutData]);
+    return socialSharingService.generateWorkoutSocialContent(workoutData, weightUnit);
+  }, [workoutData, weightUnit]);
 
   // Initialize social content when modal opens
   React.useEffect(() => {

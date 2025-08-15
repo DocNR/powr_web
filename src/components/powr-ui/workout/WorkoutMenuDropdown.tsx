@@ -9,7 +9,8 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/powr-ui/primitives/Button';
-import { MoreVertical, Info, Settings, FileText, Share } from 'lucide-react';
+import { MoreVertical, Info, Settings, FileText, Share, Scale } from 'lucide-react';
+import { useWeightUnits } from '@/providers/WeightUnitsProvider';
 
 interface WorkoutMenuDropdownProps {
   onMenuAction: (action: string) => void;
@@ -32,6 +33,7 @@ export function WorkoutMenuDropdown({
   className 
 }: WorkoutMenuDropdownProps) {
   const [showMenu, setShowMenu] = useState(false);
+  const { weightUnit, toggleWeightUnit } = useWeightUnits();
 
   const handleMenuClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -41,6 +43,12 @@ export function WorkoutMenuDropdown({
   const handleMenuAction = (action: string) => {
     setShowMenu(false);
     onMenuAction(action);
+  };
+
+  const handleWeightUnitToggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    toggleWeightUnit();
+    // Keep menu open so user can toggle back if needed
   };
 
   return (
@@ -82,6 +90,14 @@ export function WorkoutMenuDropdown({
               >
                 <Settings className="h-4 w-4" />
                 Workout Settings
+              </button>
+              
+              <button
+                className="dropdown-item"
+                onClick={handleWeightUnitToggle}
+              >
+                <Scale className="h-4 w-4" />
+                Weight Units ({weightUnit.toUpperCase()})
               </button>
               
               <button

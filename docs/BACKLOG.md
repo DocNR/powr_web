@@ -81,6 +81,15 @@ formatting_rules:
 ## 🟢 Normal Priority
 
 ### User Experience Improvements
+- [ ] **Weight Unit Preference System Enhancement** (M)
+  - **Issue**: WorkoutHistoryDetailModal shows hardcoded kg units, settings drawer needed for better UX
+  - **Phase 1**: Fix broken components not respecting weight unit preference (30 min)
+  - **Phase 2**: Add settings drawer with weight unit toggle for better discoverability (2-3 hours)
+  - **Phase 3**: Comprehensive audit of all weight displays (1 hour)
+  - **Benefits**: Global preference system, instant synchronization, better UX
+  - **Architecture**: Current WeightUnitsProvider + useWeightUnits hook supports enhancement seamlessly
+  - **Task**: `docs/tasks/weight-unit-preference-system-enhancement-task.md`
+
 - **Smart Workout Confirmations** - Context-aware confirmation dialogs for CRUD operations that prevent accidental data loss while reducing confirmation fatigue
   - Priority: Medium
   - Effort: 7-10 hours (M)

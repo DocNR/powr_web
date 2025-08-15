@@ -380,34 +380,6 @@ export const WorkoutHistoryDetailModal: React.FC<WorkoutHistoryDetailModalProps>
                 )}
               </div>
 
-              {/* Timeline View - Phase 2 Implementation */}
-              <div className="space-y-4">
-                <h3 className="text-xl font-semibold text-foreground">Workout Timeline</h3>
-                
-                <div className="space-y-3">
-                  {processedWorkout.timeline.map((entry, index) => (
-                    <div key={index} className="flex items-center justify-between p-4 bg-card border rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center text-sm font-medium text-primary">
-                          {index + 1}
-                        </div>
-                        <div>
-                          <h4 className="font-medium">{getExerciseDisplayName(entry.exerciseName, entry.exerciseRef)}</h4>
-                          <p className="text-sm text-muted-foreground">Set {entry.setNumber}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-4 text-sm">
-                        <span className="font-medium">{entry.reps} reps</span>
-                        <span className="text-muted-foreground">{entry.displayWeight}</span>
-                        {entry.displayRPE && (
-                          <span className="text-muted-foreground">{entry.displayRPE}</span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
               {/* Exercise Summary - Using processed data */}
               <div className="space-y-4">
                 <h3 className="text-xl font-semibold text-foreground">Exercise Summary</h3>
@@ -440,6 +412,34 @@ export const WorkoutHistoryDetailModal: React.FC<WorkoutHistoryDetailModalProps>
                             <span className="text-muted-foreground">Avg RPE: </span>
                             <span className="font-medium">{exercise.averageRPE.toFixed(1)}</span>
                           </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Timeline View - Phase 2 Implementation */}
+              <div className="space-y-4">
+                <h3 className="text-xl font-semibold text-foreground">Workout Timeline</h3>
+                
+                <div className="space-y-3">
+                  {processedWorkout.timeline.map((entry, index) => (
+                    <div key={index} className="flex items-center justify-between p-4 bg-card border rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center text-sm font-medium text-primary">
+                          {index + 1}
+                        </div>
+                        <div>
+                          <h4 className="font-medium">{getExerciseDisplayName(entry.exerciseName, entry.exerciseRef)}</h4>
+                          <p className="text-sm text-muted-foreground">Set {entry.setNumber}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4 text-sm">
+                        <span className="font-medium">{entry.reps} reps</span>
+                        <span className="text-muted-foreground">{entry.displayWeight}</span>
+                        {entry.displayRPE && (
+                          <span className="text-muted-foreground">{entry.displayRPE}</span>
                         )}
                       </div>
                     </div>

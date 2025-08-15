@@ -6,6 +6,7 @@ import { Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SetRow } from './SetRow';
 import { ExerciseMenuDropdown } from './ExerciseMenuDropdown';
+import type { WeightUnit } from '@/lib/utils/weightConversion';
 
 interface SetData {
   weight: number;
@@ -29,6 +30,7 @@ interface ExerciseData {
 
 interface ExerciseSectionProps {
   exercise: ExerciseData;
+  weightUnit: WeightUnit; // ✅ SIMPLE SOLUTION: Receive weightUnit as prop
   shouldHighlightAddSet?: boolean; // NEW PROP for smart Add Set highlighting
   onSetComplete: (exerciseId: string, setIndex: number, setData: SetData) => void;
   onAddSet?: (exerciseId: string) => void;
@@ -37,7 +39,7 @@ interface ExerciseSectionProps {
   exerciseIndex?: number; // NEW: Exercise index for set selection
   // CRUD operation props
   onRemoveExercise?: (exerciseIndex: number) => void;
-  onSubstituteExercise?: (exerciseIndex: number, newExerciseRef: string) => void;
+  onSubstituteExercise?: (exerciseIndex: number) => void; // Fixed: matches ExerciseMenuDropdown signature
   onReorderExercises?: () => void; // NEW: Exercise reorder handler
   onCreateSuperset?: (exerciseIndex: number) => void; // NEW: Superset creation handler
   totalExercises?: number; // For determining if move up/down should be disabled
@@ -46,6 +48,7 @@ interface ExerciseSectionProps {
 
 export const ExerciseSection: React.FC<ExerciseSectionProps> = ({
   exercise,
+  weightUnit, // ✅ SIMPLE SOLUTION: Use weightUnit prop instead of hook
   shouldHighlightAddSet = false, // NEW PROP with default value
   onSetComplete,
   onAddSet,
@@ -62,6 +65,8 @@ export const ExerciseSection: React.FC<ExerciseSectionProps> = ({
 }) => {
   const completedSets = exercise.sets.filter(set => set.completed).length;
   const totalSets = exercise.sets.length;
+
+  // ✅ SIMPLE SOLUTION: No more useEffect needed - React will re-render when weightUnit prop changes
 
   const handleSetComplete = (setIndex: number, setData: SetData) => {
     onSetComplete(exercise.id, setIndex, setData);
@@ -115,7 +120,7 @@ export const ExerciseSection: React.FC<ExerciseSectionProps> = ({
         <div className="flex items-center gap-2 px-1 pb-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">
           <div className="w-8 text-center">Set</div>
           <div className="w-16 text-center">Previous</div>
-          <div className="flex-1 text-center">lbs</div>
+          <div className="flex-1 text-center">Weight ({weightUnit})</div>
           <div className="flex-1 text-center">Reps</div>
           <div className="w-12 text-center">RPE</div>
           <div className="w-10 text-center">✓</div>

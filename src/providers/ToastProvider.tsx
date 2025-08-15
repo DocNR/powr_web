@@ -7,8 +7,8 @@
 
 'use client';
 
-import React, { createContext, useContext, useState, useCallback } from 'react';
-import { ToastProvider as RadixToastProvider, ToastViewport, ToastNotification } from '@/components/powr-ui/primitives/Toast';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { ToastProvider as RadixToastProvider, ToastViewport, ToastNotification, setToastDispatch } from '@/components/powr-ui/primitives/Toast';
 
 export interface ToastMessage {
   id: string;
@@ -62,6 +62,17 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const clearAllToasts = useCallback(() => {
     setToasts([]);
   }, []);
+
+  // Initialize the global toast dispatch function
+  useEffect(() => {
+    const dispatch = (toast: { title: string; description?: string; variant?: 'success' | 'error' | 'info' | 'default' }) => {
+      showToast(toast.title, toast.variant === 'default' ? 'info' : toast.variant, toast.description);
+    };
+    setToastDispatch(dispatch);
+    
+    // Cleanup on unmount
+    return () => setToastDispatch(null);
+  }, [showToast]);
 
   return (
     <ToastContext.Provider value={{ toasts, showToast, removeToast, clearAllToasts }}>

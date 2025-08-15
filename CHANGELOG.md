@@ -30,6 +30,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Weight Conversion System Fix COMPLETE (August 15, 2025) ✅**
+  
+  **User Impact**: Users can now seamlessly switch between kg and lbs weight units during workouts without performance issues or data corruption. Weight unit preference is accessible via the workout menu dropdown and applies instantly to all weight displays, previous set data, and social sharing content. Fixed critical infinite re-render bug in SetRow component that was causing browser performance issues. Weight conversions are accurate with proper rounding (1 decimal place) while maintaining NIP-101e protocol compliance by always storing weights in kg.
+  
+  **Developer Notes**: Refactored SetRow component to eliminate infinite re-renders caused by stale closures in useEffect dependencies. Replaced problematic getDisplayWeight function pattern with direct weight conversion calls. Enhanced social sharing service to respect user weight unit preferences in workout content generation. Fixed Toast component import/export issues causing compilation warnings. Implemented WeightUnitsProvider with React Context for app-wide weight unit state management. All weight conversions use established weightConversion utilities with proper kg↔lbs conversion (×2.20462) and display formatting.
+  
+  **Architecture Changes**: Established clean weight unit preference system using React Context pattern. Eliminated complex state tracking in SetRow component following simple solutions first principle. Enhanced social sharing service with weight unit awareness for consistent user experience. Foundation ready for NIP-78 user preferences migration when app-level settings are implemented.
+
 ### Added
 - **Active Workout Header & Menu COMPLETE (August 13, 2025) ✅**
   

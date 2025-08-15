@@ -96,20 +96,20 @@ Follow the established NDK-first architecture while implementing missing UI func
 - [x] **Bugs**
   - After reordering exercises, the active workout machine gets minimized instead of going to the regular active workout machine screen
 
-#### 6. Weight Units Conversion System
-- [ ] **User Preference Setting**
-  - Add unit preference toggle to workout menu ("..." dropdown)
+#### 6. Weight Units Conversion System ✅ COMPLETE
+- [x] **User Preference Setting**
+  - Added unit preference toggle to workout menu ("..." dropdown)
   - Store preference in localStorage for workout session
   - Eventually migrate to app-level setting with NIP-78 user preferences
-- [ ] **Automatic Conversion Logic**
+- [x] **Automatic Conversion Logic**
   - Display conversion: multiply by 2.20462 for kg to lbs
   - Convert back to kg when saving NIP-101e records (Kind 1301)
   - Maintain protocol compliance (always store kg)
-  - Discuss rounding of decimal places 
-- [ ] **UI Integration**
-  - Update all weight input fields to show user's preferred unit
-  - Apply same unit preference to Kind 1 share messages
-  - Ensure consistent display across ActiveWorkoutInterface
+  - Proper rounding to 1 decimal place for display
+- [x] **UI Integration**
+  - Updated all weight input fields to show user's preferred unit
+  - Applied same unit preference to Kind 1 share messages
+  - Ensured consistent display across ActiveWorkoutInterface
   - Real-time unit switching during active workout
 
 #### 7. NIP-46 Bunker Authentication Persistence

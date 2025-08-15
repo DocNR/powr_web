@@ -8,6 +8,7 @@ import { SubNavigationProvider } from "@/providers/SubNavigationProvider";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 import InstallButton from "@/components/InstallButton";
 import { ToastProvider } from "@/providers/ToastProvider";
+import { WeightUnitsProvider } from "@/providers/WeightUnitsProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -81,15 +82,17 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <Provider>
-            <NavigationProvider>
-              <SubNavigationProvider>
-                <ToastProvider>
-                  <ServiceWorkerRegistration />
-                  <InstallButton />
-                  {children}
-                </ToastProvider>
-              </SubNavigationProvider>
-            </NavigationProvider>
+            <WeightUnitsProvider>
+              <NavigationProvider>
+                <SubNavigationProvider>
+                  <ToastProvider>
+                    <ServiceWorkerRegistration />
+                    <InstallButton />
+                    {children}
+                  </ToastProvider>
+                </SubNavigationProvider>
+              </NavigationProvider>
+            </WeightUnitsProvider>
           </Provider>
         </ThemeProvider>
       </body>

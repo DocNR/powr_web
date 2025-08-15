@@ -554,6 +554,10 @@
     }
   }
   
+  .dropdown-separator {
+    @apply h-px bg-border mx-2 my-1;
+  }
+  
   .dropdown-indicator {
     @apply ml-auto w-2 h-2 bg-primary rounded-full;
     /* Add subtle pulse animation */
