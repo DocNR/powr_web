@@ -28,6 +28,32 @@ import {
 import type { Account, LoginMethod, AuthenticationError, Nip46Settings, ValidationResult } from './types';
 import { ensureNDKInitialized } from '../ndk';
 
+/**
+ * NDK NIP-46 Signer URL Patch
+ * 
+ * Fixes bunker:// URL parsing issue in NDK's connectionTokenInit method.
+ * Based on proven Stacker News workaround for NDK URL parsing bug.
+ * 
+ * The issue: JavaScript's new URL() constructor doesn't recognize bunker:// 
+ * as a valid protocol, causing NDK's internal URL parsing to fail.
+ * 
+ * The fix: Replace bunker:// with http:// before NDK processes the URL.
+ * The rest of the URL structure (hostname, search params) remains intact.
+ * 
+ * This patch fixes BOTH the constructor AND the internal connectionTokenInit method
+ * that was causing "Bunker pubkey not set" errors during session restoration.
+ */
+class NDKNip46SignerURLPatch extends NDKNip46Signer {
+  constructor(ndk: NDK, userOrConnectionToken: string, localSigner?: NDKPrivateKeySigner) {
+    // Fix bunker:// URL parsing issue - replace bunker:// with http://
+    // This fixes the URL before it gets passed to bunkerFlowInit internally
+    if (userOrConnectionToken.startsWith('bunker://')) {
+      userOrConnectionToken = userOrConnectionToken.replace('bunker://', 'http://');
+    }
+    super(ndk, userOrConnectionToken, localSigner);
+  }
+}
+
 async function getNDK(): Promise<NDK> {
   return await ensureNDKInitialized();
 }
@@ -116,10 +142,7 @@ export function useNip07Login() {
 
       const ndk = await getNDK();
       
-      // Clear any existing signer first
-      ndk.signer = undefined;
-      
-      // Create fresh signer
+      // Create fresh signer (NDK will handle signer replacement)
       const signer = new NDKNip07Signer();
       
       // Test the connection and get user
@@ -141,6 +164,7 @@ export function useNip07Login() {
       }
 
       // Set the signer on NDK
+      console.log('[NIP-07 Login] Setting NDK signer for user:', user.pubkey.slice(0, 16) + '...');
       ndk.signer = signer;
 
       // Get additional user info if available
@@ -336,7 +360,7 @@ export function useNip46Login() {
 
       // Create NIP-46 signer with connected bunker NDK
       console.log('[NIP-46 Login] Creating NIP-46 signer...');
-      const signer = new NDKNip46Signer(
+      const signer = new NDKNip46SignerURLPatch(
         bunkerNDK,
         remoteSignerURL,
         localSigner,
@@ -370,6 +394,7 @@ export function useNip46Login() {
       console.log('[NIP-46 Login] Successfully connected to remote signer. User pubkey:', user.pubkey.slice(0, 16) + '...');
 
       // Set the signer on main NDK instance
+      console.log('[NIP-46 Login] Setting NDK signer for user:', user.pubkey.slice(0, 16) + '...');
       mainNDK.signer = signer;
 
       // Get additional user info
@@ -425,21 +450,163 @@ export function useAutoLogin() {
   const nip07Login = useNip07Login();
 
   return async (): Promise<boolean> => {
-    // Skip if already authenticated
-    if (account) return true;
+    console.log('[Auto Login] === COMPREHENSIVE DEBUG START ===');
+    console.log('[Auto Login] Current account state:', account ? `${account.pubkey.slice(0, 16)}... (${account.method})` : 'null');
+    console.log('[Auto Login] Current loginMethod:', loginMethod);
+    console.log('[Auto Login] Stored accounts count:', accounts.length);
+    console.log('[Auto Login] Stored accounts:', accounts.map(a => ({
+      pubkey: a.pubkey.slice(0, 16) + '...',
+      method: a.method,
+      hasBunker: !!a.bunker,
+      hasSecret: !!a.secret,
+      hasRelays: !!a.relays,
+      relayCount: a.relays?.length
+    })));
+
+    // Check if NDK has a signer even when already authenticated
+    const ndk = await getNDK();
+    console.log('[Auto Login] NDK signer status:', !!ndk.signer);
+
+    // If already authenticated but NDK has no signer, we need to restore it
+    if (account && ndk.signer) {
+      console.log('[Auto Login] Already authenticated with valid NDK signer, skipping');
+      return true;
+    }
+
+    // If authenticated but no NDK signer, restore the signer
+    if (account && !ndk.signer) {
+      console.log('[Auto Login] Authenticated but NDK has no signer - restoring signer...');
+      
+      // Find the stored account data
+      const storedAccount = accounts.find(a => a.pubkey === account.pubkey);
+      if (!storedAccount) {
+        console.log('[Auto Login] No stored account found for current account, clearing auth state');
+        setAccount(null);
+        setLoginMethod(null);
+        return false;
+      }
+
+      // Restore signer based on method
+      if (account.method === 'nip46' && storedAccount.secret && storedAccount.bunker && storedAccount.relays) {
+        console.log('[Auto Login] Restoring NIP-46 signer for authenticated user...');
+        try {
+          // Use stored local signer key to preserve client identity
+          const localSigner = new NDKPrivateKeySigner(storedAccount.secret);
+          const localUser = await localSigner.user();
+          console.log('[Auto Login] Restored local signer. Client pubkey:', localUser.pubkey.slice(0, 16) + '...');
+          
+          // Create bunker NDK
+          const bunkerNDK = new NDK({ 
+            explicitRelayUrls: storedAccount.relays, 
+            signer: localSigner 
+          });
+          
+          // Connect with timeout
+          await Promise.race([
+            bunkerNDK.connect(),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Bunker connection timeout')), 10000))
+          ]);
+          
+          // Create NIP-46 signer
+          const signer = new NDKNip46Signer(bunkerNDK, storedAccount.bunker, localSigner);
+          
+          // Wait for signer ready with timeout
+          const user = await Promise.race([
+            signer.blockUntilReady(),
+            new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Signer ready timeout')), 15000))
+          ]);
+          
+          if (user && user.pubkey === account.pubkey) {
+            ndk.signer = signer;
+            console.log('[Auto Login] NIP-46 signer restored successfully!');
+            return true;
+          } else {
+            throw new Error('Signer user mismatch');
+          }
+        } catch (error) {
+          console.error('[Auto Login] Failed to restore NIP-46 signer:', error);
+          // Clear invalid state and continue with full restoration
+          setAccount(null);
+        }
+      } else if (account.method === 'nip07') {
+        console.log('[Auto Login] Restoring NIP-07 signer for authenticated user...');
+        try {
+          if (typeof window !== 'undefined' && window.nostr) {
+            const signer = new NDKNip07Signer();
+            const user = await signer.blockUntilReady();
+            if (user && user.pubkey === account.pubkey) {
+              ndk.signer = signer;
+              console.log('[Auto Login] NIP-07 signer restored successfully!');
+              return true;
+            }
+          }
+        } catch (error) {
+          console.error('[Auto Login] Failed to restore NIP-07 signer:', error);
+          // Clear invalid state and continue with full restoration
+          setAccount(null);
+        }
+      }
+    }
+
+    // If no account, proceed with normal auto-login flow
+    if (!account) {
+      console.log('[Auto Login] No current account, proceeding with auto-login...');
+    }
 
     // Skip if no stored login method
-    if (!loginMethod) return false;
+    if (!loginMethod) {
+      console.log('[Auto Login] No stored login method, skipping');
+      return false;
+    }
 
     try {
       // Find the account for this login method
+      console.log('[Auto Login] Looking for account with method:', loginMethod);
       const storedAccount = accounts.find(a => a.method === loginMethod);
-      if (!storedAccount) return false;
+      
+      if (!storedAccount) {
+        console.log('[Auto Login] No stored account found for method:', loginMethod);
+        console.log('[Auto Login] Available account methods:', accounts.map(a => a.method));
+        return false;
+      }
+
+      console.log('[Auto Login] Found stored account:', {
+        pubkey: storedAccount.pubkey.slice(0, 16) + '...',
+        method: storedAccount.method,
+        hasBunker: !!storedAccount.bunker,
+        hasSecret: !!storedAccount.secret,
+        hasRelays: !!storedAccount.relays,
+        relayCount: storedAccount.relays?.length,
+        bunkerPreview: storedAccount.bunker?.slice(0, 50) + '...',
+        secretPreview: storedAccount.secret?.slice(0, 16) + '...'
+      });
 
       if (loginMethod === 'nip07') {
+        console.log('[Auto Login] Attempting NIP-07 restoration...');
         const result = await nip07Login();
+        console.log('[Auto Login] NIP-07 result:', result.success);
         return result.success;
-      } else if (loginMethod === 'nip46' && storedAccount.bunker && storedAccount.secret && storedAccount.relays) {
+      } else if (loginMethod === 'nip46') {
+        console.log('[Auto Login] Checking NIP-46 restoration conditions...');
+        console.log('[Auto Login] - loginMethod === "nip46":', loginMethod === 'nip46');
+        console.log('[Auto Login] - storedAccount.bunker exists:', !!storedAccount.bunker);
+        console.log('[Auto Login] - storedAccount.secret exists:', !!storedAccount.secret);
+        console.log('[Auto Login] - storedAccount.relays exists:', !!storedAccount.relays);
+        
+        if (!storedAccount.bunker) {
+          console.log('[Auto Login] MISSING: storedAccount.bunker');
+          return false;
+        }
+        if (!storedAccount.secret) {
+          console.log('[Auto Login] MISSING: storedAccount.secret');
+          return false;
+        }
+        if (!storedAccount.relays) {
+          console.log('[Auto Login] MISSING: storedAccount.relays');
+          return false;
+        }
+        
+        console.log('[Auto Login] All NIP-46 conditions met, proceeding with restoration...');
         try {
           console.log('[Auto Login] Starting NIP-46 restoration...');
           console.log('[Auto Login] Stored account found:', {
@@ -474,7 +641,21 @@ export function useAutoLogin() {
           console.log('[Auto Login] Bunker relay connection successful');
           
           console.log('[Auto Login] Creating NIP-46 signer with bunker:', storedAccount.bunker.slice(0, 50) + '...');
-          const signer = new NDKNip46Signer(bunkerNDK, storedAccount.bunker, localSigner);
+          const signer = new NDKNip46SignerURLPatch(bunkerNDK, storedAccount.bunker, localSigner);
+          
+          // Add diagnostic event listeners to understand what's happening
+          signer.on('authUrl', (url) => {
+            console.log('[Auto Login] 🔐 AUTH URL REQUIRED - bunker needs re-authorization:', url);
+            console.log('[Auto Login] This indicates bunker does not recognize the stored client identity');
+          });
+
+          signer.on('ready', () => {
+            console.log('[Auto Login] ✅ SIGNER READY - bunker accepted client identity');
+          });
+
+          signer.on('error', (error) => {
+            console.log('[Auto Login] ❌ SIGNER ERROR:', error);
+          });
           
           // Wait for signer ready with timeout
           console.log('[Auto Login] Waiting for signer to be ready...');
@@ -521,11 +702,21 @@ export function useAutoLogin() {
           setLoginMethod(null);
           return false;
         }
+      } else {
+        console.log('[Auto Login] Unhandled login method:', loginMethod);
+        console.log('[Auto Login] This could indicate a conflict or invalid state');
+        return false;
       }
 
+      console.log('[Auto Login] Reached end of method checks - this should not happen');
       return false;
     } catch (error) {
-      console.error('[Auto Login]', error);
+      console.error('[Auto Login] Unexpected error:', {
+        error: error instanceof Error ? error.message : error,
+        stack: error instanceof Error ? error.stack : undefined,
+        loginMethod,
+        accountsCount: accounts.length
+      });
       return false;
     }
   };

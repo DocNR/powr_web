@@ -8,7 +8,8 @@
 
 import { getNDKInstance } from '@/lib/ndk';
 import { type WorkoutEventData } from '@/lib/services/workoutEventGeneration';
-import { NDKEvent } from '@nostr-dev-kit/ndk';
+import { NDKEvent, NDKNip46Signer, NDKPrivateKeySigner, NDKNip07Signer } from '@nostr-dev-kit/ndk';
+import NDK from '@nostr-dev-kit/ndk';
 
 // NDK Event Monitoring - Phase 1: Analysis
 let ndkEventListenersSetup = false;
@@ -102,6 +103,143 @@ export interface NDKConnectionStatus {
 // NDK's outbox model and relay-level queuing provide robust offline support
 
 /**
+ * Attempt to restore NDK signer from stored authentication data
+ * This handles cases where the signer gets cleared during runtime
+ * Updated to use correct Jotai localStorage keys
+ */
+const attemptSignerRestoration = async (ndk: NDK): Promise<boolean> => {
+  try {
+    console.log('[GlobalNDKActor] Attempting signer restoration...');
+    
+    // Check if we have stored authentication data using correct Jotai keys
+    const storedAccounts = localStorage.getItem('powr-accounts');
+    const storedLoginMethod = localStorage.getItem('powr-login-method');
+    const storedCurrentAccount = localStorage.getItem('powr-current-account');
+    
+    if (!storedAccounts || !storedLoginMethod || !storedCurrentAccount) {
+      console.log('[GlobalNDKActor] No stored authentication data found:', {
+        hasAccounts: !!storedAccounts,
+        hasLoginMethod: !!storedLoginMethod,
+        hasCurrentAccount: !!storedCurrentAccount
+      });
+      return false;
+    }
+    
+    const accounts = JSON.parse(storedAccounts);
+    const loginMethod = JSON.parse(storedLoginMethod);
+    const currentAccount = JSON.parse(storedCurrentAccount);
+    
+    if (!currentAccount || !currentAccount.pubkey) {
+      console.log('[GlobalNDKActor] No valid current account found');
+      return false;
+    }
+    
+    // Find the full account data from accounts array
+    const fullAccountData = accounts.find((a: { pubkey: string }) => a.pubkey === currentAccount.pubkey);
+    if (!fullAccountData) {
+      console.log('[GlobalNDKActor] Current account not found in accounts array');
+      return false;
+    }
+    
+    console.log('[GlobalNDKActor] Found stored account:', {
+      method: fullAccountData.method,
+      pubkey: fullAccountData.pubkey?.slice(0, 16) + '...',
+      hasBunker: !!fullAccountData.bunker,
+      hasSecret: !!fullAccountData.secret,
+      hasRelays: !!fullAccountData.relays
+    });
+    
+    // Handle NIP-46 signer restoration
+    if (loginMethod === 'nip46' && fullAccountData.bunker && fullAccountData.secret && fullAccountData.relays) {
+      console.log('[GlobalNDKActor] Restoring NIP-46 signer...');
+      
+      // Create local signer from stored secret
+      const localSigner = new NDKPrivateKeySigner(fullAccountData.secret);
+      const localUser = await localSigner.user();
+      console.log('[GlobalNDKActor] Local signer created. Client pubkey:', localUser.pubkey.slice(0, 16) + '...');
+      
+      // Create bunker NDK for communication
+      const bunkerNDK = new NDK({
+        explicitRelayUrls: fullAccountData.relays,
+        signer: localSigner
+      });
+      
+      // Connect with timeout
+      console.log('[GlobalNDKActor] Connecting to bunker relays:', fullAccountData.relays);
+      await Promise.race([
+        bunkerNDK.connect(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Bunker connection timeout after 5s')), 5000))
+      ]);
+      console.log('[GlobalNDKActor] Bunker connection successful');
+      
+      // Create NIP-46 signer
+      console.log('[GlobalNDKActor] Creating NIP-46 signer with bunker:', fullAccountData.bunker.slice(0, 50) + '...');
+      const signer = new NDKNip46Signer(bunkerNDK, fullAccountData.bunker, localSigner);
+      
+      // Wait for signer ready with timeout
+      console.log('[GlobalNDKActor] Waiting for signer to be ready...');
+      const user = await Promise.race([
+        signer.blockUntilReady(),
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Signer ready timeout after 10s')), 10000))
+      ]);
+      
+      if (!user || !user.pubkey) {
+        console.error('[GlobalNDKActor] Signer restoration failed - no user returned');
+        return false;
+      }
+      
+      console.log('[GlobalNDKActor] Signer ready! Remote user pubkey:', user.pubkey.slice(0, 16) + '...');
+      
+      // Verify the pubkey matches stored account
+      if (user.pubkey !== fullAccountData.pubkey) {
+        console.warn('[GlobalNDKActor] Pubkey mismatch during restoration - stored:', fullAccountData.pubkey.slice(0, 16), 'signer:', user.pubkey.slice(0, 16));
+      }
+      
+      // Set the restored signer on NDK
+      ndk.signer = signer;
+      
+      console.log('[GlobalNDKActor] ✅ NIP-46 signer restored successfully! User:', user.pubkey.slice(0, 16) + '...');
+      return true;
+    }
+    
+    // Handle NIP-07 signer restoration
+    if (loginMethod === 'nip07') {
+      console.log('[GlobalNDKActor] Attempting NIP-07 signer restoration...');
+      
+      // Check if NIP-07 extension is available
+      if (typeof window !== 'undefined' && window.nostr) {
+        try {
+          const signer = new NDKNip07Signer();
+          const user = await signer.blockUntilReady();
+          
+          if (user && user.pubkey === fullAccountData.pubkey) {
+            ndk.signer = signer;
+            console.log('[GlobalNDKActor] ✅ NIP-07 signer restored successfully! User:', user.pubkey.slice(0, 16) + '...');
+            return true;
+          } else {
+            console.warn('[GlobalNDKActor] NIP-07 signer pubkey mismatch or no user');
+            return false;
+          }
+        } catch (error) {
+          console.error('[GlobalNDKActor] NIP-07 signer restoration failed:', error);
+          return false;
+        }
+      } else {
+        console.log('[GlobalNDKActor] NIP-07 extension not available');
+        return false;
+      }
+    }
+    
+    console.log('[GlobalNDKActor] Unsupported login method for restoration:', loginMethod);
+    return false;
+    
+  } catch (error) {
+    console.error('[GlobalNDKActor] Signer restoration failed:', error instanceof Error ? error.message : error);
+    return false;
+  }
+};
+
+/**
  * Publish event to Nostr network via NDK
  * 
  * Based on proven WorkoutPublisher patterns with hybrid approach:
@@ -144,14 +282,21 @@ export const publishEvent = async (
     // Setup monitoring on first use
     setupNDKEventMonitoring();
     
-    // Check if NDK has a signer (WorkoutPublisher pattern)
+    // Check if NDK has a signer - attempt restoration if missing
     if (!ndk.signer) {
-      console.error('[GlobalNDKActor] NDK has no signer - authentication required');
-      return {
-        success: false,
-        error: 'NDK not authenticated - no signer available',
-        requestId
-      };
+      console.warn('[GlobalNDKActor] NDK has no signer - attempting restoration...');
+      
+      const restored = await attemptSignerRestoration(ndk);
+      if (!restored) {
+        console.error('[GlobalNDKActor] Signer restoration failed - authentication required');
+        return {
+          success: false,
+          error: 'NDK not authenticated - no signer available and restoration failed',
+          requestId
+        };
+      }
+      
+      console.log('[GlobalNDKActor] ✅ Signer restored successfully, proceeding with publish');
     }
     
     // Create NDK event (WorkoutPublisher pattern)

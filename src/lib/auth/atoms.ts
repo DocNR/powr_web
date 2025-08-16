@@ -16,7 +16,26 @@ export const accountAtom = atomWithStorage<Account | null>(
   null,
   createJSONStorage<Account | null>(() => {
     if (typeof window !== 'undefined') {
-      return localStorage;
+      // Add debugging wrapper around localStorage
+      return {
+        getItem: (key: string) => {
+          const value = localStorage.getItem(key);
+          console.log('[Auth Atoms] accountAtom getItem:', key, value ? `${JSON.parse(value)?.pubkey?.slice(0, 16)}... (${JSON.parse(value)?.method})` : 'null');
+          return value;
+        },
+        setItem: (key: string, value: string) => {
+          const parsed = JSON.parse(value);
+          console.log('[Auth Atoms] accountAtom setItem:', key, parsed ? `${parsed.pubkey?.slice(0, 16)}... (${parsed.method})` : 'null');
+          localStorage.setItem(key, value);
+        },
+        removeItem: (key: string) => {
+          console.log('[Auth Atoms] accountAtom removeItem:', key);
+          localStorage.removeItem(key);
+        },
+        clear: () => localStorage.clear(),
+        length: localStorage.length,
+        key: (index: number) => localStorage.key(index)
+      } as Storage;
     }
     // Return a mock storage for SSR
     return {
@@ -36,7 +55,26 @@ export const accountsAtom = atomWithStorage<Account[]>(
   [],
   createJSONStorage<Account[]>(() => {
     if (typeof window !== 'undefined') {
-      return localStorage;
+      // Add debugging wrapper around localStorage
+      return {
+        getItem: (key: string) => {
+          const value = localStorage.getItem(key);
+          console.log('[Auth Atoms] accountsAtom getItem:', key, value ? `${JSON.parse(value).length} accounts` : 'null');
+          return value;
+        },
+        setItem: (key: string, value: string) => {
+          const parsed = JSON.parse(value);
+          console.log('[Auth Atoms] accountsAtom setItem:', key, `${parsed.length} accounts:`, parsed.map((a: Account) => `${a.pubkey.slice(0, 16)}... (${a.method})`));
+          localStorage.setItem(key, value);
+        },
+        removeItem: (key: string) => {
+          console.log('[Auth Atoms] accountsAtom removeItem:', key);
+          localStorage.removeItem(key);
+        },
+        clear: () => localStorage.clear(),
+        length: localStorage.length,
+        key: (index: number) => localStorage.key(index)
+      } as Storage;
     }
     // Return a mock storage for SSR
     return {
@@ -56,7 +94,26 @@ export const methodAtom = atomWithStorage<LoginMethod | null>(
   null,
   createJSONStorage<LoginMethod | null>(() => {
     if (typeof window !== 'undefined') {
-      return localStorage;
+      // Add debugging wrapper around localStorage
+      return {
+        getItem: (key: string) => {
+          const value = localStorage.getItem(key);
+          console.log('[Auth Atoms] methodAtom getItem:', key, value ? JSON.parse(value) : 'null');
+          return value;
+        },
+        setItem: (key: string, value: string) => {
+          const parsed = JSON.parse(value);
+          console.log('[Auth Atoms] methodAtom setItem:', key, parsed);
+          localStorage.setItem(key, value);
+        },
+        removeItem: (key: string) => {
+          console.log('[Auth Atoms] methodAtom removeItem:', key);
+          localStorage.removeItem(key);
+        },
+        clear: () => localStorage.clear(),
+        length: localStorage.length,
+        key: (index: number) => localStorage.key(index)
+      } as Storage;
     }
     // Return a mock storage for SSR
     return {
@@ -103,6 +160,45 @@ export const authStateAtom = atom((get) => {
     error: null
   };
 });
+
+// Debug function to inspect localStorage state
+export const debugAuthStateAtom = atom(
+  null,
+  () => {
+    if (typeof window !== 'undefined') {
+      console.log('[Auth Debug] === LOCALSTORAGE STATE INSPECTION ===');
+      console.log('[Auth Debug] powr-current-account:', localStorage.getItem('powr-current-account'));
+      console.log('[Auth Debug] powr-accounts:', localStorage.getItem('powr-accounts'));
+      console.log('[Auth Debug] powr-login-method:', localStorage.getItem('powr-login-method'));
+      
+      // Check for potential conflicts
+      const currentAccount = localStorage.getItem('powr-current-account');
+      const loginMethod = localStorage.getItem('powr-login-method');
+      const accounts = localStorage.getItem('powr-accounts');
+      
+      if (currentAccount && loginMethod && accounts) {
+        const parsedAccount = JSON.parse(currentAccount);
+        const parsedMethod = JSON.parse(loginMethod);
+        const parsedAccounts = JSON.parse(accounts);
+        
+        console.log('[Auth Debug] CONFLICT CHECK:');
+        console.log('[Auth Debug] - Current account method:', parsedAccount?.method);
+        console.log('[Auth Debug] - Stored login method:', parsedMethod);
+        console.log('[Auth Debug] - Methods match:', parsedAccount?.method === parsedMethod);
+        console.log('[Auth Debug] - Account exists in accounts array:', parsedAccounts.some((a: Account) => a.pubkey === parsedAccount?.pubkey));
+        
+        // Check for mixed authentication methods
+        const uniqueMethods = [...new Set(parsedAccounts.map((a: Account) => a.method))];
+        if (uniqueMethods.length > 1) {
+          console.log('[Auth Debug] ⚠️  MIXED AUTH METHODS DETECTED:', uniqueMethods);
+          console.log('[Auth Debug] This could cause auto-login conflicts!');
+        }
+      }
+      
+      console.log('[Auth Debug] === END INSPECTION ===');
+    }
+  }
+);
 
 // Reset function atom (following Chachi's useResetState pattern)
 export const resetAuthStateAtom = atom(
