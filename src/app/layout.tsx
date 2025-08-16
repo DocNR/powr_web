@@ -9,6 +9,7 @@ import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistratio
 import InstallButton from "@/components/InstallButton";
 import { ToastProvider } from "@/providers/ToastProvider";
 import { WeightUnitsProvider } from "@/providers/WeightUnitsProvider";
+import { NostrLoginProvider } from "@/providers/NostrLoginProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -82,17 +83,19 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <Provider>
-            <WeightUnitsProvider>
-              <NavigationProvider>
-                <SubNavigationProvider>
-                  <ToastProvider>
-                    <ServiceWorkerRegistration />
-                    <InstallButton />
-                    {children}
-                  </ToastProvider>
-                </SubNavigationProvider>
-              </NavigationProvider>
-            </WeightUnitsProvider>
+            <NostrLoginProvider>
+              <WeightUnitsProvider>
+                <NavigationProvider>
+                  <SubNavigationProvider>
+                    <ToastProvider>
+                      <ServiceWorkerRegistration />
+                      <InstallButton />
+                      {children}
+                    </ToastProvider>
+                  </SubNavigationProvider>
+                </NavigationProvider>
+              </WeightUnitsProvider>
+            </NostrLoginProvider>
           </Provider>
         </ThemeProvider>
       </body>

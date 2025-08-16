@@ -7,7 +7,7 @@
  * NO private key management for maximum security.
  */
 
-export type LoginMethod = 'nip07' | 'nip46' | 'amber' | 'ephemeral';
+export type LoginMethod = 'nip07' | 'nip46' | 'amber' | 'ephemeral' | 'readOnly';
 
 export interface Account {
   method: LoginMethod;
