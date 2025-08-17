@@ -3,22 +3,22 @@
 /**
  * Login Dialog Component for POWR Workout PWA
  * 
- * SIMPLIFIED: Uses nostr-login library for all authentication flows.
- * Maintains compatibility with existing Jotai state management.
+ * RESTORED: Original clean 3-button design with smooth authentication flows.
+ * Uses direct NDK operations for NIP-07 and ephemeral login.
+ * Uses nostr-login only for NIP-46 remote signing.
  * 
- * Supports:
- * - NIP-07 (browser extensions) 
- * - NIP-46 (remote signing)
- * - Read-only mode (npub only)
- * 
- * SIMPLIFIED: ~600 lines → ~200 lines (70% reduction)
+ * Design:
+ * - Connect Extension (primary - direct NIP-07)
+ * - Try Demo (secondary - direct ephemeral)
+ * - Advanced Options (collapsible - NIP-46 via nostr-login)
  */
 
 import { useState, ReactNode, useEffect } from 'react';
-import { LogIn, Puzzle, Cable, RotateCw, AlertTriangle, Zap, Eye } from 'lucide-react';
+import { LogIn, Puzzle, Cable, RotateCw, AlertTriangle, Zap } from 'lucide-react';
 
 // UI Components
 import { Button } from '@/components/powr-ui/primitives/Button';
+import { Input } from '@/components/powr-ui/primitives/Input';
 import {
   Dialog,
   DialogContent,
@@ -29,15 +29,15 @@ import {
 } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
-// Authentication hooks
+// Authentication hooks - using restored smooth implementations
 import { 
   useNip07Login, 
   useNip46Login, 
-  useReadOnlyLogin,
-  useLogin,
+  useEphemeralLogin,
   useNip07Available,
   useIsAuthenticated 
 } from '@/lib/auth/hooks';
+import type { AuthenticationError } from '@/lib/auth/types';
 
 interface LoginDialogProps {
   trigger?: ReactNode;
@@ -47,14 +47,14 @@ interface LoginDialogProps {
 }
 
 export function LoginDialog({ trigger, isCompact = false, onSuccess, defaultOpen = false }: LoginDialogProps) {
+  const [remoteSigner, setRemoteSigner] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<AuthenticationError | null>(null);
   const [open, setOpen] = useState(defaultOpen);
 
   const nip07Login = useNip07Login();
   const nip46Login = useNip46Login();
-  const readOnlyLogin = useReadOnlyLogin();
-  const generalLogin = useLogin();
+  const ephemeralLogin = useEphemeralLogin();
   const nip07Available = useNip07Available();
   const isAuthenticated = useIsAuthenticated();
 
@@ -73,19 +73,26 @@ export function LoginDialog({ trigger, isCompact = false, onSuccess, defaultOpen
     }
   }, [open]);
 
-  function handleNip07Login() {
+  async function handleNip07Login() {
     try {
       setIsLoggingIn(true);
       setError(null);
       
-      const result = nip07Login();
+      // Use restored smooth NIP-07 implementation
+      const result = await nip07Login();
       
       if (!result.success && result.error) {
-        setError(result.error);
+        setError({
+          code: 'NIP07_PERMISSION_DENIED',
+          message: result.error,
+        });
       }
     } catch (err) {
       console.error('[Login Dialog] NIP-07 error:', err);
-      setError('An unexpected error occurred. Please try again.');
+      setError({
+        code: 'UNKNOWN_ERROR',
+        message: 'An unexpected error occurred. Please try again.',
+      });
     } finally {
       setIsLoggingIn(false);
     }
@@ -96,50 +103,46 @@ export function LoginDialog({ trigger, isCompact = false, onSuccess, defaultOpen
       setIsLoggingIn(true);
       setError(null);
       
+      // Use nostr-login for NIP-46 (the reliable option)
       const result = nip46Login();
       
       if (!result.success && result.error) {
-        setError(result.error);
+        setError({
+          code: 'NIP46_CONNECTION_FAILED',
+          message: result.error,
+        });
       }
     } catch (err) {
       console.error('[Login Dialog] NIP-46 error:', err);
-      setError('An unexpected error occurred. Please try again.');
+      setError({
+        code: 'UNKNOWN_ERROR',
+        message: 'An unexpected error occurred. Please try again.',
+      });
     } finally {
       setIsLoggingIn(false);
     }
   }
 
-  function handleReadOnlyLogin() {
+  async function handleEphemeralLogin() {
     try {
       setIsLoggingIn(true);
       setError(null);
       
-      const result = readOnlyLogin();
+      // Use restored smooth ephemeral implementation
+      const result = await ephemeralLogin();
       
       if (!result.success && result.error) {
-        setError(result.error);
+        setError({
+          code: 'EPHEMERAL_GENERATION_FAILED',
+          message: result.error,
+        });
       }
     } catch (err) {
-      console.error('[Login Dialog] Read-only login error:', err);
-      setError('Failed to start read-only mode. Please try again.');
-    } finally {
-      setIsLoggingIn(false);
-    }
-  }
-
-  function handleGeneralLogin() {
-    try {
-      setIsLoggingIn(true);
-      setError(null);
-      
-      const result = generalLogin();
-      
-      if (!result.success && result.error) {
-        setError(result.error);
-      }
-    } catch (err) {
-      console.error('[Login Dialog] General login error:', err);
-      setError('Failed to open login screen. Please try again.');
+      console.error('[Login Dialog] Ephemeral login error:', err);
+      setError({
+        code: 'UNKNOWN_ERROR',
+        message: 'Failed to generate demo account. Please try again.',
+      });
     } finally {
       setIsLoggingIn(false);
     }
@@ -147,6 +150,7 @@ export function LoginDialog({ trigger, isCompact = false, onSuccess, defaultOpen
 
   function onOpenChange(newOpen: boolean) {
     if (!newOpen) {
+      setRemoteSigner('');
       setIsLoggingIn(false);
       setError(null);
     }
@@ -183,14 +187,14 @@ export function LoginDialog({ trigger, isCompact = false, onSuccess, defaultOpen
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
-                {error}
+                {error.message}
               </AlertDescription>
             </Alert>
           )}
 
-          {/* Primary Options - nostr-login handles all UI */}
+          {/* Primary Options - Clean 3-button design */}
           <div className="flex flex-col gap-3">
-            {/* Browser Extension */}
+            {/* Browser Extension - Direct NIP-07 */}
             <Button
               variant={nip07Available ? "primary-gradient" : "outline"}
               disabled={isLoggingIn || !nip07Available}
@@ -205,41 +209,11 @@ export function LoginDialog({ trigger, isCompact = false, onSuccess, defaultOpen
               {nip07Available ? 'Connect Extension' : 'Install Extension'}
             </Button>
 
-            {/* Remote Signing (NIP-46) */}
+            {/* Demo Mode - Direct Ephemeral */}
             <Button
               variant="outline"
               disabled={isLoggingIn}
-              onClick={handleNip46Login}
-              className="w-full h-12"
-            >
-              {isLoggingIn ? (
-                <RotateCw className="animate-spin size-4 mr-2" />
-              ) : (
-                <Cable className="size-4 mr-2" />
-              )}
-              Remote Signing
-            </Button>
-
-            {/* Read-Only Mode */}
-            <Button
-              variant="outline"
-              disabled={isLoggingIn}
-              onClick={handleReadOnlyLogin}
-              className="w-full h-12"
-            >
-              {isLoggingIn ? (
-                <RotateCw className="animate-spin size-4 mr-2" />
-              ) : (
-                <Eye className="size-4 mr-2" />
-              )}
-              Browse Only
-            </Button>
-
-            {/* General Login (Welcome Screen) */}
-            <Button
-              variant="outline"
-              disabled={isLoggingIn}
-              onClick={handleGeneralLogin}
+              onClick={handleEphemeralLogin}
               className="w-full h-12"
             >
               {isLoggingIn ? (
@@ -247,14 +221,44 @@ export function LoginDialog({ trigger, isCompact = false, onSuccess, defaultOpen
               ) : (
                 <Zap className="size-4 mr-2" />
               )}
-              More Options
+              Try Demo
             </Button>
           </div>
 
-          {/* Info about nostr-login */}
-          <div className="text-xs text-muted-foreground text-center">
-            Powered by nostr-login - battle-tested authentication
-          </div>
+          {/* Advanced Options - Collapsible NIP-46 */}
+          <details className="group">
+            <summary className="flex cursor-pointer items-center justify-between py-2 text-sm font-medium text-muted-foreground hover:text-foreground">
+              Advanced Options
+              <Cable className="size-4 transition-transform group-open:rotate-180" />
+            </summary>
+            
+            <div className="mt-3 flex gap-2">
+              <Input
+                placeholder="bunker://... or user@domain.com"
+                value={remoteSigner}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRemoteSigner(e.target.value)}
+                disabled={isLoggingIn}
+                className="flex-1"
+                onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                  if (e.key === 'Enter' && remoteSigner.trim()) {
+                    handleNip46Login();
+                  }
+                }}
+              />
+              <Button
+                variant="outline"
+                disabled={isLoggingIn || !remoteSigner.trim()}
+                onClick={handleNip46Login}
+                size="icon"
+              >
+                {isLoggingIn ? (
+                  <RotateCw className="animate-spin size-4" />
+                ) : (
+                  <Cable className="size-4" />
+                )}
+              </Button>
+            </div>
+          </details>
         </div>
       </DialogContent>
     </Dialog>

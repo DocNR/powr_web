@@ -8,6 +8,11 @@
  */
 
 import { useAtom, useAtomValue } from 'jotai';
+import { nip19 } from 'nostr-tools';
+import NDK, {
+  NDKNip07Signer,
+  NDKPrivateKeySigner,
+} from '@nostr-dev-kit/ndk';
 import { 
   accountAtom, 
   accountsAtom, 
@@ -19,6 +24,11 @@ import {
 } from './atoms';
 import { triggerLogin, triggerLogout, isAvailable } from './nostrLoginBridge';
 import type { Account, LoginMethod } from './types';
+import { ensureNDKInitialized } from '../ndk';
+
+async function getNDK(): Promise<NDK> {
+  return await ensureNDKInitialized();
+}
 
 // ===== CONVENIENCE HOOKS FOR ACCESSING AUTH STATE =====
 
@@ -105,21 +115,89 @@ export function useAccountSwitching() {
 
 /**
  * NIP-07 Browser Extension Authentication
- * SIMPLIFIED: Just triggers nostr-login, no custom logic
+ * RESTORED: Original smooth direct implementation
  */
 export function useNip07Login() {
-  return () => {
-    console.log('[NIP-07 Login] Triggering nostr-login extension flow...');
-    
-    if (!isAvailable()) {
-      console.error('[NIP-07 Login] nostr-login not available');
-      return { success: false, error: 'nostr-login not initialized' };
+  const [, setAccount] = useAtom(accountAtom);
+  const [accounts, setAccounts] = useAtom(accountsAtom);
+  const [, setLoginMethod] = useAtom(methodAtom);
+
+  return async (): Promise<{ success: boolean; error?: string }> => {
+    try {
+      console.log('[NIP-07 Login] Starting fresh authentication...');
+      
+      // Check if NIP-07 is available
+      if (typeof window === 'undefined' || !window.nostr) {
+        return {
+          success: false,
+          error: 'No NIP-07 browser extension detected. Please install Alby, nos2x, or another Nostr extension.',
+        };
+      }
+
+      // Force fresh query from extension (don't use cached data)
+      let currentPubkey: string;
+      try {
+        currentPubkey = await window.nostr.getPublicKey();
+        console.log('[NIP-07 Login] Fresh pubkey from extension:', currentPubkey.slice(0, 16) + '...');
+      } catch (extensionError) {
+        console.error('[NIP-07 Login] Extension query failed:', extensionError);
+        return {
+          success: false,
+          error: 'Extension access denied. Please check permissions and try again.',
+        };
+      }
+
+      const ndk = await getNDK();
+      
+      // Clear any existing signer first
+      ndk.signer = undefined;
+      
+      // Create fresh signer
+      const signer = new NDKNip07Signer();
+      
+      // Test the connection and get user
+      const user = await signer.blockUntilReady();
+      
+      if (!user || !user.pubkey) {
+        return {
+          success: false,
+          error: 'Extension connection failed. Please check permissions and try again.',
+        };
+      }
+
+      // Verify the pubkey matches what we got directly
+      if (user.pubkey !== currentPubkey) {
+        console.warn('[NIP-07 Login] Pubkey mismatch - signer:', user.pubkey.slice(0, 16), 'direct:', currentPubkey.slice(0, 16));
+      }
+
+      // Set the signer on NDK
+      ndk.signer = signer;
+
+      // Get additional user info if available
+      const npub = nip19.npubEncode(user.pubkey);
+      
+      const account: Account = {
+        method: 'nip07' as LoginMethod,
+        pubkey: user.pubkey,
+        npub,
+      };
+
+      console.log('[NIP-07 Login] Successfully authenticated as:', user.pubkey.slice(0, 16) + '...');
+
+      // Update state
+      setAccount(account);
+      setAccounts([account, ...accounts.filter(a => a.pubkey !== user.pubkey)]);
+      setLoginMethod('nip07');
+
+      return { success: true };
+
+    } catch (err) {
+      console.error('[NIP-07 Login]', err);
+      return {
+        success: false,
+        error: 'Failed to connect to browser extension. Please try again.',
+      };
     }
-    
-    // Trigger nostr-login extension authentication
-    triggerLogin('extension');
-    
-    return { success: true };
   };
 }
 
@@ -160,6 +238,63 @@ export function useReadOnlyLogin() {
     triggerLogin('readOnly');
     
     return { success: true };
+  };
+}
+
+/**
+ * Ephemeral Login (temporary key generation)
+ * RESTORED: Original smooth direct implementation
+ */
+export function useEphemeralLogin() {
+  const [, setAccount] = useAtom(accountAtom);
+  const [accounts, setAccounts] = useAtom(accountsAtom);
+  const [, setLoginMethod] = useAtom(methodAtom);
+
+  return async (): Promise<{ success: boolean; error?: string }> => {
+    try {
+      console.log('[Ephemeral Login] Generating temporary key for demo...');
+      
+      const ndk = await getNDK();
+      
+      // Generate ephemeral private key signer
+      const signer = NDKPrivateKeySigner.generate();
+      const user = await signer.user();
+      
+      if (!user || !user.pubkey) {
+        return {
+          success: false,
+          error: 'Failed to generate ephemeral key',
+        };
+      }
+
+      // Set the signer on NDK
+      ndk.signer = signer;
+
+      // Get additional user info
+      const npub = nip19.npubEncode(user.pubkey);
+      
+      const account: Account = {
+        method: 'ephemeral' as LoginMethod,
+        pubkey: user.pubkey,
+        npub,
+      };
+
+      console.log('[Ephemeral Login] Generated demo account:', user.pubkey.slice(0, 16) + '...');
+
+      // Update state
+      setAccount(account);
+      setAccounts([account, ...accounts.filter(a => a.pubkey !== user.pubkey)]);
+      setLoginMethod('ephemeral');
+
+      return { success: true };
+
+    } catch (err) {
+      console.error('[Ephemeral Login]', err);
+      return {
+        success: false,
+        error: 'Failed to generate ephemeral key for demo mode',
+      };
+    }
   };
 }
 
@@ -242,11 +377,6 @@ export const useLoginWithEphemeral = useLogin; // Use general login for demo mod
 export function useAmberLogin() {
   console.warn('[useAmberLogin] DEPRECATED: Use useNip46Login() instead');
   return useNip46Login();
-}
-
-export function useEphemeralLogin() {
-  console.warn('[useEphemeralLogin] DEPRECATED: Use useLogin() for demo mode instead');
-  return useLogin();
 }
 
 export function useCheckAmberAuth() {

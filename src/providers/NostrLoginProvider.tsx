@@ -25,8 +25,8 @@ export function NostrLoginProvider({ children }: NostrLoginProviderProps) {
         
         // POWR-specific configuration
         await init({
-          // Authentication methods (excluding 'local' for security)
-          methods: ['connect', 'extension', 'readOnly'],
+          // Authentication methods (including 'local' for ephemeral login)
+          methods: ['connect', 'extension', 'local', 'readOnly'],
           
           // POWR event permissions for NIP-101e workout events
           perms: 'sign_event:1,sign_event:1301,sign_event:33401,sign_event:33402,sign_event:30003',
@@ -42,8 +42,24 @@ export function NostrLoginProvider({ children }: NostrLoginProviderProps) {
           // Welcome screen configuration
           title: 'POWR Workout PWA',
           description: 'Track your workouts on Nostr with POWR',
-          startScreen: 'welcome',
+          
+          // Signup relay configuration for ephemeral accounts
+          signupRelays: 'wss://relay.damus.io,wss://nos.lol,wss://relay.primal.net',
+          outboxRelays: 'wss://relay.damus.io,wss://nos.lol,wss://relay.primal.net',
+          
+          // Don't set startScreen - let nostr-login auto-detect extensions
+          // This allows proper extension detection on initialization
         });
+        
+        // Add debug logging for extension detection after initialization
+        console.log('[NostrLoginProvider] Post-init extension detection check...');
+        console.log('[NostrLoginProvider] window.nostr available:', typeof window !== 'undefined' && !!window.nostr);
+        
+        if (typeof window !== 'undefined' && window.nostr) {
+          console.log('[NostrLoginProvider] Extension detected - window.nostr methods:', Object.keys(window.nostr));
+          // Note: Not testing extension responsiveness here to avoid auto-launching nostr-login UI
+          // Extension responsiveness will be tested when user explicitly triggers authentication
+        }
 
         // Initialize bridge to connect nostr-login events to Jotai atoms
         nostrLoginBridge.initialize();

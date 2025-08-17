@@ -11,7 +11,7 @@ import { useEffect, useState } from 'react';
 import { Shield, Globe, Unlock, Zap, Users, ArrowRight } from 'lucide-react';
 import { useIsAuthenticated, useEphemeralLogin, useAutoLogin } from '@/lib/auth/hooks';
 import { initializeNDK } from '@/lib/ndk';
-import { LoginDialog } from '@/components/auth/LoginDialog';
+import { triggerLogin } from '@/lib/auth/nostrLoginBridge';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/powr-ui/primitives/Button';
 import { Card, CardContent } from '@/components/powr-ui/primitives/Card';
@@ -125,14 +125,15 @@ export default function Home() {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <LoginDialog
-              trigger={
-                <Button variant="primary-gradient" size="lg" className="w-full sm:w-auto">
-                  Get Started
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              }
-            />
+            <Button 
+              variant="primary-gradient" 
+              size="lg" 
+              className="w-full sm:w-auto"
+              onClick={() => triggerLogin('welcome')}
+            >
+              Login
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
             <Button 
               variant="outline" 
               size="lg" 

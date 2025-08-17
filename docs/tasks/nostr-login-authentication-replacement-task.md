@@ -35,6 +35,12 @@ Replace the current custom authentication system with nostr-login library to sol
 11. [ ] **PENDING**: Test all authentication methods (extension, bunker, read-only)
 12. [ ] **PENDING**: Validate session persistence across browser refreshes
 
+### Phase 4: UI Simplification ✅ COMPLETE
+13. [x] Replace LoginDialog modal with direct nostr-login integration
+14. [x] Update landing page "Get Started" button to trigger nostr-login directly
+15. [x] Preserve "Try Demo" button functionality for ephemeral authentication
+16. [x] Test simplified authentication flow with user confirmation
+
 ## Current Progress Status (August 16, 2025)
 
 ### ✅ COMPLETED WORK
@@ -45,6 +51,9 @@ Replace the current custom authentication system with nostr-login library to sol
 - **Critical Fix**: Storage event dispatch mechanism for React re-renders implemented
 - **NDK Integration**: NDK singleton properly receives signer from window.nostr
 - **NIP-46 Bunker**: Basic bunker authentication working with nostr.band connection
+- **Simplified Authentication Flow**: Replaced LoginDialog modal with direct nostr-login integration
+- **Landing Page Integration**: "Get Started" button now directly opens nostr-login UI
+- **User Experience**: Eliminated intermediate modal for streamlined authentication
 
 ### 🔄 REMAINING WORK
 - **NIP-07 Browser Extensions**: Extension authentication still needs debugging
@@ -56,15 +65,16 @@ Replace the current custom authentication system with nostr-login library to sol
 - [ ] **PENDING**: User can authenticate with NIP-07 browser extensions (Alby, nos2x)
 - [x] **COMPLETE**: User can authenticate with NIP-46 bunkers (nsec.app)
 - [ ] **PENDING**: User can use read-only mode by entering npub
-- [ ] **PENDING**: User can use ephemeral/demo mode for testing
+- [x] **COMPLETE**: User can use ephemeral/demo mode for testing (Try Demo button)
 - [x] **COMPLETE**: System maintains existing NDK singleton and Jotai state patterns
 - [ ] **PENDING**: Authentication state persists across browser refreshes
 - [x] **COMPLETE**: All existing XState machines and Global NDK Actor continue working
 - [x] **COMPLETE**: Code reduction: ~600 lines → ~200 lines (70% reduction)
 - [x] **COMPLETE**: NIP-46 bunker connections are reliable (solving current pain point)
 
-### Progress Summary: 5/9 Success Criteria Complete (56%)
-**Major Achievement**: 70% code reduction and reliable NIP-46 bunker authentication working
+### Progress Summary: 6/9 Success Criteria Complete (67%)
+**Major Achievement**: 70% code reduction, reliable NIP-46 bunker authentication, and simplified user flow
+**Latest Update**: Direct nostr-login integration eliminates intermediate modal complexity
 **Remaining Work**: NIP-07 extension authentication and comprehensive method testing
 
 ## Nostr-Login Configuration Specifications

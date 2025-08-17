@@ -220,9 +220,68 @@ export class NostrLoginBridge {
   /**
    * Trigger nostr-login authentication flows
    */
-  static triggerLogin(screen?: 'welcome' | 'signup' | 'login' | 'connect' | 'extension' | 'readOnly'): void {
+  static triggerLogin(screen?: 'welcome' | 'signup' | 'login' | 'connect' | 'extension' | 'readOnly' | 'local-signup'): void {
     const detail = screen || 'welcome';
+    
+    // Debug extension detection before triggering
+    if (screen === 'extension') {
+      console.log('[NostrLoginBridge] Extension login requested - checking window.nostr availability...');
+      console.log('[NostrLoginBridge] window.nostr available:', typeof window !== 'undefined' && !!window.nostr);
+      console.log('[NostrLoginBridge] window.nostr.getPublicKey available:', typeof window !== 'undefined' && !!window.nostr?.getPublicKey);
+      console.log('[NostrLoginBridge] window.nostr.signEvent available:', typeof window !== 'undefined' && !!window.nostr?.signEvent);
+      
+      if (typeof window !== 'undefined' && window.nostr) {
+        console.log('[NostrLoginBridge] window.nostr object:', Object.keys(window.nostr));
+      }
+    }
+    
     document.dispatchEvent(new CustomEvent('nlLaunch', { detail }));
+    
+    // Only try direct extension auth as a fallback after nostr-login has a chance to work
+    if (screen === 'extension') {
+      setTimeout(() => {
+        // Check if nostr-login succeeded, if not try direct fallback
+        if (typeof window !== 'undefined' && window.nostr && !store.get(accountAtom)) {
+          console.log('[NostrLoginBridge] nostr-login extension flow may have failed, trying direct fallback...');
+          NostrLoginBridge.tryDirectExtensionAuth();
+        }
+      }, 2000); // Give nostr-login 2 seconds to work
+    }
+  }
+
+  /**
+   * Fallback: Direct extension authentication if nostr-login doesn't detect it
+   */
+  static async tryDirectExtensionAuth(): Promise<void> {
+    if (typeof window === 'undefined' || !window.nostr) {
+      console.log('[NostrLoginBridge] No extension available for direct auth');
+      return;
+    }
+
+    try {
+      console.log('[NostrLoginBridge] Attempting direct extension authentication...');
+      
+      // Try to get pubkey directly from extension
+      const pubkey = await window.nostr.getPublicKey();
+      
+      if (pubkey) {
+        console.log('[NostrLoginBridge] Direct extension auth successful, pubkey:', pubkey.slice(0, 16) + '...');
+        
+        // Manually trigger the auth event that nostr-login would normally send
+        const authEvent = new CustomEvent('nlAuth', {
+          detail: {
+            type: 'login',
+            pubkey: pubkey,
+            method: 'extension'
+          }
+        });
+        
+        document.dispatchEvent(authEvent);
+      }
+      
+    } catch (error) {
+      console.log('[NostrLoginBridge] Direct extension auth failed (user may have denied):', error);
+    }
   }
 
   /**
