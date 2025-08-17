@@ -265,20 +265,34 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
       exerciseName: exercise.name,
       exerciseRef: exercise.exerciseRef,
       setData,
+      isCompleting: setData.completed !== false,
       totalExercises: exercises.length
     });
     
-    actorSend({ 
-      type: 'COMPLETE_SPECIFIC_SET',
-      exerciseIndex, // ✅ FIXED: Use exerciseIndex instead of exerciseRef
-      setNumber: setIndex + 1, // Convert 0-based index to 1-based set number
-      setData: {
-        weight: setData.weight,
-        reps: setData.reps,
-        rpe: setData.rpe,
-        setType: setData.setType
-      }
-    });
+    // 🔧 ROOT CAUSE FIX: Check completed flag and send appropriate event
+    if (setData.completed === false) {
+      // Uncompleting a set - send UNCOMPLETE_SET event
+      console.log('🔧 ActiveWorkoutInterface: Uncompleting set - sending UNCOMPLETE_SET');
+      actorSend({ 
+        type: 'UNCOMPLETE_SET',
+        exerciseIndex,
+        setNumber: setIndex + 1
+      });
+    } else {
+      // Completing a set - send COMPLETE_SPECIFIC_SET event
+      console.log('🔧 ActiveWorkoutInterface: Completing set - sending COMPLETE_SPECIFIC_SET');
+      actorSend({ 
+        type: 'COMPLETE_SPECIFIC_SET',
+        exerciseIndex, // ✅ FIXED: Use exerciseIndex instead of exerciseRef
+        setNumber: setIndex + 1, // Convert 0-based index to 1-based set number
+        setData: {
+          weight: setData.weight,
+          reps: setData.reps,
+          rpe: setData.rpe,
+          setType: setData.setType
+        }
+      });
+    }
   };
 
   // ✅ FIXED: Add set functionality

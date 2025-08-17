@@ -403,6 +403,16 @@ export const activeWorkoutMachine = setup({
                     return context.workoutData;
                   }
                   
+                  // 🔧 DEDUPLICATION FIX: Check if this exact set is already completed
+                  const existingSet = context.workoutData.completedSets.find(
+                    set => set.exerciseIndex === event.exerciseIndex && set.setNumber === event.setNumber
+                  );
+                  
+                  if (existingSet) {
+                    console.warn(`[ActiveWorkoutMachine] ⚠️ DEDUPLICATION: Set ${event.setNumber} for exercise ${event.exerciseIndex} already completed, ignoring duplicate`);
+                    return context.workoutData;
+                  }
+                  
                   console.log(`[ActiveWorkoutMachine] ✅ COMPLETE_SPECIFIC_SET: ${exercise.exerciseRef} set ${event.setNumber}`, {
                     exerciseName: exercise.exerciseName,
                     currentCompletedSets: context.workoutData.completedSets?.length || 0
