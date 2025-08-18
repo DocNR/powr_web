@@ -1,30 +1,29 @@
 /**
- * Nostr-Login Bridge Service for POWR Workout PWA
+ * Nostr-Login Bridge for POWR Workout PWA
  * 
- * Bridges nostr-login authentication events to existing Jotai state management.
- * Maintains compatibility with existing NDK singleton and XState architecture.
+ * Bridges nostr-login events to Jotai state management.
+ * Handles authentication state synchronization between nostr-login and our app state.
  */
 
 import { nip19 } from 'nostr-tools';
 import { getDefaultStore } from 'jotai';
-import { accountAtom, accountsAtom, methodAtom, resetAuthStateAtom } from './atoms';
-import { getNDKInstance } from '../ndk';
 import { NDKNip07Signer } from '@nostr-dev-kit/ndk';
+import { getNDKInstance } from '@/lib/ndk';
+import { 
+  accountAtom, 
+  accountsAtom, 
+  methodAtom, 
+  resetAuthStateAtom 
+} from './atoms';
 import type { Account, LoginMethod } from './types';
 
-// Jotai store for updating atoms from outside React
+// Create store instance
 const store = getDefaultStore();
-
-export interface NostrLoginAuthEvent {
-  type: 'login' | 'signup' | 'logout';
-  pubkey?: string;  // nostr-login provides pubkey, not npub
-  method?: string;
-}
 
 // Extend global Document interface for nostr-login events
 declare global {
   interface DocumentEventMap {
-    'nlAuth': CustomEvent<NostrLoginAuthEvent>;
+    'nlAuth': CustomEvent<{ type: string; pubkey?: string; method?: string }>;
     'nlLaunch': CustomEvent<string>;
     'nlLogout': Event;
   }
@@ -154,7 +153,7 @@ export class NostrLoginBridge {
       // Update accounts list (add to front, remove duplicates)
       const updatedAccounts = [
         account,
-        ...currentAccounts.filter(a => a.pubkey !== account.pubkey)
+        ...currentAccounts.filter((a: Account) => a.pubkey !== account.pubkey)
       ];
       store.set(accountsAtom, updatedAccounts);
       
@@ -218,9 +217,44 @@ export class NostrLoginBridge {
   }
 
   /**
-   * Trigger nostr-login authentication flows
+   * Launch nostr-login with specific screen
+   * Using nostrcal's proven launch() function approach
    */
-  static triggerLogin(screen?: 'welcome' | 'signup' | 'login' | 'connect' | 'extension' | 'readOnly' | 'local-signup'): void {
+  static async launchNostrLogin(screen: 'welcome-login' | 'signup' | 'extension' | 'connect') {
+    console.log(`[NostrLoginBridge] Launching nostr-login with screen: ${screen}`);
+    
+    try {
+      // Use nostrcal's approach: direct launch() function call
+      const { launch } = await import('nostr-login');
+      
+      // Map our screen types to nostr-login's expected types
+      let launchScreen: string = screen;
+      if (screen === 'extension') {
+        // Use 'login' as fallback for extension since 'extension' isn't in StartScreens
+        launchScreen = 'login';
+      }
+      
+      // Launch with mapped screen like nostrcal does
+      launch(launchScreen as any);
+      
+      console.log(`[NostrLoginBridge] Successfully launched nostr-login with screen: ${launchScreen}`);
+      
+    } catch (error) {
+      console.error('[NostrLoginBridge] Failed to launch nostr-login:', error);
+      
+      // Fallback to direct extension auth only for extension screen
+      if (screen === 'extension') {
+        console.log('[NostrLoginBridge] Falling back to direct extension auth...');
+        NostrLoginBridge.tryDirectExtensionAuth();
+      }
+    }
+  }
+
+  /**
+   * Trigger nostr-login authentication flows
+   * Updated to use the same screens as before: welcome-login and connect
+   */
+  static triggerLogin(screen?: 'welcome' | 'welcome-login' | 'welcome-signup' | 'signup' | 'login' | 'connect' | 'connection-string' | 'extension' | 'readOnly' | 'local-signup'): void {
     const detail = screen || 'welcome';
     
     // Debug extension detection before triggering
@@ -235,7 +269,13 @@ export class NostrLoginBridge {
       }
     }
     
-    document.dispatchEvent(new CustomEvent('nlLaunch', { detail }));
+    // Use the new launch approach for the main screens we use
+    if (screen === 'welcome-login' || screen === 'connect') {
+      NostrLoginBridge.launchNostrLogin(screen);
+    } else {
+      // Fallback to old approach for other screens
+      document.dispatchEvent(new CustomEvent('nlLaunch', { detail }));
+    }
     
     // Only try direct extension auth as a fallback after nostr-login has a chance to work
     if (screen === 'extension') {

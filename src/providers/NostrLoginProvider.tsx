@@ -3,7 +3,8 @@
 /**
  * Nostr-Login Provider for POWR Workout PWA
  * 
- * Handles SSR-compatible initialization of nostr-login with POWR-specific configuration.
+ * Simplified initialization based on nostrcal's proven approach.
+ * Uses launch() pattern instead of complex init() configuration.
  * Integrates with existing Jotai state management through NostrLoginBridge.
  */
 
@@ -21,34 +22,31 @@ export function NostrLoginProvider({ children }: NostrLoginProviderProps) {
     // SSR-compatible nostr-login initialization
     import('nostr-login')
       .then(async ({ init }) => {
-        console.log('[NostrLoginProvider] Initializing nostr-login...');
+        console.log('[NostrLoginProvider] Initializing nostr-login with simplified config...');
         
-        // POWR-specific configuration
+        // Simplified configuration based on nostrcal's working approach
+        // Let nostr-login handle its own relay selection instead of forcing overrides
         await init({
-          // Authentication methods (including 'local' for ephemeral login)
+          // Authentication methods
           methods: ['connect', 'extension', 'local', 'readOnly'],
           
           // POWR event permissions for NIP-101e workout events
           perms: 'sign_event:1,sign_event:1301,sign_event:33401,sign_event:33402,sign_event:30003',
           
-          // Bunker providers (focus on nsec.app for reliability)
+          // Bunker providers
           bunkers: 'nsec.app',
           
           // UI configuration
           theme: 'default',
-          darkMode: true, // Match POWR's dark theme
+          darkMode: true,
           noBanner: true, // We'll trigger auth flows manually
           
           // Welcome screen configuration
           title: 'POWR Workout PWA',
           description: 'Track your workouts on Nostr with POWR',
           
-          // Signup relay configuration for ephemeral accounts
-          signupRelays: 'wss://relay.damus.io,wss://nos.lol,wss://relay.primal.net',
-          outboxRelays: 'wss://relay.damus.io,wss://nos.lol,wss://relay.primal.net',
-          
-          // Don't set startScreen - let nostr-login auto-detect extensions
-          // This allows proper extension detection on initialization
+          // Don't override relay configuration - let nostr-login handle it
+          // This prevents conflicts with internal relay selection
         });
         
         // Add debug logging for extension detection after initialization
@@ -57,8 +55,6 @@ export function NostrLoginProvider({ children }: NostrLoginProviderProps) {
         
         if (typeof window !== 'undefined' && window.nostr) {
           console.log('[NostrLoginProvider] Extension detected - window.nostr methods:', Object.keys(window.nostr));
-          // Note: Not testing extension responsiveness here to avoid auto-launching nostr-login UI
-          // Extension responsiveness will be tested when user explicitly triggers authentication
         }
 
         // Initialize bridge to connect nostr-login events to Jotai atoms

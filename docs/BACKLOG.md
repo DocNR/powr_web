@@ -160,6 +160,24 @@ formatting_rules:
 
 ## 🔵 Low Priority
 
+### V1.1 Polish Features
+
+#### Delete/Remove Set Functionality
+**Priority**: Low (Polish Feature)
+**Effort**: 2 hours (XS)
+**Description**: Allow users to remove individual sets during active workouts with iOS/Android-style selection mode.
+
+**Technical Approach**:
+- Enhanced UX with "Remove Sets" option in ExerciseMenuDropdown
+- Selection mode with delete toggles on left of set rows
+- XState integration with REMOVE_SET event handler in activeWorkoutMachine
+- Bulk delete action with confirmation dialog
+- Edge case handling (minimum 1 set per exercise protection)
+
+**Why Deferred**: Incomplete sets don't affect NIP-101e workout records (Kind 1301). Users can simply leave sets incomplete without impacting the published workout record. Higher-impact features like library buttons and NADDR search provide more user value for beta release.
+
+**Implementation Details**: See `docs/tasks/delete-remove-set-functionality-implementation-task.md`
+
 ### Advanced Features
 - [ ] **Workout Planning** (L)
   - Custom workout template creation

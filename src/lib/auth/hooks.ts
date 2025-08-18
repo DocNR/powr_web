@@ -10,7 +10,6 @@
 import { useAtom, useAtomValue } from 'jotai';
 import { nip19 } from 'nostr-tools';
 import NDK, {
-  NDKNip07Signer,
   NDKPrivateKeySigner,
 } from '@nostr-dev-kit/ndk';
 import { 
@@ -115,91 +114,9 @@ export function useAccountSwitching() {
 
 /**
  * NIP-07 Browser Extension Authentication
- * RESTORED: Original smooth direct implementation
+ * REMOVED: Now using nostr-login for all extension authentication
+ * The nostr-login bridge handles extension auth and updates Jotai state
  */
-export function useNip07Login() {
-  const [, setAccount] = useAtom(accountAtom);
-  const [accounts, setAccounts] = useAtom(accountsAtom);
-  const [, setLoginMethod] = useAtom(methodAtom);
-
-  return async (): Promise<{ success: boolean; error?: string }> => {
-    try {
-      console.log('[NIP-07 Login] Starting fresh authentication...');
-      
-      // Check if NIP-07 is available
-      if (typeof window === 'undefined' || !window.nostr) {
-        return {
-          success: false,
-          error: 'No NIP-07 browser extension detected. Please install Alby, nos2x, or another Nostr extension.',
-        };
-      }
-
-      // Force fresh query from extension (don't use cached data)
-      let currentPubkey: string;
-      try {
-        currentPubkey = await window.nostr.getPublicKey();
-        console.log('[NIP-07 Login] Fresh pubkey from extension:', currentPubkey.slice(0, 16) + '...');
-      } catch (extensionError) {
-        console.error('[NIP-07 Login] Extension query failed:', extensionError);
-        return {
-          success: false,
-          error: 'Extension access denied. Please check permissions and try again.',
-        };
-      }
-
-      const ndk = await getNDK();
-      
-      // Clear any existing signer first
-      ndk.signer = undefined;
-      
-      // Create fresh signer
-      const signer = new NDKNip07Signer();
-      
-      // Test the connection and get user
-      const user = await signer.blockUntilReady();
-      
-      if (!user || !user.pubkey) {
-        return {
-          success: false,
-          error: 'Extension connection failed. Please check permissions and try again.',
-        };
-      }
-
-      // Verify the pubkey matches what we got directly
-      if (user.pubkey !== currentPubkey) {
-        console.warn('[NIP-07 Login] Pubkey mismatch - signer:', user.pubkey.slice(0, 16), 'direct:', currentPubkey.slice(0, 16));
-      }
-
-      // Set the signer on NDK
-      ndk.signer = signer;
-
-      // Get additional user info if available
-      const npub = nip19.npubEncode(user.pubkey);
-      
-      const account: Account = {
-        method: 'nip07' as LoginMethod,
-        pubkey: user.pubkey,
-        npub,
-      };
-
-      console.log('[NIP-07 Login] Successfully authenticated as:', user.pubkey.slice(0, 16) + '...');
-
-      // Update state
-      setAccount(account);
-      setAccounts([account, ...accounts.filter(a => a.pubkey !== user.pubkey)]);
-      setLoginMethod('nip07');
-
-      return { success: true };
-
-    } catch (err) {
-      console.error('[NIP-07 Login]', err);
-      return {
-        success: false,
-        error: 'Failed to connect to browser extension. Please try again.',
-      };
-    }
-  };
-}
 
 /**
  * NIP-46 Remote Signing Authentication  
@@ -368,7 +285,6 @@ export function useAutoLogin() {
 // ===== LEGACY COMPATIBILITY EXPORTS =====
 
 // Export aliases for compatibility with existing components
-export const useLoginWithNip07 = useNip07Login;
 export const useLoginWithNip46 = useNip46Login;
 export const useLoginWithAmber = useNip46Login; // Amber uses NIP-46 connect flow
 export const useLoginWithEphemeral = useLogin; // Use general login for demo mode

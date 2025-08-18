@@ -8,7 +8,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAccount, useNip07Login, useNip46Login, useReadOnlyLogin, useLogin, useLogout } from '@/lib/auth/hooks';
+import { useAccount, useNip46Login, useReadOnlyLogin, useLogin, useLogout } from '@/lib/auth/hooks';
 import { triggerLogin } from '@/lib/auth/nostrLoginBridge';
 
 export default function ExtensionDebugTest() {
@@ -16,7 +16,6 @@ export default function ExtensionDebugTest() {
   const [testResults, setTestResults] = useState<string[]>([]);
   
   const account = useAccount();
-  const nip07Login = useNip07Login();
   const nip46Login = useNip46Login();
   const readOnlyLogin = useReadOnlyLogin();
   const generalLogin = useLogin();
@@ -74,7 +73,7 @@ export default function ExtensionDebugTest() {
       };
       
       const signedEvent = await window.nostr.signEvent(testEvent);
-      addTestResult(`✅ Direct signing success - event ID: ${signedEvent.id?.slice(0, 16) || 'no-id'}...`);
+      addTestResult(`✅ Direct signing success - signature: ${signedEvent.sig?.slice(0, 16) || 'no-sig'}...`);
       
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -84,7 +83,7 @@ export default function ExtensionDebugTest() {
 
   const testNostrLoginExtension = () => {
     addTestResult('Testing nostr-login extension flow...');
-    nip07Login();
+    triggerLogin('extension');
   };
 
   const testNostrLoginConnect = () => {

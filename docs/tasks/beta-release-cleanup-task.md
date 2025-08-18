@@ -112,36 +112,28 @@ Follow the established NDK-first architecture while implementing missing UI func
   - Ensured consistent display across ActiveWorkoutInterface
   - Real-time unit switching during active workout
 
-#### 7. NIP-46 Bunker Authentication Persistence
-- [ ] **Research Stacker News Implementation**
+#### 7. NIP-46 Bunker Authentication Persistence ✅ COMPLETE
+- [x] **Research Stacker News Implementation**
   - Clone stacker news github to referencerepos folder so that our mcp-tool repo explorer can be used on it
   - Study their NextJS PWA bunker login approach
   - Use NDK's built-in NIP-46 support patterns
   - Consider nostr-login or window.nostr.js proxy solutions
-- [ ] **Session Persistence**
+- [x] **Session Persistence**
   - Store bunker connection details in localStorage securely
   - Save bunker URI and connection state on successful connect
   - Implement automatic reconnection on app load
-- [ ] **Error Handling**
+- [x] **Error Handling**
   - Add proper error handling for failed reconnections
   - Show loading state while attempting to restore connection
   - Graceful fallback to login screen if restoration fails
 
 ### Phase 3: Enhanced User Experience (Week 3)
 
-#### 8. Delete/Remove Set Functionality
-- [ ] **Enhanced UX Approach**
-  - Add "Remove Sets" option to ExerciseMenuDropdown
-  - Show selection mode with delete toggles on left of set rows
-  - Add "Confirm Delete Sets" button for bulk action
-- [ ] **XState Integration**
-  - Add REMOVE_SET event handler to activeWorkoutMachine
-  - Update set counter logic for decreasing sets
-  - Handle edge cases (prevent deleting all sets, minimum 1)
-- [ ] **UI Implementation**
-  - Selection state management in workout interface
-  - Visual feedback for selected sets
-  - Confirmation dialog for delete action
+#### 8. Delete/Remove Set Functionality ⏭️ SKIPPED (Moved to Backlog)
+#### 8. Delete/Remove Set Functionality ⏭️ SKIPPED (Moved to Backlog)
+**Decision**: Skipped in favor of higher-impact features. Incomplete sets don't affect NIP-101e workout records (Kind 1301), making this a polish feature rather than core functionality.
+
+**Moved to**: `docs/BACKLOG.md` - V1.1 Polish Features
 
 #### 9. Add Library Buttons to Detail Modals
 - [ ] **Workout Detail Modal Enhancement**

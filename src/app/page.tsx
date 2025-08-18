@@ -125,14 +125,23 @@ export default function Home() {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                <Button 
+                  variant="primary-gradient" 
+                  size="lg" 
+                  className="w-full sm:w-auto"
+                  onClick={() => triggerLogin('welcome-login')}
+                >
+                  Login
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
             <Button 
-              variant="primary-gradient" 
+              variant="secondary" 
               size="lg" 
               className="w-full sm:w-auto"
-              onClick={() => triggerLogin('welcome')}
+              onClick={() => triggerLogin('connection-string')}
             >
-              Login
-              <ArrowRight className="ml-2 h-4 w-4" />
+              NostrConnect
+              <Globe className="ml-2 h-4 w-4" />
             </Button>
             <Button 
               variant="outline" 

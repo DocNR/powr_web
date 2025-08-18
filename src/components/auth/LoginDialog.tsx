@@ -29,14 +29,14 @@ import {
 } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
-// Authentication hooks - using restored smooth implementations
+// Authentication hooks - using nostr-login for extension auth
 import { 
-  useNip07Login, 
   useNip46Login, 
   useEphemeralLogin,
   useNip07Available,
   useIsAuthenticated 
 } from '@/lib/auth/hooks';
+import { triggerLogin } from '@/lib/auth/nostrLoginBridge';
 import type { AuthenticationError } from '@/lib/auth/types';
 
 interface LoginDialogProps {
@@ -52,7 +52,6 @@ export function LoginDialog({ trigger, isCompact = false, onSuccess, defaultOpen
   const [error, setError] = useState<AuthenticationError | null>(null);
   const [open, setOpen] = useState(defaultOpen);
 
-  const nip07Login = useNip07Login();
   const nip46Login = useNip46Login();
   const ephemeralLogin = useEphemeralLogin();
   const nip07Available = useNip07Available();
@@ -73,27 +72,26 @@ export function LoginDialog({ trigger, isCompact = false, onSuccess, defaultOpen
     }
   }, [open]);
 
-  async function handleNip07Login() {
+  function handleNip07Login() {
     try {
       setIsLoggingIn(true);
       setError(null);
       
-      // Use restored smooth NIP-07 implementation
-      const result = await nip07Login();
+      console.log('[Login Dialog] Triggering nostr-login extension flow...');
       
-      if (!result.success && result.error) {
-        setError({
-          code: 'NIP07_PERMISSION_DENIED',
-          message: result.error,
-        });
-      }
+      // Use nostr-login for extension authentication
+      triggerLogin('extension');
+      
+      // Note: nostr-login will handle the authentication flow
+      // The bridge will receive nlAuth events and update Jotai state
+      // isAuthenticated will change and close the dialog automatically
+      
     } catch (err) {
-      console.error('[Login Dialog] NIP-07 error:', err);
+      console.error('[Login Dialog] Extension trigger error:', err);
       setError({
         code: 'UNKNOWN_ERROR',
-        message: 'An unexpected error occurred. Please try again.',
+        message: 'Failed to start extension authentication. Please try again.',
       });
-    } finally {
       setIsLoggingIn(false);
     }
   }
