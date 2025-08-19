@@ -87,8 +87,8 @@ export default function Home() {
           <div className="flex items-center gap-3">
             <Logo width={32} height={32} className="rounded-md" />
             <div className="flex flex-col">
-              <span className="text-xl font-bold font-mono-tech">POWR</span>
-              <span className="text-xs text-muted-foreground font-mono-tech hidden sm:block">
+              <span className="text-xl font-bold font-mono-tech text-white">POWR</span>
+              <span className="text-xs text-gray-400 font-mono-tech hidden sm:block">
                 Proof of Workout over Relays
               </span>
             </div>
@@ -111,13 +111,13 @@ export default function Home() {
         <div className="max-w-4xl mx-auto text-center space-y-8">
           {/* Main Headline */}
           <div className="space-y-4">
-            <h1 className="text-4xl sm:text-6xl font-bold tracking-tight font-mono-tech">
+            <h1 className="text-4xl sm:text-6xl font-bold tracking-tight font-mono-tech text-white">
               Your Fitness,{' '}
-              <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text text-transparent">
                 Your Rules
               </span>
             </h1>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-xl text-gray-300 max-w-2xl mx-auto">
               Control your data. Connect with athletes worldwide. 
               Join the decentralized fitness revolution.
             </p>
@@ -146,7 +146,7 @@ export default function Home() {
             <Button 
               variant="outline" 
               size="lg" 
-              className="w-full sm:w-auto"
+              className="w-full sm:w-auto border-gray-600 text-gray-300 hover:bg-gray-700/50 hover:text-white"
               onClick={handleTryDemo}
               disabled={isLoggingIn}
             >
@@ -169,13 +169,13 @@ export default function Home() {
         <div className="max-w-5xl mx-auto mt-24">
           <div className="grid md:grid-cols-3 gap-8">
             {/* Control Your Data */}
-            <Card className="border-0 bg-card/50 backdrop-blur-sm">
+            <Card className="border-0 bg-gray-800/50 backdrop-blur-sm">
               <CardContent className="p-8 text-center space-y-4">
-                <div className="w-12 h-12 mx-auto bg-primary/10 rounded-lg flex items-center justify-center">
-                  <Shield className="h-6 w-6 text-primary" />
+                <div className="w-12 h-12 mx-auto bg-orange-500/10 rounded-lg flex items-center justify-center">
+                  <Shield className="h-6 w-6 text-orange-500" />
                 </div>
-                <h3 className="text-xl font-semibold">Control Your Data</h3>
-                <p className="text-muted-foreground">
+                <h3 className="text-xl font-semibold text-white">Control Your Data</h3>
+                <p className="text-gray-300">
                   Your workouts stay with you, not locked in an app. 
                   Switch platforms anytime, keep your progress forever.
                 </p>
@@ -183,13 +183,13 @@ export default function Home() {
             </Card>
 
             {/* Connect Globally */}
-            <Card className="border-0 bg-card/50 backdrop-blur-sm">
+            <Card className="border-0 bg-gray-800/50 backdrop-blur-sm">
               <CardContent className="p-8 text-center space-y-4">
-                <div className="w-12 h-12 mx-auto bg-primary/10 rounded-lg flex items-center justify-center">
-                  <Globe className="h-6 w-6 text-primary" />
+                <div className="w-12 h-12 mx-auto bg-orange-500/10 rounded-lg flex items-center justify-center">
+                  <Globe className="h-6 w-6 text-orange-500" />
                 </div>
-                <h3 className="text-xl font-semibold">Connect Globally</h3>
-                <p className="text-muted-foreground">
+                <h3 className="text-xl font-semibold text-white">Connect Globally</h3>
+                <p className="text-gray-300">
                   Join athletes worldwide on the open Nostr network. 
                   Share workouts, find motivation, build community.
                 </p>
@@ -197,13 +197,13 @@ export default function Home() {
             </Card>
 
             {/* No Lock-in */}
-            <Card className="border-0 bg-card/50 backdrop-blur-sm">
+            <Card className="border-0 bg-gray-800/50 backdrop-blur-sm">
               <CardContent className="p-8 text-center space-y-4">
-                <div className="w-12 h-12 mx-auto bg-primary/10 rounded-lg flex items-center justify-center">
-                  <Unlock className="h-6 w-6 text-primary" />
+                <div className="w-12 h-12 mx-auto bg-orange-500/10 rounded-lg flex items-center justify-center">
+                  <Unlock className="h-6 w-6 text-orange-500" />
                 </div>
-                <h3 className="text-xl font-semibold">No Lock-in</h3>
-                <p className="text-muted-foreground">
+                <h3 className="text-xl font-semibold text-white">No Lock-in</h3>
+                <p className="text-gray-300">
                   Break free from app ecosystems. Your fitness journey 
                   belongs to you, not to any single company.
                 </p>
@@ -214,16 +214,16 @@ export default function Home() {
 
         {/* Social Proof / Revolution Message */}
         <div className="max-w-3xl mx-auto mt-24 text-center space-y-6">
-          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+          <div className="flex items-center justify-center gap-2 text-sm text-gray-400">
             <Users className="h-4 w-4" />
             <span>Join tens of athletes taking control of their data</span>
           </div>
           
-          <div className="bg-muted/30 rounded-lg p-6 border border-muted">
-            <p className="text-lg font-medium mb-2">
+          <div className="bg-gray-800/30 rounded-lg p-6 border border-gray-700">
+            <p className="text-lg font-medium mb-2 text-white">
               &ldquo;The future of fitness is open, decentralized, and user-controlled.&rdquo;
             </p>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-gray-300">
               Built on Nostr protocol • No ads • No tracking • No vendor lock-in
             </p>
           </div>
@@ -231,21 +231,21 @@ export default function Home() {
       </main>
 
       {/* Footer */}
-      <footer className="container mx-auto px-6 py-12 mt-24 border-t border-muted">
+      <footer className="container mx-auto px-6 py-12 mt-24 border-t border-gray-700">
         <div className="max-w-4xl mx-auto text-center space-y-4">
-          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+          <div className="flex items-center justify-center gap-2 text-sm text-gray-400">
             <span>Powered by</span>
             <a 
               href="https://nstart.me" 
               target="_blank" 
               rel="noopener noreferrer"
             >
-              <Badge variant="outline" className="text-xs font-mono-tech hover:bg-muted/80 transition-colors cursor-pointer">
+              <Badge variant="outline" className="text-xs font-mono-tech hover:bg-gray-700/80 transition-colors cursor-pointer border-gray-600 text-gray-300">
                 Nostr Protocol
               </Badge>
             </a>
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-gray-400">
             POWR never stores your private keys. Your data, your control.
           </p>
         </div>

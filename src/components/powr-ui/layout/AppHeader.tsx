@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Sun, Moon, LogOut } from 'lucide-react';
+import { Sun, Moon, LogOut, Shield, Smartphone, Eye, Zap, Wifi, WifiOff } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Button } from '../primitives/Button';
 import { Avatar, AvatarFallback, AvatarImage } from '../primitives/Avatar';
@@ -21,9 +21,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '../primitives/Dialog';
-import { useAccount, useLogout } from '@/lib/auth/hooks';
+import { useAccount, useLogout, useLoginMethod, useCanSign } from '@/lib/auth/hooks';
 import { useProfile, getDisplayName, getAvatarUrl } from '@/hooks/useProfile';
 import { GlobalWorkoutSearch } from '@/components/search/GlobalWorkoutSearch';
+import type { LoginMethod } from '@/lib/auth/types';
 
 interface AppHeaderProps {
   title?: string;
@@ -37,6 +38,8 @@ export function AppHeader({
   const { theme, setTheme } = useTheme();
   const account = useAccount();
   const logout = useLogout();
+  const loginMethod = useLoginMethod();
+  const canSign = useCanSign();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   
@@ -57,6 +60,69 @@ export function AppHeader({
     if (npub.length <= 16) return npub;
     return `${npub.slice(0, 8)}...${npub.slice(-8)}`;
   };
+
+  // Authentication method display helpers
+  const getAuthMethodInfo = (method: LoginMethod | null) => {
+    switch (method) {
+      case 'nip07':
+        return {
+          icon: Shield,
+          label: 'Browser Extension',
+          description: 'Secure extension authentication',
+          color: 'bg-green-500',
+          textColor: 'text-green-700',
+          bgColor: 'bg-green-50'
+        };
+      case 'nip46':
+        return {
+          icon: Wifi,
+          label: 'Remote Signer',
+          description: 'Connected to remote bunker',
+          color: 'bg-blue-500',
+          textColor: 'text-blue-700',
+          bgColor: 'bg-blue-50'
+        };
+      case 'amber':
+        return {
+          icon: Smartphone,
+          label: 'Amber Mobile',
+          description: 'Connected to Amber app',
+          color: 'bg-orange-500',
+          textColor: 'text-orange-700',
+          bgColor: 'bg-orange-50'
+        };
+      case 'readOnly':
+        return {
+          icon: Eye,
+          label: 'Read Only',
+          description: 'View-only access',
+          color: 'bg-gray-500',
+          textColor: 'text-gray-700',
+          bgColor: 'bg-gray-50'
+        };
+      case 'ephemeral':
+        return {
+          icon: Zap,
+          label: 'Demo Mode',
+          description: 'Temporary session',
+          color: 'bg-purple-500',
+          textColor: 'text-purple-700',
+          bgColor: 'bg-purple-50'
+        };
+      default:
+        return {
+          icon: WifiOff,
+          label: 'Not Connected',
+          description: 'Sign in to sync workouts',
+          color: 'bg-gray-400',
+          textColor: 'text-gray-600',
+          bgColor: 'bg-gray-50'
+        };
+    }
+  };
+
+  const authInfo = getAuthMethodInfo(loginMethod);
+  const AuthIcon = authInfo.icon;
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -90,7 +156,7 @@ export function AppHeader({
           <div className="flex-1 overflow-y-auto space-y-4">
             {/* User Profile Section */}
             <div className="p-3 rounded-lg bg-[color:var(--workout-surface)]">
-              <div className="flex items-center gap-3 mb-2">
+              <div className="flex items-center gap-3 mb-3">
                 <Avatar className="h-10 w-10">
                   <AvatarImage src={avatarUrl} alt={displayName} />
                   <AvatarFallback className="bg-[color:var(--workout-primary)] text-white text-sm">
@@ -107,14 +173,49 @@ export function AppHeader({
                 </div>
               </div>
               
+              {/* Authentication Method Badge */}
+              <div className="mb-3">
+                <div className={`inline-flex items-center gap-2 px-2 py-1 rounded-full text-xs font-medium ${authInfo.bgColor} ${authInfo.textColor}`}>
+                  <AuthIcon className="h-3 w-3" />
+                  <span>{authInfo.label}</span>
+                  {canSign && loginMethod !== 'readOnly' && (
+                    <div className={`w-2 h-2 rounded-full ${authInfo.color}`} />
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {authInfo.description}
+                </p>
+              </div>
+              
+              {/* Connection Status */}
               {account ? (
                 <div className="text-xs text-muted-foreground space-y-1">
-                  <p>✅ Connected to Nostr network</p>
-                  <p>✅ Data syncing across devices</p>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-green-500" />
+                    <span>Connected to Nostr network</span>
+                  </div>
+                  {canSign ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-green-500" />
+                      <span>Can publish workouts</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-yellow-500" />
+                      <span>Read-only access</span>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-green-500" />
+                    <span>Data syncing across devices</span>
+                  </div>
                 </div>
               ) : (
                 <div className="text-xs text-muted-foreground">
-                  <p>Sign in to sync your workouts across devices</p>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-gray-400" />
+                    <span>Sign in to sync your workouts across devices</span>
+                  </div>
                 </div>
               )}
             </div>
