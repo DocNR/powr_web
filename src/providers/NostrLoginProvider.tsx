@@ -22,8 +22,6 @@ export function NostrLoginProvider({ children }: NostrLoginProviderProps) {
     // SSR-compatible nostr-login initialization
     import('nostr-login')
       .then(async ({ init }) => {
-        console.log('[NostrLoginProvider] Initializing nostr-login with simplified config...');
-        
         // Simplified configuration based on nostrcal's working approach
         // Let nostr-login handle its own relay selection instead of forcing overrides
         await init({
@@ -48,14 +46,6 @@ export function NostrLoginProvider({ children }: NostrLoginProviderProps) {
           // Don't override relay configuration - let nostr-login handle it
           // This prevents conflicts with internal relay selection
         });
-        
-        // Add debug logging for extension detection after initialization
-        console.log('[NostrLoginProvider] Post-init extension detection check...');
-        console.log('[NostrLoginProvider] window.nostr available:', typeof window !== 'undefined' && !!window.nostr);
-        
-        if (typeof window !== 'undefined' && window.nostr) {
-          console.log('[NostrLoginProvider] Extension detected - window.nostr methods:', Object.keys(window.nostr));
-        }
 
         // Initialize bridge to connect nostr-login events to Jotai atoms
         nostrLoginBridge.initialize();

@@ -257,18 +257,6 @@ export class NostrLoginBridge {
   static triggerLogin(screen?: 'welcome' | 'welcome-login' | 'welcome-signup' | 'signup' | 'login' | 'connect' | 'connection-string' | 'extension' | 'readOnly' | 'local-signup'): void {
     const detail = screen || 'welcome';
     
-    // Debug extension detection before triggering
-    if (screen === 'extension') {
-      console.log('[NostrLoginBridge] Extension login requested - checking window.nostr availability...');
-      console.log('[NostrLoginBridge] window.nostr available:', typeof window !== 'undefined' && !!window.nostr);
-      console.log('[NostrLoginBridge] window.nostr.getPublicKey available:', typeof window !== 'undefined' && !!window.nostr?.getPublicKey);
-      console.log('[NostrLoginBridge] window.nostr.signEvent available:', typeof window !== 'undefined' && !!window.nostr?.signEvent);
-      
-      if (typeof window !== 'undefined' && window.nostr) {
-        console.log('[NostrLoginBridge] window.nostr object:', Object.keys(window.nostr));
-      }
-    }
-    
     // Use the new launch approach for the main screens we use
     if (screen === 'welcome-login' || screen === 'connect') {
       NostrLoginBridge.launchNostrLogin(screen);
@@ -282,7 +270,6 @@ export class NostrLoginBridge {
       setTimeout(() => {
         // Check if nostr-login succeeded, if not try direct fallback
         if (typeof window !== 'undefined' && window.nostr && !store.get(accountAtom)) {
-          console.log('[NostrLoginBridge] nostr-login extension flow may have failed, trying direct fallback...');
           NostrLoginBridge.tryDirectExtensionAuth();
         }
       }, 2000); // Give nostr-login 2 seconds to work
