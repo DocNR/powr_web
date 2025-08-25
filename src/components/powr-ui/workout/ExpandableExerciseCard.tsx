@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronUp, Info, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 
 interface PersonalRecord {
   oneRM?: number;
@@ -33,10 +33,22 @@ export const ExpandableExerciseCard = ({
 }: ExpandableExerciseCardProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const handleCardClick = () => {
+  const handleTitleClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent card body click
+    e.preventDefault(); // Prevent any default behavior
+    
     if (onExerciseClick) {
       onExerciseClick(exercise);
-    } else {
+    } else if (hasExpandableContent) {
+      // If no onExerciseClick but has expandable content, toggle expansion
+      setIsExpanded(!isExpanded);
+    }
+  };
+
+  const handleCardBodyClick = () => {
+    // Allow card body expansion even when onExerciseClick is provided
+    // This gives users two ways to interact: title click for modal, body click for inline expansion
+    if (hasExpandableContent) {
       setIsExpanded(!isExpanded);
     }
   };
@@ -47,6 +59,17 @@ export const ExpandableExerciseCard = ({
                               exercise.equipment || 
                               exercise.difficulty;
 
+  // Debug logging to understand what content is available
+  console.log(`[ExpandableExerciseCard] ${exercise.name}:`, {
+    hasExpandableContent,
+    gifUrl: !!exercise.gifUrl,
+    personalRecords: !!exercise.personalRecords,
+    muscleGroups: exercise.muscleGroups?.length || 0,
+    equipment: exercise.equipment || 'none',
+    difficulty: exercise.difficulty || 'none',
+    onExerciseClick: !!onExerciseClick
+  });
+
   return (
     <div className="bg-muted/50 backdrop-blur-sm rounded-lg p-4 overflow-hidden transition-all duration-300 ease-in-out">
       {/* Collapsed State - Always Visible */}
@@ -54,26 +77,27 @@ export const ExpandableExerciseCard = ({
         className={`transition-colors ${
           hasExpandableContent ? 'cursor-pointer hover:bg-muted/40 active:bg-muted/50' : ''
         }`}
-        onClick={handleCardClick}
+        onClick={handleCardBodyClick}
       >
         <div className="flex items-start justify-between mb-2">
           <div className="flex items-center gap-2 flex-1">
-            <h4 className="font-semibold text-foreground">
+            {/* Exercise Title - Always clickable, behavior depends on props */}
+            <h4 
+              className={`font-semibold cursor-pointer ${
+                onExerciseClick ? 'clickable-text-subtle' : 'text-foreground hover:text-foreground/80'
+              }`}
+              onClick={handleTitleClick}
+            >
               {exercise.name || `Exercise ${index + 1}`}
             </h4>
+            
+            {/* Expansion indicator - Show when has expandable content (regardless of modal mode) */}
             {hasExpandableContent && (
               <div className="flex items-center gap-1 text-muted-foreground">
-                {onExerciseClick ? (
-                  <>
-                    <Info className="h-4 w-4" />
-                    <ChevronRight className="h-4 w-4" />
-                  </>
+                {isExpanded ? (
+                  <ChevronUp className="h-4 w-4" />
                 ) : (
-                  isExpanded ? (
-                    <ChevronUp className="h-4 w-4" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4" />
-                  )
+                  <ChevronDown className="h-4 w-4" />
                 )}
               </div>
             )}
@@ -83,12 +107,20 @@ export const ExpandableExerciseCard = ({
           </span>
         </div>
         <p className="text-muted-foreground text-sm">
-          {exercise.description || (hasExpandableContent ? 'Tap for details' : 'No additional details available')}
+          {exercise.description || (
+            onExerciseClick && hasExpandableContent 
+              ? 'Tap exercise name for details or card to expand inline' 
+              : onExerciseClick 
+                ? 'Tap exercise name for details' 
+                : hasExpandableContent 
+                  ? 'Tap to expand details' 
+                  : 'No additional details available'
+          )}
         </p>
       </div>
 
-      {/* Expanded State - Only show if not using onExerciseClick and has content */}
-      {!onExerciseClick && isExpanded && hasExpandableContent && (
+      {/* Expanded State - Show when expanded and has content (regardless of modal mode) */}
+      {isExpanded && hasExpandableContent && (
         <div className="border-t border-border mt-4 pt-4 space-y-4 animate-in slide-in-from-top-2 duration-300">
           {/* GIF/Video Section */}
           {exercise.gifUrl && (

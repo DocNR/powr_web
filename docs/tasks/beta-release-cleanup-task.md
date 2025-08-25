@@ -135,45 +135,57 @@ Follow the established NDK-first architecture while implementing missing UI func
 
 **Moved to**: `docs/BACKLOG.md` - V1.1 Polish Features
 
-#### 9. Add Library Buttons to Detail Modals
-- [ ] **Workout Detail Modal Enhancement**
+#### 9. Add Library Buttons to Detail Modals ✅ COMPLETE
+- [x] **Workout Detail Modal Enhancement**
   - Add "Add to Library" button adjacent to "Start Workout" button
   - Handle saving workout templates to user's collection via NIP-51
   - Show success feedback when added to library
-- [ ] **Exercise Detail Modal Enhancement**
+- [x] **Exercise titles clickable in WorkoutDetailModal** - COMPLETE: Fixed event handling and dual interaction model
+- [x] **Exercise Detail Modal Enhancement**
   - Add "Add to Library" button for exercise saving
   - Handle saving exercises to user's exercise collection
   - Integrate with existing libraryManagementService
-- [ ] **Complete Discovery Workflow**
+- [x] **Complete Discovery Workflow**
   - Enable: Browse → View Details → Add to Library → Use Later
   - Works for both NADDR discovered content and social feed content
+- [x] **Bug Fixes Applied**
+  - Fixed runtime error by adding LibraryDataProvider to app layout
+  - Fixed toast click-through issue with backdrop
+  - Added signer validation to both add/remove collection methods
+  - Authentication timing issue resolved (restart fixes it - acceptable for beta)
 
 #### 10. Enhanced Library Content Sources
-- [ ] **Unified Content Display**
+- [x] **Unified Content Display**
   - Show exercises from user's personal collection AND subscribed collections
   - Same for workouts: user's saved + collection subscriptions
   - Clear attribution showing which collection each item comes from
-- [ ] **Filtering System**
+- [x] **Filtering System**
   - Toggle between "My Saved" vs "From Collections" vs "All"
   - Maintain existing search functionality
   - Use existing NIP-51 architecture and useLibraryDataWithCollections hook
-- [ ] **Bugs**
+- [x] **Bugs**
   - Content (exercises and workouts) are blocked by the bottom tab navigator (can't see the bottom workout or exercise)
 
-#### 11. NADDR Search & Discovery
-- [ ] **Search Enhancement**
-  - Enhance existing search boxes to recognize NADDR format (naddr1...)
-  - When user pastes NADDR, fetch that specific workout/exercise
-  - Add "Add to Library" action for found NADDR content
-- [ ] **User Flow Implementation**
+#### 11. NADDR Search & Discovery ✅ COMPLETE
+- [x] **Search Enhancement**
+  - Enhanced existing search boxes to recognize NADDR format (naddr1...)
+  - When user pastes NADDR, fetches that specific workout/exercise using NDK's built-in capabilities
+  - Added "Add to Library" action for found NADDR content via WorkoutDetailModal integration
+- [x] **User Flow Implementation**
   - Friend shares: "Check out this workout: naddr1abc123..."
   - User copies NADDR and pastes in search box
-  - App recognizes format and fetches the workout
-  - Shows workout details with "Add to Library" button
-- [ ] **Feedback System**
-  - Clear feedback when NADDR is found vs not found
-  - Support discovery for both workouts and exercises
-  - Error handling for invalid or unfetchable NADDRs
+  - App recognizes format and fetches the workout using NDKNaddrResolutionService
+  - Shows workout details with "Add to Library" button through seamless modal integration
+- [x] **Feedback System**
+  - Clear feedback when NADDR is found vs not found with proper loading states
+  - Support discovery for both workouts and exercises via unified resolution system
+  - Comprehensive error handling for invalid or unfetchable NADDRs with user-friendly messages
+- [x] **Technical Implementation**
+  - Created NDKNaddrResolutionService with fetchByNaddr, batchResolveNaddrs methods
+  - Implemented useNDKNaddrResolution hook following service layer architecture patterns
+  - Integrated NADDR resolution with existing WorkoutDetailModal for cohesive UI/UX
+  - Added comprehensive logging and error handling throughout resolution pipeline
+  - Supports multiple cache strategies (CACHE_FIRST, PARALLEL, ONLY_CACHE, SMART)
 
 ### Phase 4: Share Functionality & Polish (Week 4)
 
@@ -191,17 +203,17 @@ Follow the established NDK-first architecture while implementing missing UI func
   - Ensure share messages use same unit preference as UI
   - Convert units properly for display while keeping NIP-101e compliance
 
-#### 13. Library Collection Management
-- [ ] **Add to Personal Collections**
+#### 13. Library Collection Management ✅ COMPLETE
+- [x] **Add to Personal Collections**
   - Add existing exercises/workouts to user's NIP-51 collections (Kind 30003)
   - "Add to Library" buttons in detail modals (covered in item 9)
   - Update user's personal exercise and workout collections
-  - replace "In Library" badge in exercise library with small checkmark badge similar to spotify that indicates if an item is in the users library or from a collection 
-- [ ] **Remove from Personal Collections**
+  - Replaced "In Library" badge with small checkmark badge similar to Spotify
+- [x] **Remove from Personal Collections**
   - Remove exercises/workouts from user's NIP-51 collections
   - Confirmation dialogs for removal actions
   - Update collection events properly
-- [ ] **Collection State Management**
+- [x] **Collection State Management**
   - Real-time updates to library displays when items added/removed
   - Proper NIP-51 collection event publishing
   - Integration with existing libraryManagementService patterns
@@ -222,11 +234,27 @@ Follow the established NDK-first architecture while implementing missing UI func
   - Collect feedback on what custom workout features users want most
   - Prepare foundation for full custom workout builder in v1.1
 
+## Technical Achievements (Completed During Beta Cleanup)
+
+### NADDR Resolution System Implementation ✅
+**Achievement**: Successfully implemented comprehensive NADDR (Nostr Address) resolution system enabling seamless content discovery and sharing.
+
+**Technical Details**:
+- **NDKNaddrResolutionService**: Created service layer abstraction with methods for fetchByNaddr, batchResolveNaddrs, resolveExerciseTemplate, resolveWorkoutTemplate
+- **useNDKNaddrResolution Hook**: Implemented custom hook following .clinerules architecture patterns (no official NDK hooks)
+- **Universal Cache Integration**: Supports multiple cache strategies (CACHE_FIRST, PARALLEL, ONLY_CACHE, SMART) for optimal performance
+- **WorkoutDetailModal Integration**: NADDR-resolved content opens same modal as text search results, creating cohesive UI/UX
+- **Comprehensive Error Handling**: User-friendly error messages and loading states throughout resolution pipeline
+
+**User Impact**: Users can now paste NADDR links (naddr1...) in search boxes to instantly discover and add shared workout templates to their library, enabling seamless content sharing between users.
+
+**Architecture Compliance**: Follows established service layer architecture patterns, maintains NIP-101e compliance, and integrates with existing NDK caching strategies.
+
 ## Success Criteria
 
 ### Core Functionality
 - [ ] Users can reliably add workouts/exercises to library from detail modals
-- [ ] NADDR search enables content discovery and sharing
+- [x] NADDR search enables content discovery and sharing ✅ **COMPLETE**
 - [ ] Weight units display according to user preference while maintaining kg storage
 - [ ] NIP-46 bunker authentication persists across app sessions
 - [ ] Set removal functionality works smoothly with good UX

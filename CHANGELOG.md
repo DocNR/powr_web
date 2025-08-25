@@ -31,6 +31,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Exercise Detail Modal Integration COMPLETE (August 25, 2025) ✅**
+  
+  **User Impact**: Users can now click exercise titles in workout detail modals to view comprehensive exercise information, while still being able to expand inline details by clicking the card body.
+  
+  **Developer Notes**: Implemented dual interaction model in ExpandableExerciseCard with proper event handling using stopPropagation() and preventDefault(). Added comprehensive debugging and visual feedback for user interactions.
+  
+  **Architecture Changes**: Established reusable pattern for dual-interaction components supporting both modal navigation and inline expansion simultaneously.
+
+- **Library Collection Management System COMPLETE (August 25, 2025) ✅**
+  
+  **User Impact**: Users can now add/remove exercises and workouts to their personal collections with real-time updates, confirmation dialogs, and Spotify-style checkmark badges indicating library status.
+  
+  **Developer Notes**: Implemented comprehensive NIP-51 collection management with libraryManagementService integration, toast notifications, and proper error handling. Added collection state synchronization across all library views.
+  
+  **Architecture Changes**: Established service layer patterns for collection CRUD operations with proper NIP-51 event publishing and real-time UI updates.
+- **NADDR Resolution System Implementation COMPLETE (August 21, 2025) ✅**
+  
+  **User Impact**: Users can now seamlessly interact with NADDR-resolved workout cards in the same way as text search results. Clicking on workout cards from NADDR resolution (like "Push Workout Bodyweight") now opens the WorkoutDetailModal just like text search results, creating a cohesive UI/UX experience. Both search pathways (text search and NADDR resolution) now provide identical functionality with proper modal integration and workout template browsing.
+  
+  **Developer Notes**: Successfully integrated NADDR resolution system with comprehensive NDKNaddrResolutionService class providing fetchByNaddr, batchResolveNaddrs, resolveExerciseTemplate, resolveWorkoutTemplate, and resolveCollectionItem methods. Created useNDKNaddrResolution hooks following .clinerules architecture patterns (no official NDK hooks). Fixed ESLint type error by properly importing NDKSubscriptionCacheUsage enum. Enhanced WorkoutDetailModal integration ensures NADDR-resolved cards open modals identically to text search results. All components use service layer abstraction with comprehensive logging and error handling.
+  
+  **Architecture Changes**: Established NADDR resolution patterns using NDK's built-in fetchEvent method which handles NADDR parsing internally. Service layer architecture maintains clean separation between NDK operations and business logic. Universal caching strategies (CACHE_FIRST, PARALLEL, SMART, ONLY_CACHE) provide optimal performance across different use cases. Foundation ready for advanced addressable event resolution across exercise templates, workout templates, and collection items with consistent UI/UX patterns.
+
 - **Complete nostr-login Authentication System Integration COMPLETE (August 18, 2025) ✅**
   
   **User Impact**: Users now benefit from battle-tested authentication using the proven nostr-login library powering nostr.band and other production Nostr applications. Achieved 70% code reduction (~600 lines → ~200 lines) while solving critical NIP-46 bunker reliability issues that plagued the custom implementation. All authentication methods work seamlessly: NIP-07 browser extensions (Alby, nos2x), NIP-46 remote bunkers (nsec.app), read-only mode, and local key generation. Authentication state persists across browser refreshes with instant UI transitions. Enhanced security with zero private key exposure to the application - nostr-login handles all cryptographic operations securely through proven localStorage encryption.
