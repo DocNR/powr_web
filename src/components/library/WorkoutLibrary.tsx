@@ -145,7 +145,7 @@ export function WorkoutLibrary({ onShowOnboarding, onStartWorkout }: WorkoutLibr
     );
   };
 
-  // Filter and sort workouts - EXACT SAME PATTERN AS EXERCISELIBRARY
+  // Filter and sort workouts - ENHANCED FOR ITEM 10: Content source differentiation
   const processedWorkouts = React.useMemo(() => {
     if (!workoutLibrary.content) return [];
 
@@ -160,18 +160,25 @@ export function WorkoutLibrary({ onShowOnboarding, onStartWorkout }: WorkoutLibr
       );
     }
 
-    // Apply type filter
+    // ✅ ITEM 10: Enhanced content source filtering
     switch (filterType) {
       case 'my-saved':
-        // For now, all workouts in the collection are "saved"
-        // Future: could distinguish based on source
+        // Show only user's own workout templates
+        filtered = filtered.filter(item => 
+          item.template.authorPubkey === userPubkey || 
+          item.templateRef.includes(`${userPubkey}:`)
+        );
         break;
       case 'from-collections':
-        // Future: filter workouts that came from subscribed collections
+        // Show only workouts from subscribed collections (not user's own)
+        filtered = filtered.filter(item => 
+          item.template.authorPubkey !== userPubkey && 
+          !item.templateRef.includes(`${userPubkey}:`)
+        );
         break;
       case 'all':
       default:
-        // Show all workouts
+        // Show all workouts (user's saved + from collections)
         break;
     }
 
@@ -179,7 +186,7 @@ export function WorkoutLibrary({ onShowOnboarding, onStartWorkout }: WorkoutLibr
     filtered.sort((a, b) => a.template.name.localeCompare(b.template.name));
 
     return filtered;
-  }, [workoutLibrary.content, searchTerm, filterType]);
+  }, [workoutLibrary.content, searchTerm, filterType, userPubkey]);
 
   // Loading state
   if (workoutLibrary.isLoading || workoutLibrary.isResolving || isCreatingCollection) {
@@ -310,8 +317,8 @@ export function WorkoutLibrary({ onShowOnboarding, onStartWorkout }: WorkoutLibr
           <p className="text-muted-foreground">Try adjusting your search or filters</p>
         </div>
       ) : isMobile ? (
-        // Mobile: List view - Break out of container padding for full-width
-        <div className="-mx-6">
+        // Mobile: List view - Break out of container padding for full-width + bottom safe area
+        <div className="-mx-6 pb-safe">
           <WorkoutListView
             workouts={processedWorkouts}
             onWorkoutSelect={onStartWorkout}
@@ -343,8 +350,8 @@ export function WorkoutLibrary({ onShowOnboarding, onStartWorkout }: WorkoutLibr
           />
         </div>
       ) : (
-        // Desktop: Grid view
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        // Desktop: Grid view with bottom safe area padding
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 pb-safe">
           {processedWorkouts.map((item) => (
             <WorkoutCard
               key={item.templateRef}

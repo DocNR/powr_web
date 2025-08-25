@@ -19,6 +19,7 @@ import { WorkoutContext } from '@/contexts/WorkoutContext';
 import { workoutLifecycleMachine } from '@/lib/machines/workout/workoutLifecycleMachine';
 import { usePubkey, useIsAuthenticated } from '@/lib/auth/hooks';
 import { WorkoutDetailModal, SaveTemplateModal } from '@/components/powr-ui/workout';
+import { ExerciseDetailModal } from '@/components/library/ExerciseDetailModal';
 import { libraryManagementService } from '@/lib/services/libraryManagement';
 
 export function AppLayout() {
@@ -108,6 +109,25 @@ export function AppLayout() {
     const workoutState = WorkoutContext.useSelector(state => state);
     const workoutSend = WorkoutContext.useActorRef().send;
 
+    // Exercise Detail Modal state - same pattern as LibraryTab
+    const [selectedExercise, setSelectedExercise] = React.useState<{
+      id: string;
+      name: string;
+      description?: string;
+      equipment?: string;
+      difficulty?: string;
+      muscleGroups?: string[];
+      format?: string[];
+      formatUnits?: string[];
+      authorPubkey?: string;
+      createdAt?: number;
+      eventId?: string;
+      eventTags?: string[];
+      eventContent?: string;
+      eventKind?: number;
+    } | null>(null);
+    const [isExerciseModalOpen, setIsExerciseModalOpen] = React.useState(false);
+
     console.log('🔍 [GlobalModal] Current state:', workoutState.value, 'matches setup:', workoutState.matches('setup'), 'matches setupComplete:', workoutState.matches('setupComplete'));
 
     const handleCloseModal = () => {
@@ -149,68 +169,117 @@ export function AppLayout() {
       }
     };
 
+    const handleCloseExerciseModal = () => {
+      setIsExerciseModalOpen(false);
+      setSelectedExercise(null);
+    };
+
     const isModalOpen = workoutState.matches('setup') || workoutState.matches('setupComplete');
     console.log('🔍 [GlobalModal] Should modal be open?', isModalOpen);
 
     return (
-      <WorkoutDetailModal
-        isOpen={isModalOpen}
-        isLoading={workoutState.matches('setup')}
-        templateData={{
-          title: (workoutState.context.resolvedTemplate as { name?: string })?.name || 
-                 (workoutState.context.workoutData as { title?: string })?.title || 
-                 (workoutState.matches('setup') ? 'Loading workout...' : 'Untitled Workout'),
-          description: (workoutState.context.resolvedTemplate as { description?: string })?.description || 
-                       (workoutState.matches('setup') ? 'Resolving workout details from Nostr network...' : 'Loading workout description...'),
-          content: (workoutState.context.resolvedTemplate as { description?: string })?.description || 
-                   (workoutState.matches('setup') ? 'Resolving workout details from Nostr network...' : 'Loading workout description...'),
-          
-          // Pass resolved data directly from machine context
-          resolvedTemplate: workoutState.context.resolvedTemplate as {
-            name: string;
-            description: string;
-            exercises: Array<{
-              exerciseRef: string;
-              sets?: number;
-              reps?: number;
-              weight?: number;
-            }>;
-          } | undefined,
-          resolvedExercises: workoutState.context.resolvedExercises as Array<{
-            id: string;
-            name: string;
-            equipment: string;
-            description: string;
-            muscleGroups: string[];
-          }> | undefined,
-          
-          // Backward compatibility
-          loadedTemplate: workoutState.context.resolvedTemplate as {
-            name: string;
-            description: string;
-            exercises: Array<{
-              exerciseRef: string;
-              sets?: number;
-              reps?: number;
-              weight?: number;
-            }>;
-          } | undefined,
-          loadedExercises: workoutState.context.resolvedExercises as Array<{
-            id: string;
-            name: string;
-            equipment: string;
-            description: string;
-            muscleGroups: string[];
-          }> | undefined,
-          
-          // Additional metadata
-          tags: [['t', 'fitness']],
-          eventKind: 33402,
-          templateRef: workoutState.context.templateSelection?.templateReference
-        }}
-        onClose={handleCloseModal}
-        onStartWorkout={handleStartWorkout}
-      />
+      <>
+        <WorkoutDetailModal
+          isOpen={isModalOpen}
+          isLoading={workoutState.matches('setup')}
+          templateData={{
+            title: (workoutState.context.resolvedTemplate as { name?: string })?.name || 
+                   (workoutState.context.workoutData as { title?: string })?.title || 
+                   (workoutState.matches('setup') ? 'Loading workout...' : 'Untitled Workout'),
+            description: (workoutState.context.resolvedTemplate as { description?: string })?.description || 
+                         (workoutState.matches('setup') ? 'Resolving workout details from Nostr network...' : 'Loading workout description...'),
+            content: (workoutState.context.resolvedTemplate as { description?: string })?.description || 
+                     (workoutState.matches('setup') ? 'Resolving workout details from Nostr network...' : 'Loading workout description...'),
+            
+            // Pass resolved data directly from machine context
+            resolvedTemplate: workoutState.context.resolvedTemplate as {
+              name: string;
+              description: string;
+              exercises: Array<{
+                exerciseRef: string;
+                sets?: number;
+                reps?: number;
+                weight?: number;
+              }>;
+            } | undefined,
+            resolvedExercises: workoutState.context.resolvedExercises as Array<{
+              id: string;
+              name: string;
+              equipment: string;
+              description: string;
+              muscleGroups: string[];
+            }> | undefined,
+            
+            // Backward compatibility
+            loadedTemplate: workoutState.context.resolvedTemplate as {
+              name: string;
+              description: string;
+              exercises: Array<{
+                exerciseRef: string;
+                sets?: number;
+                reps?: number;
+                weight?: number;
+              }>;
+            } | undefined,
+            loadedExercises: workoutState.context.resolvedExercises as Array<{
+              id: string;
+              name: string;
+              equipment: string;
+              description: string;
+              muscleGroups: string[];
+            }> | undefined,
+            
+            // Additional metadata
+            tags: [['t', 'fitness']],
+            eventKind: 33402,
+            templateRef: workoutState.context.templateSelection?.templateReference
+          }}
+          onClose={handleCloseModal}
+          onStartWorkout={handleStartWorkout}
+          onExerciseClick={(exercise) => {
+            // Convert Exercise to ExerciseDetailModal format - same pattern as LibraryTab
+            // Handle the type conversion safely since Exercise interface is more limited
+            const exerciseExtended = exercise as unknown as Record<string, unknown>;
+            
+            const exerciseWithExpandableContent = {
+              id: (exerciseExtended.id as string) || exercise.name.toLowerCase().replace(/\s+/g, '-'),
+              name: exercise.name,
+              description: exercise.description || '',
+              equipment: exercise.equipment || 'Unknown',
+              difficulty: exercise.difficulty || '',
+              muscleGroups: exercise.muscleGroups || [],
+              format: (exerciseExtended.format as string[]) || ['weight', 'reps', 'rpe', 'set_type'],
+              formatUnits: (exerciseExtended.formatUnits as string[]) || ['kg', 'count', '0-10', 'enum'],
+              authorPubkey: (exerciseExtended.authorPubkey as string) || userInfo.pubkey,
+              createdAt: (exerciseExtended.createdAt as number) || Math.floor(Date.now() / 1000),
+              eventId: (exerciseExtended.eventId as string) || '',
+              eventTags: (exerciseExtended.eventTags as string[]) || [],
+              eventContent: (exerciseExtended.eventContent as string) || exercise.description || '',
+              eventKind: (exerciseExtended.eventKind as number) || 33401
+            };
+            
+            setSelectedExercise(exerciseWithExpandableContent);
+            setIsExerciseModalOpen(true);
+          }}
+        />
+
+        {/* Exercise Detail Modal - same pattern as LibraryTab */}
+        <ExerciseDetailModal
+          isOpen={isExerciseModalOpen}
+          exercise={selectedExercise ? {
+            ...selectedExercise,
+            equipment: selectedExercise.equipment || '',
+            muscleGroups: selectedExercise.muscleGroups || [],
+            eventTags: (selectedExercise.eventTags || []).map(tag => Array.isArray(tag) ? tag : [tag]),
+            authorPubkey: selectedExercise.authorPubkey || '',
+            createdAt: selectedExercise.createdAt || Date.now(),
+            eventId: selectedExercise.eventId || '',
+            eventContent: selectedExercise.eventContent || '',
+            eventKind: selectedExercise.eventKind || 33401
+          } : undefined}
+          onClose={handleCloseExerciseModal}
+        />
+      </>
     );
   };
 

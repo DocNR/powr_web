@@ -10,6 +10,7 @@ import InstallButton from "@/components/InstallButton";
 import { ToastProvider } from "@/providers/ToastProvider";
 import { WeightUnitsProvider } from "@/providers/WeightUnitsProvider";
 import { NostrLoginProvider } from "@/providers/NostrLoginProvider";
+import { LibraryDataProvider } from "@/providers/LibraryDataProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -84,17 +85,19 @@ export default function RootLayout({
         >
           <Provider>
             <NostrLoginProvider>
-              <WeightUnitsProvider>
-                <NavigationProvider>
-                  <SubNavigationProvider>
-                    <ToastProvider>
-                      <ServiceWorkerRegistration />
-                      <InstallButton />
-                      {children}
-                    </ToastProvider>
-                  </SubNavigationProvider>
-                </NavigationProvider>
-              </WeightUnitsProvider>
+              <LibraryDataProvider>
+                <WeightUnitsProvider>
+                  <NavigationProvider>
+                    <SubNavigationProvider>
+                      <ToastProvider>
+                        <ServiceWorkerRegistration />
+                        <InstallButton />
+                        {children}
+                      </ToastProvider>
+                    </SubNavigationProvider>
+                  </NavigationProvider>
+                </WeightUnitsProvider>
+              </LibraryDataProvider>
             </NostrLoginProvider>
           </Provider>
         </ThemeProvider>

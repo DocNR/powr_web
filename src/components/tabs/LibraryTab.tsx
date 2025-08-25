@@ -266,6 +266,26 @@ export function LibraryTab() {
         error={modalError}
         onClose={handleCloseModal}
         onStartWorkout={handleStartWorkout}
+        onExerciseClick={(exercise) => {
+          // Convert Exercise to ExerciseDetailModal format
+          setSelectedExercise({
+            id: (exercise as any).id || exercise.name.toLowerCase().replace(/\s+/g, '-'),
+            name: exercise.name,
+            description: exercise.description,
+            equipment: exercise.equipment || 'Unknown',
+            difficulty: exercise.difficulty,
+            muscleGroups: exercise.muscleGroups || [],
+            format: (exercise as any).format,
+            formatUnits: (exercise as any).formatUnits,
+            authorPubkey: (exercise as any).authorPubkey || '',
+            createdAt: (exercise as any).createdAt || Math.floor(Date.now() / 1000),
+            eventId: (exercise as any).eventId,
+            eventTags: (exercise as any).eventTags,
+            eventContent: (exercise as any).eventContent,
+            eventKind: (exercise as any).eventKind || 33401
+          });
+          setIsExerciseModalOpen(true);
+        }}
       />
 
       {/* Workout Summary Modal */}

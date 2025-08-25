@@ -34,7 +34,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     title: string, 
     type: 'success' | 'error' | 'info' = 'info',
     description?: string,
-    duration: number = 5000
+    duration: number = 3000
   ) => {
     const id = Math.random().toString(36).substr(2, 9);
     const toast: ToastMessage = {
@@ -84,7 +84,6 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             title={toast.title}
             description={toast.description}
             variant={toast.type}
-            onClose={() => removeToast(toast.id)}
             duration={toast.duration}
           />
         ))}

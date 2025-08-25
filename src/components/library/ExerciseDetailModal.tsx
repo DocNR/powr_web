@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Button } from '@/components/powr-ui/primitives/Button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/powr-ui/primitives/Tabs';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/powr-ui/primitives/Avatar';
 import { Badge } from '@/components/powr-ui/primitives/Badge';
-import { ArrowLeft, TrendingUp, Calendar, Target } from 'lucide-react';
+import { ArrowLeft, TrendingUp, Calendar, Target, Plus, Check } from 'lucide-react';
 import { 
   Dialog, 
   DialogContent, 
@@ -19,6 +19,9 @@ import { usePubkey } from '@/lib/auth/hooks';
 import { getNDKInstance } from '@/lib/ndk';
 import { NDKFilter, NDKEvent } from '@nostr-dev-kit/ndk';
 import { exerciseAnalyticsService } from '@/lib/services/workoutAnalytics';
+import { libraryManagementService } from '@/lib/services/libraryManagement';
+import { useLibraryData } from '@/providers/LibraryDataProvider';
+import { useToast } from '@/providers/ToastProvider';
 import type { ExercisePerformanceAnalysis } from '@/lib/services/workoutAnalytics';
 
 interface ExerciseData {
@@ -62,6 +65,8 @@ export const ExerciseDetailModal = ({
 }: ExerciseDetailModalProps) => {
   const [activeTab, setActiveTab] = useState('overview');
   const userPubkey = usePubkey();
+  const { showToast } = useToast();
+  const { exerciseLibrary } = useLibraryData();
 
   // Get author profile data
   const { profile: authorProfile } = useProfile(exercise?.authorPubkey);
@@ -71,6 +76,69 @@ export const ExerciseDetailModal = ({
   // State for workout records and analysis
   const [workoutRecords, setWorkoutRecords] = useState<NDKEvent[]>([]);
   const [performanceAnalysis, setPerformanceAnalysis] = useState<ExercisePerformanceAnalysis | null>(null);
+
+  // Library state
+  const [isAddingToLibrary, setIsAddingToLibrary] = useState(false);
+
+  // Check if exercise is in user's library
+  const isInLibrary = useMemo(() => {
+    if (!exercise || !exerciseLibrary.content) return false;
+    
+    // Create exercise reference in the format used by library
+    const exerciseRef = `33401:${exercise.authorPubkey}:${exercise.id}`;
+    
+    return exerciseLibrary.content.some(item => 
+      item.exerciseRef === exerciseRef || 
+      item.exercise.id === exercise.id
+    );
+  }, [exercise, exerciseLibrary.content]);
+
+  // Handle library toggle
+  const handleLibraryToggle = useCallback(async () => {
+    if (!exercise || !userPubkey) {
+      showToast("Error", "error", "Unable to save exercise - missing exercise data or user not authenticated");
+      return;
+    }
+
+    // Create exercise reference
+    const exerciseRef = `33401:${exercise.authorPubkey}:${exercise.id}`;
+    
+    setIsAddingToLibrary(true);
+    try {
+      if (isInLibrary) {
+        await libraryManagementService.removeFromLibraryCollectionWithRefresh(
+          userPubkey,
+          'EXERCISE_LIBRARY',
+          exerciseRef
+        );
+        showToast(
+          "Removed from Library",
+          "success",
+          `${exercise.name} has been removed from your exercise library`
+        );
+      } else {
+        await libraryManagementService.addToLibraryCollectionWithRefresh(
+          userPubkey,
+          'EXERCISE_LIBRARY',
+          exerciseRef
+        );
+        showToast(
+          "Added to Library",
+          "success",
+          `${exercise.name} has been added to your exercise library`
+        );
+      }
+    } catch (error) {
+      console.error('[ExerciseDetailModal] Library operation failed:', error);
+      showToast(
+        "Error",
+        "error",
+        `Failed to ${isInLibrary ? 'remove from' : 'add to'} library. Please try again.`
+      );
+    } finally {
+      setIsAddingToLibrary(false);
+    }
+  }, [exercise, userPubkey, isInLibrary, showToast]);
 
   // Query user's workout records to get exercise history using NDK singleton
   useEffect(() => {
@@ -87,7 +155,7 @@ export const ExerciseDetailModal = ({
     }
 
     const filter: NDKFilter = {
-      kinds: [1301 as any],
+      kinds: [1301],
       authors: [userPubkey],
       limit: 100
     };
@@ -282,7 +350,23 @@ export const ExerciseDetailModal = ({
                 <h2 className="text-lg font-semibold">{exercise.name}</h2>
               </div>
 
-              <div className="w-10"></div>
+              {/* Add to Library Button */}
+              <Button
+                variant={isInLibrary ? "default" : "outline"}
+                size="icon"
+                onClick={handleLibraryToggle}
+                disabled={isAddingToLibrary}
+                className="text-foreground hover:text-foreground/80"
+                title={isInLibrary ? "Remove from Library" : "Add to Library"}
+              >
+                {isAddingToLibrary ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+                ) : isInLibrary ? (
+                  <Check className="h-4 w-4" />
+                ) : (
+                  <Plus className="h-4 w-4" />
+                )}
+              </Button>
             </div>
 
             {/* Exercise Image */}

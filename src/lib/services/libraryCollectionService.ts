@@ -185,6 +185,9 @@ export class LibraryCollectionService {
       if (!userPubkey) {
         throw new Error('User not authenticated');
       }
+      if (!ndk.signer) {
+        throw new Error('NDK signer not available - please try refreshing the page or re-authenticating');
+      }
 
       // Get existing collection
       const existingCollection = await this.getUserCollection(userPubkey, collectionType);
@@ -253,6 +256,9 @@ export class LibraryCollectionService {
       }
       if (!userPubkey) {
         throw new Error('User not authenticated');
+      }
+      if (!ndk.signer) {
+        throw new Error('NDK signer not available - please try refreshing the page or re-authenticating');
       }
 
       // Get existing collection

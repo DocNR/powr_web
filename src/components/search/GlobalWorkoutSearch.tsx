@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Search, X, Loader2, ArrowLeft } from 'lucide-react';
+import { Search, X, Loader2, ArrowLeft, Link } from 'lucide-react';
 import { useNDKSearch } from '@/hooks/useNDKSearch';
+import { useNDKNaddrResolution } from '@/hooks/useNDKNaddrResolution';
 import { WorkoutTemplate } from '@/lib/services/searchService';
 import { WorkoutCard } from '@/components/powr-ui/workout';
 import { Button } from '@/components/powr-ui/primitives/Button';
@@ -15,6 +16,7 @@ import {
   DialogDescription 
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+import type { NDKEvent } from '@nostr-dev-kit/ndk';
 
 interface GlobalWorkoutSearchProps {
   onTemplateSelect?: (template: WorkoutTemplate) => void;
@@ -39,18 +41,46 @@ export function GlobalWorkoutSearch({
     isSearchActive
   } = useNDKSearch();
 
-  // Handle search with debouncing
+  // Detect if input is NADDR - moved before hook usage
+  const isNaddrInput = (input: string): boolean => {
+    return input.trim().startsWith('naddr1') && input.trim().length > 20;
+  };
+
+  // NADDR resolution hook - pass the NADDR as parameter
+  const naddrToResolve = isNaddrInput(searchTerm) ? searchTerm.trim() : null;
+  const {
+    resolve: resolveNaddr,
+    loading: isResolvingNaddr,
+    event: resolvedEvent,
+    error: naddrError,
+    reset: clearResolution
+  } = useNDKNaddrResolution(naddrToResolve, { autoResolve: false });
+
+  // Handle search with debouncing - supports both text and NADDR
   useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (searchTerm.trim().length >= 2) {
-        searchTemplates(searchTerm);
-      } else if (searchTerm.trim().length === 0) {
+    const timeoutId = setTimeout(async () => {
+      const trimmedTerm = searchTerm.trim();
+      
+      if (trimmedTerm.length === 0) {
         clearSearch();
+        clearResolution();
+        return;
+      }
+
+      if (isNaddrInput(trimmedTerm)) {
+        // Handle NADDR resolution
+        console.log('🔗 [Search] Detected NADDR input, resolving:', trimmedTerm);
+        await resolveNaddr();
+      } else if (trimmedTerm.length >= 2) {
+        // Handle text search
+        console.log('🔍 [Search] Text search for:', trimmedTerm);
+        clearResolution(); // Clear any previous NADDR results
+        searchTemplates(trimmedTerm);
       }
     }, 400);
 
     return () => clearTimeout(timeoutId);
-  }, [searchTerm, searchTemplates, clearSearch]);
+  }, [searchTerm, searchTemplates, clearSearch, resolveNaddr, clearResolution]);
 
   const handleSearchChange = (value: string) => {
     setSearchTerm(value);
@@ -59,34 +89,53 @@ export function GlobalWorkoutSearch({
   const handleClearSearch = () => {
     setSearchTerm('');
     clearSearch();
+    clearResolution();
     inputRef.current?.focus();
   };
 
   const handleWorkoutSelect = (workoutId: string) => {
-    // Find the selected template from search results
-    const selectedTemplate = searchState.templates.find(t => t.id === workoutId);
+    let selectedTemplate: WorkoutTemplate | null = null;
+
+    // Check if this is from NADDR resolution
+    if (resolvedEvent) {
+      const naddrTemplate = transformNDKEventToTemplate(resolvedEvent);
+      // Check if the workoutId matches either the event ID or the d-tag
+      if (resolvedEvent.id === workoutId || naddrTemplate.id === workoutId) {
+        selectedTemplate = naddrTemplate;
+        console.log('🔗 [Search] Selected NADDR-resolved template:', selectedTemplate);
+      }
+    }
+    
+    // If not found in NADDR results, check search results
     if (!selectedTemplate) {
-      console.error('❌ [Search] Template not found in search results:', workoutId);
-      return;
+      selectedTemplate = searchState.templates.find(t => t.id === workoutId) || null;
+      if (selectedTemplate) {
+        console.log('🔍 [Search] Selected text search template:', selectedTemplate);
+      } else {
+        console.error('❌ [Search] Template not found in either NADDR or search results:', workoutId);
+        return;
+      }
     }
 
     // If custom template handler provided, use it
-    if (onTemplateSelect) {
+    if (onTemplateSelect && selectedTemplate) {
       onTemplateSelect(selectedTemplate);
       setIsOpen(false);
       setSearchTerm('');
       clearSearch();
+      clearResolution();
       return;
     }
 
     // If custom workout handler provided, use it
-    if (onWorkoutSelect) {
+    if (onWorkoutSelect && selectedTemplate) {
       const templateReference = `33402:${selectedTemplate.author}:${selectedTemplate.id}`;
       console.log('🚀 [Search] Calling onWorkoutSelect with template:', templateReference);
       onWorkoutSelect(templateReference);
       setIsOpen(false);
       setSearchTerm('');
       clearSearch();
+      clearResolution();
       return;
     }
 
@@ -95,6 +144,27 @@ export function GlobalWorkoutSearch({
     setIsOpen(false);
     setSearchTerm('');
     clearSearch();
+    clearResolution();
+  };
+
+  // Transform NDK event to WorkoutTemplate format
+  const transformNDKEventToTemplate = (event: NDKEvent): WorkoutTemplate => {
+    const dTag = event.tags?.find((tag: string[]) => tag[0] === 'd')?.[1] || event.id || 'unknown';
+    const nameTag = event.tags?.find((tag: string[]) => tag[0] === 'title')?.[1] || 'Untitled Workout';
+    const descTag = event.tags?.find((tag: string[]) => tag[0] === 'description')?.[1] || '';
+    const exerciseRefs = event.tags?.filter((tag: string[]) => tag[0] === 'exercise').map((tag: string[]) => tag[1]) || [];
+    const tags = event.tags?.filter((tag: string[]) => tag[0] === 't').map((tag: string[]) => tag[1]) || [];
+
+    return {
+      id: dTag,
+      name: nameTag,
+      description: descTag,
+      author: event.pubkey || 'unknown',
+      exerciseRefs,
+      created_at: event.created_at || 0,
+      tags,
+      rating: undefined
+    };
   };
 
   // Transform search results to WorkoutCard format
@@ -118,6 +188,8 @@ export function GlobalWorkoutSearch({
         picture: undefined
       },
       eventId: `${template.author}-${template.id}`,
+      // ✅ CRITICAL: Add missing fields for WorkoutDetailModal compatibility
+      templateRef: `33402:${template.author}:${template.id}`, // Required for modal functionality
       eventTags: [
         ['d', template.id],
         ['title', template.name],
@@ -129,19 +201,33 @@ export function GlobalWorkoutSearch({
   };
 
   const getStatusText = () => {
+    // NADDR resolution status
+    if (isResolvingNaddr) {
+      return "Resolving NADDR...";
+    }
+    
+    if (naddrError) {
+      return `NADDR Error: ${naddrError}`;
+    }
+    
+    if (resolvedEvent) {
+      return "✅ NADDR resolved successfully";
+    }
+    
+    // Text search status
     if (searchState.isSearching) {
       return "Searching Nostr network...";
     }
     
     if (searchState.error) {
-      return `Error: ${searchState.error}`;
+      return `Search Error: ${searchState.error}`;
     }
     
     if (isSearchActive && searchState.totalFound > 0) {
       return `Found ${searchState.totalFound} workout${searchState.totalFound === 1 ? '' : 's'} (${searchState.searchTime}ms)`;
     }
     
-    if (isSearchActive && searchState.totalFound === 0 && searchTerm.length >= 2) {
+    if (isSearchActive && searchState.totalFound === 0 && searchTerm.length >= 2 && !isNaddrInput(searchTerm)) {
       return "No workouts found";
     }
     
@@ -217,14 +303,24 @@ export function GlobalWorkoutSearch({
               ${isFocused ? 'ring-2 ring-primary border-primary' : 'hover:border-border/80'}
               ${searchState.isSearching ? 'bg-primary/5' : ''}
             `}>
-              {/* Search Icon */}
-              <Search className={`
-                w-5 h-5 ml-3 transition-colors duration-200
-                ${searchState.isSearching 
-                  ? 'text-primary animate-pulse' 
-                  : 'text-muted-foreground'
-                }
-              `} />
+              {/* Search Icon - changes based on input type */}
+              {isNaddrInput(searchTerm) ? (
+                <Link className={`
+                  w-5 h-5 ml-3 transition-colors duration-200
+                  ${isResolvingNaddr 
+                    ? 'text-primary animate-pulse' 
+                    : 'text-blue-500'
+                  }
+                `} />
+              ) : (
+                <Search className={`
+                  w-5 h-5 ml-3 transition-colors duration-200
+                  ${searchState.isSearching 
+                    ? 'text-primary animate-pulse' 
+                    : 'text-muted-foreground'
+                  }
+                `} />
+              )}
               
               {/* Input Field */}
               <Input
@@ -234,7 +330,7 @@ export function GlobalWorkoutSearch({
                 onChange={(e) => handleSearchChange(e.target.value)}
                 onFocus={() => setIsFocused(true)}
                 onBlur={() => setIsFocused(false)}
-                placeholder="Search workouts across Nostr network..."
+                placeholder="Search workouts or paste NADDR..."
                 autoFocus
                 className="
                   flex-1 border-none bg-transparent
@@ -276,11 +372,11 @@ export function GlobalWorkoutSearch({
             {!searchTerm && (
               <div className="mb-6 p-4 bg-muted/30 rounded-lg border border-border/50 mx-6">
                 <div className="text-sm text-muted-foreground">
-                  <div className="font-medium mb-2">Search Tips:</div>
+                  <div className="font-medium mb-2">Search Options:</div>
                   <ul className="space-y-1 text-xs">
-                    <li>• Search by workout name: &ldquo;chest day&rdquo;, &ldquo;leg workout&rdquo;</li>
-                    <li>• Search by muscle group: &ldquo;chest&rdquo;, &ldquo;legs&rdquo;, &ldquo;shoulders&rdquo;</li>
-                    <li>• Search by description: &ldquo;beginner&rdquo;, &ldquo;advanced&rdquo;, &ldquo;HIIT&rdquo;</li>
+                    <li>• <strong>Text Search:</strong> &ldquo;chest day&rdquo;, &ldquo;legs&rdquo;, &ldquo;beginner&rdquo;</li>
+                    <li>• <strong>NADDR Resolution:</strong> Paste &ldquo;naddr1...&rdquo; for direct workout access</li>
+                    <li>• Search by muscle group: &ldquo;chest&rdquo;, &ldquo;shoulders&rdquo;, &ldquo;core&rdquo;</li>
                     <li>• Results come from the entire Nostr network</li>
                   </ul>
                 </div>
@@ -288,17 +384,46 @@ export function GlobalWorkoutSearch({
             )}
 
             {/* Loading Indicator */}
-            {searchState.isSearching && (
+            {(searchState.isSearching || isResolvingNaddr) && (
               <div className="flex items-center justify-center py-8">
                 <div className="flex items-center text-sm text-muted-foreground">
                   <Loader2 className="animate-spin h-4 w-4 mr-2" />
-                  Searching Nostr relays for workouts...
+                  {isResolvingNaddr ? 'Resolving NADDR...' : 'Searching Nostr relays for workouts...'}
                 </div>
               </div>
             )}
 
-            {/* Search Results - Using WorkoutCard components with proper padding for hover effects */}
-            {searchState.templates.length > 0 && (
+            {/* NADDR Resolution Result */}
+            {resolvedEvent && (
+              <div className="flex-1 overflow-y-auto px-6 py-1">
+                <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <div className="flex items-center gap-2 text-sm text-blue-700 dark:text-blue-300">
+                    <Link className="h-4 w-4" />
+                    <span className="font-medium">NADDR Resolved</span>
+                  </div>
+                  <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                    Direct workout access via Nostr address
+                  </p>
+                </div>
+                <div className="space-y-3 pb-4">
+                  {(() => {
+                    const template = transformNDKEventToTemplate(resolvedEvent);
+                    const workoutCardData = transformTemplateToWorkoutCard(template);
+                    return (
+                      <WorkoutCard
+                        key={`naddr-${resolvedEvent.id}`}
+                        variant="compact"
+                        workout={workoutCardData}
+                        onSelect={handleWorkoutSelect}
+                      />
+                    );
+                  })()}
+                </div>
+              </div>
+            )}
+
+            {/* Text Search Results - Using WorkoutCard components with proper padding for hover effects */}
+            {searchState.templates.length > 0 && !resolvedEvent && (
               <div className="flex-1 overflow-y-auto px-6 py-1">
                 <div className="space-y-3 pb-4">
                   {searchState.templates.map((template) => {
@@ -317,13 +442,29 @@ export function GlobalWorkoutSearch({
             )}
 
             {/* No Results */}
-            {isSearchActive && searchState.totalFound === 0 && !searchState.isSearching && searchTerm.length >= 2 && (
+            {isSearchActive && searchState.totalFound === 0 && !searchState.isSearching && !isResolvingNaddr && !resolvedEvent && searchTerm.length >= 2 && !isNaddrInput(searchTerm) && (
               <div className="text-center py-8">
                 <div className="text-muted-foreground">
                   <Search className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p className="text-lg font-medium mb-2">No workouts found</p>
                   <p className="text-sm">
                     Try different search terms or check your spelling
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* NADDR Resolution Failed */}
+            {naddrError && isNaddrInput(searchTerm) && (
+              <div className="text-center py-8">
+                <div className="text-muted-foreground">
+                  <Link className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p className="text-lg font-medium mb-2">NADDR Resolution Failed</p>
+                  <p className="text-sm">
+                    {naddrError}
+                  </p>
+                  <p className="text-xs mt-2 text-muted-foreground/70">
+                    Check the NADDR format or try a text search instead
                   </p>
                 </div>
               </div>

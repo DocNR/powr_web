@@ -17,7 +17,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Search, Dumbbell, Plus, Filter, ChevronDown } from 'lucide-react';
+import { Search, Dumbbell, Plus, Filter } from 'lucide-react';
 import { Input } from '@/components/powr-ui/primitives/Input';
 import { Button } from '@/components/powr-ui/primitives/Button';
 import { useLibraryData } from '@/providers/LibraryDataProvider';
@@ -49,7 +49,6 @@ export function ExerciseLibrary({ onShowOnboarding }: ExerciseLibraryProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<FilterType>('all');
   const [isCreatingCollection, setIsCreatingCollection] = useState(false);
-  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   
   // Exercise detail modal state
   const [selectedExercise, setSelectedExercise] = useState<ExerciseLibraryItem | null>(null);
@@ -171,7 +170,7 @@ export function ExerciseLibrary({ onShowOnboarding }: ExerciseLibraryProps) {
     );
   };
 
-  // Filter and sort exercises
+  // Filter and sort exercises with enhanced content sources
   const processedExercises = React.useMemo(() => {
     if (!exerciseLibrary.content) return [];
 
@@ -187,26 +186,38 @@ export function ExerciseLibrary({ onShowOnboarding }: ExerciseLibraryProps) {
       );
     }
 
-    // Apply type filter
+    // ✅ ENHANCED: Apply type filter with actual content source differentiation
     switch (filterType) {
       case 'my-saved':
-        // For now, all exercises in the collection are "saved"
-        // Future: could distinguish based on source
+        // Show only exercises from user's personal collection
+        // These are exercises where the user is the author OR explicitly saved to their collection
+        filtered = filtered.filter(item => 
+          item.exercise.authorPubkey === userPubkey || 
+          item.exerciseRef.includes(`${userPubkey}:`)
+        );
         break;
       case 'from-collections':
-        // Future: filter exercises that came from subscribed collections
+        // Show only exercises from subscribed collections (not user's own)
+        filtered = filtered.filter(item => 
+          item.exercise.authorPubkey !== userPubkey && 
+          !item.exerciseRef.includes(`${userPubkey}:`)
+        );
         break;
       case 'all':
       default:
-        // Show all exercises
+        // Show all exercises (current behavior)
         break;
     }
 
-    // Default sort by name
-    filtered.sort((a, b) => a.exercise.name.localeCompare(b.exercise.name));
+    // Default sort by name, with secondary sort by author for consistency
+    filtered.sort((a, b) => {
+      const nameCompare = a.exercise.name.localeCompare(b.exercise.name);
+      if (nameCompare !== 0) return nameCompare;
+      return a.exercise.authorPubkey.localeCompare(b.exercise.authorPubkey);
+    });
 
     return filtered;
-  }, [exerciseLibrary.content, searchTerm, filterType]);
+  }, [exerciseLibrary.content, searchTerm, filterType, userPubkey]);
 
   // Loading state
   if (exerciseLibrary.isLoading || exerciseLibrary.isResolving || isCreatingCollection) {
@@ -271,66 +282,17 @@ export function ExerciseLibrary({ onShowOnboarding }: ExerciseLibraryProps) {
           />
         </div>
 
-        {/* Mobile: Filter dropdown, Desktop: Button group */}
+        {/* Mobile: Compact dropdown, Desktop: Button group */}
         {isMobile ? (
-          <div className="relative">
-            <Button
-              variant={filterType !== 'all' ? 'default' : 'outline'}
-              size="sm"
-              className="h-10 px-3 flex-shrink-0 gap-1"
-              onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-            >
-              <Filter className="h-4 w-4" />
-              <ChevronDown className="h-3 w-3" />
-            </Button>
-            
-            {/* Dropdown Menu */}
-            {showFilterDropdown && (
-              <>
-                {/* Backdrop */}
-                <div 
-                  className="dropdown-backdrop"
-                  onClick={() => setShowFilterDropdown(false)}
-                />
-                
-                {/* Menu */}
-                <div className="dropdown-menu absolute right-0 top-12 w-40">
-                  <div className="py-1">
-                    <button
-                      className={`dropdown-item ${filterType === 'all' ? 'dropdown-item-active' : ''}`}
-                      onClick={() => {
-                        setFilterType('all');
-                        setShowFilterDropdown(false);
-                      }}
-                    >
-                      All Exercises
-                      {filterType === 'all' && <div className="dropdown-indicator" />}
-                    </button>
-                    <button
-                      className={`dropdown-item ${filterType === 'my-saved' ? 'dropdown-item-active' : ''}`}
-                      onClick={() => {
-                        setFilterType('my-saved');
-                        setShowFilterDropdown(false);
-                      }}
-                    >
-                      My Saved
-                      {filterType === 'my-saved' && <div className="dropdown-indicator" />}
-                    </button>
-                    <button
-                      className={`dropdown-item ${filterType === 'from-collections' ? 'dropdown-item-active' : ''}`}
-                      onClick={() => {
-                        setFilterType('from-collections');
-                        setShowFilterDropdown(false);
-                      }}
-                    >
-                      Collections
-                      {filterType === 'from-collections' && <div className="dropdown-indicator" />}
-                    </button>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
+          <select
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value as FilterType)}
+            className="h-10 px-3 rounded-md border border-input bg-background text-sm"
+          >
+            <option value="all">All</option>
+            <option value="my-saved">My Saved</option>
+            <option value="from-collections">Collections</option>
+          </select>
         ) : (
           <div className="flex gap-2">
             <Button
@@ -386,8 +348,8 @@ export function ExerciseLibrary({ onShowOnboarding }: ExerciseLibraryProps) {
           <p className="text-muted-foreground">Try adjusting your search or filters</p>
         </div>
       ) : isMobile ? (
-        // Mobile: List View - Break out of container padding for full-width
-        <div className="-mx-6">
+        // Mobile: List View - Break out of container padding for full-width with bottom safe area
+        <div className="-mx-6 pb-safe">
           <ExerciseListView
             exercises={processedExercises}
             isInLibrary={() => true} // All exercises in library are "in library"
@@ -425,8 +387,8 @@ export function ExerciseLibrary({ onShowOnboarding }: ExerciseLibraryProps) {
           />
         </div>
       ) : (
-        // Desktop/Tablet: Card Grid
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        // Desktop/Tablet: Card Grid with bottom safe area
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 pb-safe">
           {processedExercises.map((item) => (
             <ExerciseCard
               key={item.exerciseRef}

@@ -474,6 +474,52 @@
 }
 
 @layer utilities {
+  /* Clickable text/link styles - Semantic utility for interactive text */
+  .clickable-text {
+    @apply text-primary cursor-pointer transition-all duration-200;
+    text-decoration: underline;
+    text-decoration-color: transparent;
+    text-underline-offset: 2px;
+    /* Ensure good touch targets on mobile */
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+  
+  .clickable-text:hover {
+    @apply text-primary/80;
+    text-decoration-color: currentColor;
+    transform: translateY(-1px);
+  }
+  
+  .clickable-text:active {
+    @apply text-primary;
+    transform: translateY(0);
+    text-decoration-color: currentColor;
+  }
+  
+  /* Variant for subtle clickable text (less prominent) */
+  .clickable-text-subtle {
+    @apply text-foreground cursor-pointer transition-all duration-200;
+    text-decoration: none;
+    /* Ensure good touch targets on mobile */
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+  
+  .clickable-text-subtle:hover {
+    @apply text-primary;
+    text-decoration: underline;
+    text-decoration-color: currentColor;
+    text-underline-offset: 2px;
+  }
+  
+  .clickable-text-subtle:active {
+    @apply text-primary/80;
+    transform: translateY(1px);
+  }
+
   /* Enhanced zoom prevention for specific gestures */
   .no-zoom {
     touch-action: manipulation !important;

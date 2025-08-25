@@ -1,8 +1,8 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Button } from '@/components/powr-ui/primitives/Button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/powr-ui/primitives/Tabs';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/powr-ui/primitives/Avatar';
-import { Play, ArrowLeft, AlertCircle } from 'lucide-react';
+import { Play, ArrowLeft, AlertCircle, Plus, Check } from 'lucide-react';
 import { 
   Dialog, 
   DialogContent, 
@@ -13,6 +13,10 @@ import {
 import { WorkoutImageHandler } from './WorkoutImageHandler';
 import { ExpandableExerciseCard } from './ExpandableExerciseCard';
 import { useProfile, getDisplayName, getAvatarUrl } from '@/hooks/useProfile';
+import { useToast } from '@/providers/ToastProvider';
+import { useLibraryData } from '@/providers/LibraryDataProvider';
+import { libraryManagementService } from '@/lib/services/libraryManagement';
+import { usePubkey } from '@/lib/auth/hooks';
 import { cn } from '@/lib/utils';
 
 interface PersonalRecord {
@@ -129,6 +133,14 @@ export const WorkoutDetailModal = ({
   hideStartButton = false,
 }: WorkoutDetailModalProps) => {
   const [activeTab, setActiveTab] = useState('overview');
+  const [isAddingToLibrary, setIsAddingToLibrary] = useState(false);
+  const { showToast } = useToast();
+  
+  // Get current user's pubkey for library operations
+  const userPubkey = usePubkey();
+  
+  // Get library data to check if workout is already in library
+  const { workoutLibrary } = useLibraryData();
 
   // Extract data with priority: resolved template > machine context > fallback
   const title = templateData?.resolvedTemplate?.name || 
@@ -163,6 +175,55 @@ export const WorkoutDetailModal = ({
   const { profile: authorProfile } = useProfile(authorPubkey || undefined);
   const authorDisplayName = getDisplayName(authorProfile, authorPubkey || undefined);
   const authorAvatar = getAvatarUrl(authorProfile, authorPubkey || undefined);
+  
+  // Check if workout is already in user's library
+  const isInLibrary = useMemo(() => {
+    if (!templateData?.templateRef || !workoutLibrary.content) return false;
+    return workoutLibrary.content.some((template: any) => 
+      template.templateRef === templateData.templateRef
+    );
+  }, [templateData?.templateRef, workoutLibrary.content]);
+  
+  // Handle adding/removing workout to/from library
+  const handleLibraryToggle = useCallback(async () => {
+    if (!templateData?.templateRef || !userPubkey) {
+      showToast("Error", "error", "Unable to save workout - missing template reference or user not authenticated");
+      return;
+    }
+
+    setIsAddingToLibrary(true);
+    
+    try {
+      if (isInLibrary) {
+        // Remove from library
+        await libraryManagementService.removeFromLibraryCollectionWithRefresh(
+          userPubkey,
+          'WORKOUT_LIBRARY',
+          templateData.templateRef
+        );
+        showToast("Removed from Library", "success", `"${title}" has been removed from your workout library`);
+      } else {
+        // Add to library
+        await libraryManagementService.addToLibraryCollectionWithRefresh(
+          userPubkey,
+          'WORKOUT_LIBRARY',
+          templateData.templateRef
+        );
+        showToast("Added to Library", "success", `"${title}" has been saved to your workout library`);
+      }
+    } catch (error) {
+      console.error('Library operation failed:', error);
+      showToast(
+        "Error", 
+        "error", 
+        isInLibrary 
+          ? "Failed to remove workout from library" 
+          : "Failed to add workout to library"
+      );
+    } finally {
+      setIsAddingToLibrary(false);
+    }
+  }, [templateData?.templateRef, userPubkey, isInLibrary, title, showToast]);
   
   // QUICK FIX: Map resolved template data to Exercise interface for ExpandableExerciseCard
   const exercises = useMemo(() => {
@@ -330,16 +391,37 @@ export const WorkoutDetailModal = ({
           {/* Main content */}
           {templateData && !isLoading && !error && (
             <>
-              {/* Start Workout Button - Only show if not hidden */}
+              {/* Action Buttons - 3/4 Start Workout + 1/4 Add to Library */}
               {!hideStartButton && (
                 <div className="flex-shrink-0 p-6 pb-4">
-                  <Button
-                    onClick={onStartWorkout}
-                    className="w-full h-12 bg-gradient-to-r from-orange-400 via-orange-500 to-red-500 hover:from-orange-500 hover:via-orange-600 hover:to-red-600 text-black font-semibold text-base rounded-xl flex items-center justify-center gap-2"
-                  >
-                    <Play className="h-5 w-5 fill-current" />
-                    Start workout
-                  </Button>
+                  <div className="flex gap-3">
+                    {/* Start Workout Button - 3/4 width */}
+                    <Button
+                      onClick={onStartWorkout}
+                      className="flex-[3] h-12 bg-gradient-to-r from-orange-400 via-orange-500 to-red-500 hover:from-orange-500 hover:via-orange-600 hover:to-red-600 text-black font-semibold text-base rounded-xl flex items-center justify-center gap-2"
+                    >
+                      <Play className="h-5 w-5 fill-current" />
+                      Start workout
+                    </Button>
+                    
+                    {/* Add to Library Button - 1/4 width */}
+                    <Button
+                      onClick={handleLibraryToggle}
+                      disabled={isAddingToLibrary}
+                      variant={isInLibrary ? "default" : "outline"}
+                      size="icon"
+                      className="flex-[1] h-12 rounded-xl text-foreground hover:text-foreground/80"
+                      title={isInLibrary ? "Remove from Library" : "Add to Library"}
+                    >
+                      {isAddingToLibrary ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
+                      ) : isInLibrary ? (
+                        <Check className="h-5 w-5" />
+                      ) : (
+                        <Plus className="h-5 w-5" />
+                      )}
+                    </Button>
+                  </div>
                 </div>
               )}
 
@@ -451,14 +533,17 @@ export const WorkoutDetailModal = ({
                     <TabsContent value="exercises" className="mt-0 h-full overflow-y-auto data-[state=inactive]:hidden">
                       <div className="px-6 pt-4 pb-6 space-y-3">
                         {exercises.length > 0 ? (
-                          exercises.map((exercise: Exercise, index: number) => (
-                            <ExpandableExerciseCard
-                              key={index}
-                              exercise={exercise}
-                              index={index}
-                              onExerciseClick={onExerciseClick}
-                            />
-                          ))
+                          exercises.map((exercise: Exercise, index: number) => {
+                            console.log('[WorkoutDetailModal] Rendering exercise card with onExerciseClick:', !!onExerciseClick, 'for exercise:', exercise.name);
+                            return (
+                              <ExpandableExerciseCard
+                                key={index}
+                                exercise={exercise}
+                                index={index}
+                                onExerciseClick={onExerciseClick}
+                              />
+                            );
+                          })
                         ) : (
                           <>
                             <div className="p-4 border border-border rounded-lg bg-muted/30 text-center">

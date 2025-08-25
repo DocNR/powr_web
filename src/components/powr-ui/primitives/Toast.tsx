@@ -1,16 +1,15 @@
 /**
- * Toast Component
+ * Simple Toast Component
  * 
- * Toast notification component built with Radix UI primitives.
- * Provides success, error, and info variants with consistent styling.
+ * Clean toast notification component built with Radix UI primitives.
+ * Auto-dismisses after specified duration with basic styling variants.
  */
 
 'use client';
 
 import * as React from 'react';
 import * as ToastPrimitives from '@radix-ui/react-toast';
-import { cva, type VariantProps } from 'class-variance-authority';
-import { X, CheckCircle, AlertCircle, Info } from 'lucide-react';
+import { CheckCircle, AlertCircle, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const ToastProvider = ToastPrimitives.Provider;
@@ -30,70 +29,32 @@ const ToastViewport = React.forwardRef<
 ));
 ToastViewport.displayName = ToastPrimitives.Viewport.displayName;
 
-const toastVariants = cva(
-  'group pointer-events-auto relative flex w-full items-center justify-between space-x-4 overflow-hidden rounded-md border p-6 pr-8 shadow-lg transition-all data-[swipe=cancel]:translate-x-0 data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)] data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=move]:transition-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[swipe=end]:animate-out data-[state=closed]:fade-out-80 data-[state=closed]:slide-out-to-right-full data-[state=open]:slide-in-from-top-full data-[state=open]:sm:slide-in-from-bottom-full',
-  {
-    variants: {
-      variant: {
-        default: 'border bg-background text-foreground',
-        success: 'border-green-200 bg-green-50 text-green-900 dark:border-green-800 dark:bg-green-950 dark:text-green-100',
-        error: 'border-red-200 bg-red-50 text-red-900 dark:border-red-800 dark:bg-red-950 dark:text-red-100',
-        info: 'border-blue-200 bg-blue-50 text-blue-900 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-100',
-      },
-    },
-    defaultVariants: {
-      variant: 'default',
-    },
-  }
-);
-
 const Toast = React.forwardRef<
   React.ElementRef<typeof ToastPrimitives.Root>,
-  React.ComponentPropsWithoutRef<typeof ToastPrimitives.Root> &
-    VariantProps<typeof toastVariants>
->(({ className, variant, ...props }, ref) => {
+  React.ComponentPropsWithoutRef<typeof ToastPrimitives.Root> & {
+    variant?: 'success' | 'error' | 'info' | 'default';
+  }
+>(({ className, variant = 'default', ...props }, ref) => {
+  const variantStyles = {
+    default: 'border bg-background text-foreground',
+    success: 'border-green-200 bg-green-50 text-green-900 dark:border-green-800 dark:bg-green-950 dark:text-green-100',
+    error: 'border-red-200 bg-red-50 text-red-900 dark:border-red-800 dark:bg-red-950 dark:text-red-100',
+    info: 'border-blue-200 bg-blue-50 text-blue-900 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-100',
+  };
+
   return (
     <ToastPrimitives.Root
       ref={ref}
-      className={cn(toastVariants({ variant }), className)}
+      className={cn(
+        'group pointer-events-auto relative flex w-full items-center justify-between space-x-4 overflow-hidden rounded-md border p-6 shadow-lg transition-all data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-80 data-[state=closed]:slide-out-to-right-full data-[state=open]:slide-in-from-top-full data-[state=open]:sm:slide-in-from-bottom-full',
+        variantStyles[variant],
+        className
+      )}
       {...props}
     />
   );
 });
 Toast.displayName = ToastPrimitives.Root.displayName;
-
-const ToastAction = React.forwardRef<
-  React.ElementRef<typeof ToastPrimitives.Action>,
-  React.ComponentPropsWithoutRef<typeof ToastPrimitives.Action>
->(({ className, ...props }, ref) => (
-  <ToastPrimitives.Action
-    ref={ref}
-    className={cn(
-      'inline-flex h-8 shrink-0 items-center justify-center rounded-md border bg-transparent px-3 text-sm font-medium ring-offset-background transition-colors hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 group-[.destructive]:border-muted/40 group-[.destructive]:hover:border-destructive/30 group-[.destructive]:hover:bg-destructive group-[.destructive]:hover:text-destructive-foreground group-[.destructive]:focus:ring-destructive',
-      className
-    )}
-    {...props}
-  />
-));
-ToastAction.displayName = ToastPrimitives.Action.displayName;
-
-const ToastClose = React.forwardRef<
-  React.ElementRef<typeof ToastPrimitives.Close>,
-  React.ComponentPropsWithoutRef<typeof ToastPrimitives.Close>
->(({ className, ...props }, ref) => (
-  <ToastPrimitives.Close
-    ref={ref}
-    className={cn(
-      'absolute right-2 top-2 rounded-md p-1 text-foreground/50 opacity-70 transition-opacity hover:text-foreground hover:opacity-100 focus:opacity-100 focus:outline-none focus:ring-2 group-hover:opacity-100 group-[.destructive]:text-red-300 group-[.destructive]:hover:text-red-50 group-[.destructive]:focus:ring-red-400 group-[.destructive]:focus:ring-offset-red-600 md:opacity-0 md:group-hover:opacity-100',
-      className
-    )}
-    toast-close=""
-    {...props}
-  >
-    <X className="h-4 w-4" />
-  </ToastPrimitives.Close>
-));
-ToastClose.displayName = ToastPrimitives.Close.displayName;
 
 const ToastTitle = React.forwardRef<
   React.ElementRef<typeof ToastPrimitives.Title>,
@@ -119,23 +80,18 @@ const ToastDescription = React.forwardRef<
 ));
 ToastDescription.displayName = ToastPrimitives.Description.displayName;
 
-type ToastProps = React.ComponentPropsWithoutRef<typeof Toast>;
-
-type ToastActionElement = React.ReactElement<typeof ToastAction>;
-
-// Toast notification component with icon
+// Simple toast notification component with icon
 interface ToastNotificationProps {
   title: string;
   description?: string;
   variant?: 'success' | 'error' | 'info' | 'default';
-  onClose?: () => void;
   duration?: number;
 }
 
 const ToastNotification = React.forwardRef<
   React.ElementRef<typeof Toast>,
   ToastNotificationProps
->(({ title, description, variant = 'default', onClose, ...props }, ref) => {
+>(({ title, description, variant = 'default', ...props }, ref) => {
   const getIcon = () => {
     switch (variant) {
       case 'success':
@@ -151,7 +107,7 @@ const ToastNotification = React.forwardRef<
 
   return (
     <Toast ref={ref} variant={variant} {...props}>
-      <div className="flex items-start space-x-3">
+      <div className="flex items-start space-x-3 w-full">
         {getIcon()}
         <div className="flex-1 space-y-1">
           <ToastTitle>{title}</ToastTitle>
@@ -160,23 +116,12 @@ const ToastNotification = React.forwardRef<
           )}
         </div>
       </div>
-      <ToastClose onClick={onClose} />
     </Toast>
   );
 });
 ToastNotification.displayName = 'ToastNotification';
 
-// Toaster component that manages all toasts
-const Toaster = () => {
-  return (
-    <ToastProvider>
-      <ToastViewport />
-    </ToastProvider>
-  );
-};
-
-// Helper functions for programmatic toast creation
-// These work with the useToast hook to show toasts
+// Global toast dispatch for programmatic usage
 let toastDispatch: ((toast: { title: string; description?: string; variant?: 'success' | 'error' | 'info' | 'default' }) => void) | null = null;
 
 export const setToastDispatch = (dispatch: typeof toastDispatch) => {
@@ -186,37 +131,26 @@ export const setToastDispatch = (dispatch: typeof toastDispatch) => {
 export const showSuccessToast = (title: string, description?: string) => {
   if (toastDispatch) {
     toastDispatch({ title, description, variant: 'success' });
-  } else {
-    console.warn('Toast dispatch not initialized. Make sure ToastProvider is mounted.');
   }
 };
 
 export const showErrorToast = (title: string, description?: string) => {
   if (toastDispatch) {
     toastDispatch({ title, description, variant: 'error' });
-  } else {
-    console.warn('Toast dispatch not initialized. Make sure ToastProvider is mounted.');
   }
 };
 
 export const showInfoToast = (title: string, description?: string) => {
   if (toastDispatch) {
     toastDispatch({ title, description, variant: 'info' });
-  } else {
-    console.warn('Toast dispatch not initialized. Make sure ToastProvider is mounted.');
   }
 };
 
 export {
-  type ToastProps,
-  type ToastActionElement,
   ToastProvider,
   ToastViewport,
   Toast,
   ToastTitle,
   ToastDescription,
-  ToastClose,
-  ToastAction,
   ToastNotification,
-  Toaster,
 };

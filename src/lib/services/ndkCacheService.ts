@@ -399,6 +399,194 @@ export class DiscoveryCacheService {
   }
 }
 
+/**
+ * NADDR Resolution Service
+ * Handles addressable event fetching using NDK's built-in NADDR capabilities
+ * Following .clinerules/ndk-best-practices.md - direct NDK methods through service layer
+ */
+export class NDDRResolutionService {
+  private cacheService = universalNDKCacheService;
+
+  /**
+   * Fetch event by NADDR string using NDK's built-in parsing
+   * NDK handles NADDR parsing and relay hints automatically
+   */
+  async fetchByNaddr(
+    naddr: string, 
+    options: CacheOptions = {}
+  ): Promise<NDKEvent | null> {
+    const ndk = getNDKInstance();
+    if (!ndk) {
+      throw new Error('NDK not initialized');
+    }
+
+    const startTime = Date.now();
+    console.log(`[NDDRResolutionService] Fetching event by NADDR: ${naddr.substring(0, 20)}...`);
+
+    try {
+      const {
+        cacheUsage = NDKSubscriptionCacheUsage.CACHE_FIRST,
+        timeout = 10000
+      } = options;
+
+      // Use NDK's built-in fetchEvent method - handles NADDR parsing internally
+      const eventPromise = ndk.fetchEvent(naddr, { cacheUsage });
+      
+      const event = await Promise.race([
+        eventPromise,
+        new Promise<NDKEvent | null>((_, reject) => 
+          setTimeout(() => reject(new Error('NADDR fetch timeout')), timeout)
+        )
+      ]);
+
+      const fetchTime = Date.now() - startTime;
+      
+      if (event) {
+        console.log(`[NDDRResolutionService] ✅ Resolved NADDR in ${fetchTime}ms - Kind: ${event.kind}, ID: ${event.id?.substring(0, 8)}...`);
+      } else {
+        console.log(`[NDDRResolutionService] ⚠️ NADDR not found after ${fetchTime}ms`);
+      }
+      
+      return event;
+    } catch (error) {
+      const fetchTime = Date.now() - startTime;
+      console.error(`[NDDRResolutionService] ❌ NADDR fetch failed after ${fetchTime}ms:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Batch resolve multiple NADDR references efficiently
+   * Useful for resolving exercise references in workout templates
+   */
+  async batchResolveNaddrs(
+    naddrs: string[],
+    options: CacheOptions = {}
+  ): Promise<(NDKEvent | null)[]> {
+    if (naddrs.length === 0) return [];
+    
+    console.log(`[NDDRResolutionService] Batch resolving ${naddrs.length} NADDR references`);
+    
+    const startTime = Date.now();
+    
+    try {
+      const results = await Promise.all(
+        naddrs.map(naddr => this.fetchByNaddr(naddr, options))
+      );
+      
+      const totalTime = Date.now() - startTime;
+      const successCount = results.filter(result => result !== null).length;
+      
+      console.log(`[NDDRResolutionService] ✅ Batch resolved ${successCount}/${naddrs.length} NADDRs in ${totalTime}ms`);
+      
+      return results;
+    } catch (error) {
+      const totalTime = Date.now() - startTime;
+      console.error(`[NDDRResolutionService] ❌ Batch NADDR resolution failed after ${totalTime}ms:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Resolve exercise template by NADDR with cache-first strategy
+   * Optimized for exercise library browsing
+   */
+  async resolveExerciseTemplate(naddr: string): Promise<NDKEvent | null> {
+    console.log(`[NDDRResolutionService] Resolving exercise template: ${naddr.substring(0, 20)}...`);
+    
+    return this.fetchByNaddr(naddr, { 
+      cacheUsage: NDKSubscriptionCacheUsage.CACHE_FIRST,
+      timeout: 8000
+    });
+  }
+
+  /**
+   * Resolve workout template by NADDR with cache-first strategy
+   * Optimized for workout template browsing
+   */
+  async resolveWorkoutTemplate(naddr: string): Promise<NDKEvent | null> {
+    console.log(`[NDDRResolutionService] Resolving workout template: ${naddr.substring(0, 20)}...`);
+    
+    return this.fetchByNaddr(naddr, { 
+      cacheUsage: NDKSubscriptionCacheUsage.CACHE_FIRST,
+      timeout: 8000
+    });
+  }
+
+  /**
+   * Resolve collection item by NADDR with parallel strategy
+   * Optimized for collection browsing with real-time updates
+   */
+  async resolveCollectionItem(naddr: string): Promise<NDKEvent | null> {
+    console.log(`[NDDRResolutionService] Resolving collection item: ${naddr.substring(0, 20)}...`);
+    
+    return this.fetchByNaddr(naddr, { 
+      cacheUsage: NDKSubscriptionCacheUsage.PARALLEL,
+      timeout: 6000
+    });
+  }
+
+  /**
+   * Check if NADDR is available in cache without network request
+   * Useful for determining offline availability
+   */
+  async checkNaddrCacheAvailability(naddr: string): Promise<{
+    available: boolean;
+    event: NDKEvent | null;
+  }> {
+    try {
+      const event = await this.fetchByNaddr(naddr, { 
+        cacheUsage: NDKSubscriptionCacheUsage.ONLY_CACHE,
+        timeout: 1000
+      });
+      
+      return {
+        available: event !== null,
+        event
+      };
+    } catch (error) {
+      console.warn(`[NDDRResolutionService] Cache availability check failed for NADDR:`, error);
+      return {
+        available: false,
+        event: null
+      };
+    }
+  }
+
+  /**
+   * Smart NADDR resolution that adapts to network conditions
+   * Uses cache-first when offline, parallel when online
+   */
+  async resolveNaddrSmart(naddr: string): Promise<NDKEvent | null> {
+    const isOnline = navigator.onLine;
+    
+    if (!isOnline) {
+      console.log(`[NDDRResolutionService] 🔌 Network offline - using cache only for NADDR`);
+      return this.fetchByNaddr(naddr, { 
+        cacheUsage: NDKSubscriptionCacheUsage.ONLY_CACHE 
+      });
+    }
+
+    // Check cache availability first
+    const cacheCheck = await this.checkNaddrCacheAvailability(naddr);
+    
+    if (cacheCheck.available) {
+      console.log(`[NDDRResolutionService] 📦 NADDR cached - using cache-first strategy`);
+      return this.fetchByNaddr(naddr, { 
+        cacheUsage: NDKSubscriptionCacheUsage.CACHE_FIRST 
+      });
+    } else {
+      console.log(`[NDDRResolutionService] 🌐 NADDR not cached - fetching from relays`);
+      return this.fetchByNaddr(naddr, { 
+        cacheUsage: NDKSubscriptionCacheUsage.ONLY_RELAY 
+      });
+    }
+  }
+}
+
+// Export NADDR resolution service singleton
+export const naddrResolutionService = new NDDRResolutionService();
+
 // Export tab-specific services
 export const libraryCacheService = new LibraryCacheService();
 export const historyCacheService = new HistoryCacheService();

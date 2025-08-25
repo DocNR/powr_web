@@ -151,7 +151,6 @@ Before any XState work:
 - Zero custom database code - All persistence via NDK cache
 - Events as data model - No object-relational mapping needed
 - Simplified architecture - Single source of truth for data
-- Proven patterns for golf app migration
 
 ## Rule Maintenance
 
