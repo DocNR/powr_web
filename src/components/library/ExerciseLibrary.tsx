@@ -29,6 +29,7 @@ import { ExerciseCard } from '@/components/powr-ui/workout/ExerciseCard';
 import { ExerciseListView } from './ExerciseListView';
 import { ExerciseDetailModal } from './ExerciseDetailModal';
 import { ConfirmationDialog } from '@/components/powr-ui/primitives/ConfirmationDialog';
+import { socialSharingService } from '@/lib/services/socialSharingService';
 import type { ExerciseLibraryItem } from '@/hooks/useLibraryDataWithCollections';
 
 interface ExerciseLibraryProps {
@@ -158,6 +159,34 @@ export function ExerciseLibrary({ onShowOnboarding }: ExerciseLibraryProps) {
       );
     } finally {
       setIsOperationLoading(false);
+    }
+  };
+
+  // Handle copy exercise NADDR
+  const handleCopyExerciseNaddr = async (exerciseRef: string, exerciseName: string) => {
+    try {
+      const result = await socialSharingService.copyExerciseNaddr(exerciseRef);
+      
+      if (result.success) {
+        showToast(
+          'NADDR copied',
+          'success',
+          `${exerciseName} NADDR copied to clipboard`
+        );
+      } else {
+        showToast(
+          'Copy failed',
+          'error',
+          result.error || 'Failed to copy NADDR to clipboard'
+        );
+      }
+    } catch (error) {
+      console.error('[ExerciseLibrary] Failed to copy exercise NADDR:', error);
+      showToast(
+        'Copy failed',
+        'error',
+        'Failed to copy NADDR to clipboard'
+      );
     }
   };
 
@@ -377,7 +406,13 @@ export function ExerciseLibrary({ onShowOnboarding }: ExerciseLibraryProps) {
               } else if (action === 'substitute') {
                 // TODO: Implement substitute
               } else if (action === 'copy') {
-                // TODO: Implement copy naddr
+                // Copy exercise NADDR to clipboard
+                const exerciseItem = exerciseLibrary.content?.find(item => 
+                  item.exercise.id === exerciseId || item.exerciseRef === exerciseId
+                );
+                if (exerciseItem) {
+                  handleCopyExerciseNaddr(exerciseItem.exerciseRef, exerciseItem.exercise.name);
+                }
               } else if (action === 'share') {
                 // TODO: Implement share
               }
@@ -423,7 +458,13 @@ export function ExerciseLibrary({ onShowOnboarding }: ExerciseLibraryProps) {
                     handleRemoveExercise(exerciseItem.exerciseRef, exerciseItem.exercise.name);
                   }
                 } else if (action === 'copy') {
-                  // TODO: Implement copy naddr
+                  // Copy exercise NADDR to clipboard
+                  const exerciseItem = exerciseLibrary.content?.find(item => 
+                    item.exercise.id === exerciseId || item.exerciseRef === exerciseId
+                  );
+                  if (exerciseItem) {
+                    handleCopyExerciseNaddr(exerciseItem.exerciseRef, exerciseItem.exercise.name);
+                  }
                 } else if (action === 'share') {
                   // TODO: Implement share
                 }

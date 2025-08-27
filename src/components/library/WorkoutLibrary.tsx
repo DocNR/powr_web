@@ -30,6 +30,7 @@ import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { WorkoutCard } from '@/components/powr-ui/workout/WorkoutCard';
 import { WorkoutListView } from './WorkoutListView';
 import { ConfirmationDialog } from '@/components/powr-ui/primitives/ConfirmationDialog';
+import { socialSharingService } from '@/lib/services/socialSharingService';
 
 interface WorkoutLibraryProps {
   onShowOnboarding?: () => void;
@@ -133,6 +134,34 @@ export function WorkoutLibrary({ onShowOnboarding, onStartWorkout }: WorkoutLibr
       );
     } finally {
       setIsOperationLoading(false);
+    }
+  };
+
+  // Handle copy NADDR functionality
+  const handleCopyNaddr = async (templateRef: string, templateName: string) => {
+    try {
+      const result = await socialSharingService.copyTemplateNaddr(templateRef);
+      
+      if (result.success) {
+        showToast(
+          'NADDR Copied!',
+          'success',
+          `${templateName} link copied to clipboard`
+        );
+      } else {
+        showToast(
+          'Copy Failed',
+          'error',
+          result.error || 'Failed to copy NADDR to clipboard'
+        );
+      }
+    } catch (error) {
+      console.error('[WorkoutLibrary] Failed to copy NADDR:', error);
+      showToast(
+        'Copy Failed',
+        'error',
+        'An unexpected error occurred'
+      );
     }
   };
 
@@ -322,7 +351,7 @@ export function WorkoutLibrary({ onShowOnboarding, onStartWorkout }: WorkoutLibr
           <WorkoutListView
             workouts={processedWorkouts}
             onWorkoutSelect={onStartWorkout}
-            onMenuAction={(action, templateRef) => {
+            onMenuAction={async (action, templateRef) => {
               const workoutItem = workoutLibrary.content?.find(item => 
                 item.templateRef === templateRef || item.template.id === templateRef
               );
@@ -340,11 +369,7 @@ export function WorkoutLibrary({ onShowOnboarding, onStartWorkout }: WorkoutLibr
                 // Open workout detail modal - same as clicking the workout item
                 onStartWorkout?.(workoutItem.templateRef);
               } else if (action === 'copy') {
-                // TODO: Implement copy naddr functionality
-                showToast('Copy naddr', 'info', 'Copy functionality coming soon!');
-              } else if (action === 'share') {
-                // TODO: Implement share functionality
-                showToast('Share Workout', 'info', 'Share functionality coming soon!');
+                await handleCopyNaddr(workoutItem.templateRef, workoutItem.template.name);
               }
             }}
           />
@@ -372,7 +397,7 @@ export function WorkoutLibrary({ onShowOnboarding, onStartWorkout }: WorkoutLibr
                 }))
               }}
               onSelect={() => onStartWorkout?.(item.templateRef)}
-              onMenuAction={(action, workoutId) => {
+              onMenuAction={async (action, workoutId) => {
                 // ✅ FIX: More robust lookup like ExerciseLibrary - dual lookup prevents failures
                 const workoutItem = workoutLibrary.content?.find(item => 
                   item.template.id === workoutId || item.templateRef === workoutId
@@ -391,11 +416,7 @@ export function WorkoutLibrary({ onShowOnboarding, onStartWorkout }: WorkoutLibr
                   // Open workout detail modal - same as clicking the workout item
                   onStartWorkout?.(workoutItem.templateRef);
                 } else if (action === 'copy') {
-                  // TODO: Implement copy naddr functionality
-                  showToast('Copy naddr', 'info', 'Copy functionality coming soon!');
-                } else if (action === 'share') {
-                  // TODO: Implement share functionality
-                  showToast('Share Workout', 'info', 'Share functionality coming soon!');
+                  await handleCopyNaddr(workoutItem.templateRef, workoutItem.template.name);
                 }
               }}
             />

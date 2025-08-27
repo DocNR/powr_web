@@ -10,7 +10,7 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/powr-ui/primitives/Button';
-import { MoreVertical, Eye, Trash2, Copy, Share, Clock } from 'lucide-react';
+import { MoreVertical, Eye, Trash2, Copy, Clock } from 'lucide-react';
 
 interface WorkoutListViewProps {
   workouts: Array<{
@@ -222,13 +222,6 @@ function WorkoutListItem({
               >
                 <Copy className="h-4 w-4" />
                 Copy naddr
-              </button>
-              <button
-                className="dropdown-item"
-                onClick={() => handleMenuAction('share')}
-              >
-                <Share className="h-4 w-4" />
-                Share
               </button>
             </div>
           </div>

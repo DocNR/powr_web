@@ -583,6 +583,32 @@ Total: ${stats.exerciseCount} exercises, ${stats.totalSets} sets, ${stats.totalR
   }
 
   /**
+   * Generate NADDR encoding for exercise template (Kind 33401)
+   * Exercise templates are replaceable events, so we use naddr instead of nevent
+   */
+  generateExerciseNaddr(exerciseReference: string): string {
+    try {
+      // Parse exercise reference: "33401:pubkey:d-tag"
+      const parts = exerciseReference.split(':');
+      if (parts.length !== 3 || parts[0] !== '33401') {
+        throw new Error(`Invalid exercise reference format: ${exerciseReference}`);
+      }
+
+      const [, pubkey, dTag] = parts;
+      
+      return nip19.naddrEncode({
+        identifier: dTag,
+        pubkey: pubkey,
+        kind: 33401,
+        relays: ['wss://nos.lol', 'wss://relay.damus.io', 'wss://relay.primal.net']
+      });
+    } catch (error) {
+      console.error('[SocialSharingService] Failed to generate exercise naddr:', error);
+      return '';
+    }
+  }
+
+  /**
    * Copy template NADDR to clipboard
    * Returns success/failure status
    */
@@ -619,6 +645,50 @@ Total: ${stats.exerciseCount} exercises, ${stats.totalSets} sets, ${stats.totalR
       }
     } catch (error) {
       console.error('[SocialSharingService] Failed to copy template NADDR:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      };
+    }
+  }
+
+  /**
+   * Copy exercise NADDR to clipboard
+   * Returns success/failure status
+   */
+  async copyExerciseNaddr(exerciseReference: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const naddr = this.generateExerciseNaddr(exerciseReference);
+      
+      if (!naddr) {
+        return { success: false, error: 'Failed to generate exercise NADDR' };
+      }
+
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(naddr);
+        return { success: true };
+      } else {
+        // Fallback for older browsers or non-secure contexts
+        const textArea = document.createElement('textarea');
+        textArea.value = naddr;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        const successful = document.execCommand('copy');
+        document.body.removeChild(textArea);
+        
+        if (successful) {
+          return { success: true };
+        } else {
+          return { success: false, error: 'Failed to copy to clipboard' };
+        }
+      }
+    } catch (error) {
+      console.error('[SocialSharingService] Failed to copy exercise NADDR:', error);
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Unknown error' 

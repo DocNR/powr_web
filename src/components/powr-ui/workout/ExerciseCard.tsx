@@ -13,7 +13,7 @@ import { Button } from '@/components/powr-ui/primitives/Button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/powr-ui/primitives/Avatar';
 import { useProfile, getDisplayName, getAvatarUrl } from '@/hooks/useProfile';
 import { cn } from '@/lib/utils';
-import { MoreVertical, Eye, Trash2, Copy, Share } from 'lucide-react';
+import { MoreVertical, Eye, Trash2, Copy } from 'lucide-react';
 
 // Exercise data types
 interface ExerciseTemplate {
@@ -219,13 +219,6 @@ export const ExerciseCard = memo(function ExerciseCard({
                   <Copy className="h-4 w-4" />
                   Copy naddr
                 </button>
-                <button
-                  className="w-full px-3 py-2 text-left text-sm hover:bg-muted transition-colors flex items-center gap-2"
-                  onClick={() => handleMenuAction('share')}
-                >
-                  <Share className="h-4 w-4" />
-                  Share
-                </button>
               </div>
             </div>
           </>
@@ -405,12 +398,6 @@ export const ExerciseCard = memo(function ExerciseCard({
                   onClick={() => handleMenuAction('copy')}
                 >
                   🔗 Copy naddr
-                </button>
-                <button
-                  className="w-full px-3 py-2 text-left text-sm hover:bg-muted transition-colors"
-                  onClick={() => handleMenuAction('share')}
-                >
-                  📤 Share
                 </button>
               </div>
             </div>

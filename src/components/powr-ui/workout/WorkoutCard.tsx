@@ -15,7 +15,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/powr-ui/primit
 import { WorkoutImageHandler } from './WorkoutImageHandler';
 import { useProfile, getDisplayName, getAvatarUrl } from '@/hooks/useProfile';
 import { cn } from '@/lib/utils';
-import { MoreVertical, Play, Trash2, Eye, Copy, Share } from 'lucide-react';
+import { MoreVertical, Play, Trash2, Eye, Copy } from 'lucide-react';
 
 // Workout data types
 interface WorkoutTemplate {
@@ -500,13 +500,6 @@ export const WorkoutCard = memo(function WorkoutCard({
                   <Copy className="h-4 w-4" />
                   Copy naddr
                 </button>
-                <button
-                  className="w-full px-3 py-2 text-left text-sm hover:bg-muted transition-colors flex items-center gap-2"
-                  onClick={() => handleMenuAction('share')}
-                >
-                  <Share className="h-4 w-4" />
-                  Share
-                </button>
               </div>
             </div>
           </>
@@ -808,12 +801,6 @@ export const WorkoutCard = memo(function WorkoutCard({
                   onClick={() => handleMenuAction('copy')}
                 >
                   🔗 Copy naddr
-                </button>
-                <button
-                  className="w-full px-3 py-2 text-left text-sm hover:bg-muted transition-colors"
-                  onClick={() => handleMenuAction('share')}
-                >
-                  📤 Share
                 </button>
               </div>
             </div>

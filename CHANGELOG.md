@@ -31,6 +31,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Complete NADDR Copy Functionality for Exercise and Workout Cards COMPLETE (August 26, 2025) ✅**
+  
+  **User Impact**: Users can now copy both exercise and workout template NADDRs (Nostr addresses) to clipboard from library menus on both mobile and desktop. Fixed critical issue where "Copy naddr" buttons were completely non-functional due to missing implementation. Both exercise sharing (Kind 33401) and workout template sharing (Kind 33402) now work correctly with proper NADDR generation, enabling seamless content discovery and sharing across the Nostr fitness ecosystem.
+  
+  **Developer Notes**: Implemented complete NADDR functionality by adding missing `generateExerciseNaddr()`, `copyExerciseNaddr()`, `generateTemplateNaddr()`, and `copyTemplateNaddr()` methods to socialSharingService.ts. Created `handleCopyExerciseNaddr()` function in ExerciseLibrary.tsx and enhanced existing workout template copy functionality in WorkoutLibrary.tsx with proper error handling and toast notifications. Updated both mobile (ExerciseListView, WorkoutListView) and desktop (ExerciseCard, WorkoutCard) menu action handlers to call the new functionality. All NADDRs use proper NIP-101e specification with `nip19.naddrEncode` formatting for Kind 33401 (exercises) and Kind 33402 (workout templates).
+  
+  **Architecture Changes**: Established comprehensive NADDR sharing patterns for both workout templates (Kind 33402) and exercise templates (Kind 33401). Service layer architecture maintains clean separation between NADDR generation, clipboard operations, and UI feedback. Complete foundation ready for content sharing across the entire Nostr fitness ecosystem with consistent patterns for all content types.
+
 - **Exercise Detail Modal Integration COMPLETE (August 25, 2025) ✅**
   
   **User Impact**: Users can now click exercise titles in workout detail modals to view comprehensive exercise information, while still being able to expand inline details by clicking the card body.
