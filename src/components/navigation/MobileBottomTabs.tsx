@@ -3,6 +3,7 @@
 import React from 'react';
 import { Button } from '@/components/powr-ui/primitives/Button';
 import { cn } from '@/lib/utils';
+import { usePWA } from '@/hooks/usePWA';
 
 interface MobileBottomTabsProps {
   activeTab: string;
@@ -18,14 +19,20 @@ interface MobileBottomTabsProps {
 }
 
 export function MobileBottomTabs({ activeTab, onTabChange, tabs }: MobileBottomTabsProps) {
+  const { isIOSPWA } = usePWA();
+
   return (
     <div className="fixed left-0 right-0 bottom-0 z-50 bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60 border-t border-border">
       <div 
         className="flex items-center justify-around px-2"
         style={{ 
           paddingTop: '0.5rem', // 8px - standard iOS top padding
-          paddingBottom: `calc(0.5rem + env(safe-area-inset-bottom, 0px))`, // 8px + safe area - standard iOS bottom padding
-          height: 'calc(49px + env(safe-area-inset-bottom, 0px))' // Standard iOS tab bar height: 49px + safe area
+          paddingBottom: isIOSPWA 
+            ? `calc(0.5rem + env(safe-area-inset-bottom, 0px) + 0.75rem)` // 8px + safe area + 12px extra for PWA home indicator
+            : `calc(0.5rem + env(safe-area-inset-bottom, 0px))`, // 8px + safe area - standard iOS bottom padding
+          height: isIOSPWA
+            ? 'calc(49px + env(safe-area-inset-bottom, 0px) + 0.75rem)' // Standard iOS tab bar height + extra for PWA home indicator
+            : 'calc(49px + env(safe-area-inset-bottom, 0px))' // Standard iOS tab bar height: 49px + safe area
         }}
       >
         {tabs.map((tab) => {
