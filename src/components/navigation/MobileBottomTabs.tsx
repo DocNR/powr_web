@@ -28,10 +28,10 @@ export function MobileBottomTabs({ activeTab, onTabChange, tabs }: MobileBottomT
         style={{ 
           paddingTop: '0.5rem', // 8px - standard iOS top padding
           paddingBottom: isIOSPWA 
-            ? `calc(0.5rem + env(safe-area-inset-bottom, 0px) + 0.75rem)` // 8px + safe area + 12px extra for PWA home indicator
+            ? `calc(0.5rem + env(safe-area-inset-bottom, 0px) + 1.25rem)` // 8px + safe area + 20px extra for PWA home indicator
             : `calc(0.5rem + env(safe-area-inset-bottom, 0px))`, // 8px + safe area - standard iOS bottom padding
           height: isIOSPWA
-            ? 'calc(49px + env(safe-area-inset-bottom, 0px) + 0.75rem)' // Standard iOS tab bar height + extra for PWA home indicator
+            ? 'calc(49px + env(safe-area-inset-bottom, 0px) + 1.25rem)' // Standard iOS tab bar height + extra for PWA home indicator
             : 'calc(49px + env(safe-area-inset-bottom, 0px))' // Standard iOS tab bar height: 49px + safe area
         }}
       >
