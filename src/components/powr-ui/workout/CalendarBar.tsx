@@ -60,7 +60,7 @@ export function CalendarBar({
           variant="ghost"
           size="sm"
           onClick={goToPreviousWeek}
-          className="h-8 w-8 md:h-10 md:w-10 p-0 border border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white"
+          className="h-8 w-8 md:h-10 md:w-10 p-0 border border-primary text-primary hover:bg-primary hover:text-white"
         >
           <ChevronLeft className="h-4 w-4 md:h-5 md:w-5" />
         </Button>
@@ -78,7 +78,7 @@ export function CalendarBar({
           variant="ghost"
           size="sm"
           onClick={goToNextWeek}
-          className="h-8 w-8 md:h-10 md:w-10 p-0 border border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white"
+          className="h-8 w-8 md:h-10 md:w-10 p-0 border border-primary text-primary hover:bg-primary hover:text-white"
         >
           <ChevronRight className="h-4 w-4 md:h-5 md:w-5" />
         </Button>
@@ -105,9 +105,9 @@ export function CalendarBar({
                   "relative w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-all duration-200",
                   "touch-manipulation", // Touch-friendly without fixed min-width
                   // Selected date: same orange as border but with opacity (no border)
-                  isSelectedDay && "bg-orange-500/20 text-orange-600 dark:text-orange-400 font-medium",
+                  isSelectedDay && "bg-primary/20 text-primary dark:text-primary font-medium",
                   // Today (unselected): orange border only
-                  isCurrentDay && !isSelectedDay && "border-2 border-orange-500 text-card-foreground",
+                  isCurrentDay && !isSelectedDay && "border-2 border-primary text-card-foreground",
                   // Normal dates
                   !isSelectedDay && !isCurrentDay && "text-muted-foreground hover:text-card-foreground hover:bg-muted"
                 )}
@@ -119,7 +119,7 @@ export function CalendarBar({
                 
                 {/* Orange checkmark for completed workouts */}
                 {workoutIndicator && workoutIndicator.type === 'completed' && (
-                  <div className="absolute -top-0.5 -right-0.5 md:-top-1 md:-right-1 w-4 h-4 md:w-5 md:h-5 bg-orange-500 rounded-full flex items-center justify-center">
+                  <div className="absolute -top-0.5 -right-0.5 md:-top-1 md:-right-1 w-4 h-4 md:w-5 md:h-5 bg-primary rounded-full flex items-center justify-center">
                     <svg className="w-2.5 h-2.5 md:w-3 md:h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                     </svg>

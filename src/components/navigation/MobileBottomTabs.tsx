@@ -23,9 +23,9 @@ export function MobileBottomTabs({ activeTab, onTabChange, tabs }: MobileBottomT
       <div 
         className="flex items-center justify-around px-2"
         style={{ 
-          paddingTop: '0.75rem', // 12px - balanced top padding
-          paddingBottom: `calc(1.5rem + env(safe-area-inset-bottom, 0px))`, // 24px + safe area - much more space from home indicator
-          height: 'calc(72px + env(safe-area-inset-bottom, 0px))' // Increased to 72px + safe area for proper spacing
+          paddingTop: '0.5rem', // 8px - standard iOS top padding
+          paddingBottom: `calc(0.5rem + env(safe-area-inset-bottom, 0px))`, // 8px + safe area - standard iOS bottom padding
+          height: 'calc(49px + env(safe-area-inset-bottom, 0px))' // Standard iOS tab bar height: 49px + safe area
         }}
       >
         {tabs.map((tab) => {
@@ -38,22 +38,23 @@ export function MobileBottomTabs({ activeTab, onTabChange, tabs }: MobileBottomT
               variant="ghost"
               size="sm"
               className={cn(
-                "flex items-center justify-center h-12 w-12 p-2 relative rounded-full flex-shrink-0", // Reduced from h-14 w-14 to h-12 w-12
+                "flex flex-col items-center justify-center h-10 w-16 p-1 relative flex-shrink-0", // Reduced height to h-10 for standard iOS tabs, smaller padding
                 "transition-all duration-200 ease-out will-change-auto",
-                "min-h-[48px] min-w-[48px]", // Keep minimum touch targets for accessibility
+                "min-h-[44px] min-w-[44px]", // Standard minimum touch targets
                 "touch-manipulation", // Optimize for touch on mobile
                 "select-none", // Prevent text selection on buttons
+                "gap-0.5", // Smaller gap between icon and text for compact layout
                 isActive 
-                  ? "text-white bg-gradient-to-r from-orange-400 to-orange-500 shadow-md shadow-orange-400/20" // Softer orange (400-500 instead of 500-600) and lighter shadow
-                  : "text-muted-foreground hover:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-950/20 active:bg-orange-100 dark:active:bg-orange-950/30" // Softer hover color too
+                  ? "text-primary" // Color-only highlighting - no background
+                  : "text-muted-foreground hover:text-primary" // Simple color transitions
               )}
               onClick={() => onTabChange(tab.id)}
               aria-label={tab.label}
             >
               <div className="relative">
                 <Icon className={cn(
-                  "h-6 w-6 transition-all duration-150 ease-out will-change-auto", // Larger icons
-                  isActive && "scale-110"
+                  "h-4 w-4 transition-all duration-150 ease-out will-change-auto", // Smaller icons for compact iOS-style tabs
+                  isActive && "scale-105" // Subtle scale for active state
                 )} />
                 
                 {/* Badge */}
@@ -68,6 +69,14 @@ export function MobileBottomTabs({ activeTab, onTabChange, tabs }: MobileBottomT
                   <div className="absolute -top-1 -right-1 h-2.5 w-2.5 bg-destructive rounded-full" />
                 )}
               </div>
+              
+              {/* Text Label */}
+              <span className={cn(
+                "text-[10px] font-medium transition-all duration-150 ease-out will-change-auto leading-tight", // Even smaller text for compact layout
+                isActive && "font-semibold" // Slightly bolder when active
+              )}>
+                {tab.label}
+              </span>
             </Button>
           );
         })}

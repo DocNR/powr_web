@@ -189,7 +189,7 @@ export const WorkoutCard = memo(function WorkoutCard({
       >
         {/* POWR WOD Badge */}
         <div className="absolute top-3 left-3 z-20">
-          <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">
+          <div className="bg-gradient-to-r from-primary to-primary/80 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">
             POWR WOD
           </div>
         </div>
@@ -197,7 +197,7 @@ export const WorkoutCard = memo(function WorkoutCard({
         {/* Heart Icon */}
         <div className="absolute top-3 right-3 z-20">
           <div className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-md">
-            <svg className="w-5 h-5 text-orange-500" fill="currentColor" viewBox="0 0 20 20">
+            <svg className="w-5 h-5 text-primary" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
             </svg>
           </div>
@@ -249,7 +249,7 @@ export const WorkoutCard = memo(function WorkoutCard({
                       className={cn(
                         "w-2 h-2 rounded-full",
                         i <= getDifficultyLevel(workout.difficulty)
-                          ? "bg-orange-400" 
+                          ? "bg-primary"
                           : "bg-white/30"
                       )}
                     />
@@ -303,7 +303,7 @@ export const WorkoutCard = memo(function WorkoutCard({
             {/* ✅ UPDATED: Social Proof Badge with real user data and avatar */}
             {socialProof && (
               <div className="absolute top-3 left-3 z-10">
-                <div className="flex items-center gap-2 bg-orange-500/90 backdrop-blur-sm text-white px-3 py-1.5 rounded-full text-xs font-medium shadow-lg">
+                <div className="flex items-center gap-2 bg-primary/90 backdrop-blur-sm text-white px-3 py-1.5 rounded-full text-xs font-medium shadow-lg">
                   <Avatar className="h-5 w-5">
                     <AvatarImage src={socialProofAvatar} alt={socialProofDisplayName} />
                     <AvatarFallback className="bg-white/20 text-white text-xs">
@@ -514,7 +514,7 @@ export const WorkoutCard = memo(function WorkoutCard({
       <Card 
         className={cn(
           "cursor-pointer transition-all duration-200",
-          "hover:bg-gray-50 hover:border-orange-200 hover:ring-2 hover:ring-ring",
+          "hover:bg-gray-50 hover:border-primary/20 hover:ring-2 hover:ring-ring",
           "active:ring-2 active:ring-ring",
           "focus:ring-2 focus:ring-ring focus:outline-none",
           className
@@ -542,7 +542,7 @@ export const WorkoutCard = memo(function WorkoutCard({
                   className="w-full h-full rounded-lg object-cover"
                 />
                 <div className="absolute bottom-1 right-1 w-4 h-4 bg-white rounded-sm flex items-center justify-center">
-                  <div className="w-2 h-2 bg-orange-500 rounded-full" />
+                  <div className="w-2 h-2 bg-primary rounded-full" />
                 </div>
               </div>
             )}
@@ -574,7 +574,7 @@ export const WorkoutCard = memo(function WorkoutCard({
                           className={cn(
                             "w-1.5 h-1.5 rounded-full",
                             i <= getDifficultyLevel(workout.difficulty)
-                              ? "bg-orange-400" 
+                              ? "bg-primary"
                               : "bg-gray-300"
                           )}
                         />
@@ -603,7 +603,7 @@ export const WorkoutCard = memo(function WorkoutCard({
       <Card 
         className={cn(
           "cursor-pointer transition-all duration-200",
-          "hover:bg-gray-50 hover:border-orange-200 hover:ring-2 hover:ring-ring",
+          "hover:bg-gray-50 hover:border-primary/20 hover:ring-2 hover:ring-ring",
           "active:ring-2 active:ring-ring",
           "focus:ring-2 focus:ring-ring focus:outline-none",
           "h-16",
@@ -660,7 +660,7 @@ export const WorkoutCard = memo(function WorkoutCard({
             <Button 
               variant="ghost" 
               size="sm"
-              className="text-orange-600 hover:bg-orange-50 px-2 h-8"
+              className="text-primary hover:bg-primary/10 px-2 h-8"
             >
               Start
             </Button>

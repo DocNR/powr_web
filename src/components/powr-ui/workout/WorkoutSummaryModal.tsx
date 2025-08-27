@@ -216,7 +216,7 @@ export const WorkoutSummaryModal: React.FC<WorkoutSummaryModalProps> = ({
                   <div className="flex gap-3 pt-2">
                     <Button
                       onClick={handleShare}
-                      className="flex-1 h-12 bg-gradient-to-r from-orange-400 via-orange-500 to-red-500 hover:from-orange-500 hover:via-orange-600 hover:to-red-600 text-black font-semibold text-base rounded-xl flex items-center justify-center gap-2"
+                      className="flex-1 h-12 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white font-semibold text-base rounded-xl flex items-center justify-center gap-2"
                     >
                       <Share2 className="h-5 w-5" />
                       Share to Nostr

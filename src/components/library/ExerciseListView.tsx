@@ -129,14 +129,14 @@ function ExerciseListItem({
               alt={exercise.exercise.equipment || 'Exercise'}
               width={equipmentIcon === '/assets/bodyweight.svg' ? 32 : 24}
               height={equipmentIcon === '/assets/bodyweight.svg' ? 32 : 24}
-              className={`${equipmentIcon === '/assets/bodyweight.svg' ? "w-8 h-8" : "w-6 h-6"} brightness-0 invert-0`}
+              className={`${equipmentIcon === '/assets/bodyweight.svg' ? "w-8 h-8" : "w-6 h-6"} text-primary`}
               style={{
-                filter: 'brightness(0) saturate(100%) invert(27%) sepia(51%) saturate(2878%) hue-rotate(346deg) brightness(104%) contrast(97%)'
+                filter: 'brightness(0) saturate(100%) invert(45%) sepia(18%) saturate(220%) hue-rotate(220deg) brightness(104%) contrast(97%)'
               }}
             />
           ) : (
             // Fallback icon for exercises without specific equipment icons
-            <Dumbbell className="w-5 h-5 text-workout-primary" />
+            <Dumbbell className="w-5 h-5 text-primary" />
           )}
         </div>
 

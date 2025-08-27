@@ -102,7 +102,7 @@ export const ExpandableExerciseCard = ({
               </div>
             )}
           </div>
-          <span className="text-orange-500 text-sm font-medium">
+          <span className="text-primary text-sm font-medium">
             {exercise.sets || 3} × {exercise.reps || 12}
           </span>
         </div>

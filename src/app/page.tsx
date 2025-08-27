@@ -113,7 +113,7 @@ export default function Home() {
           <div className="space-y-4">
             <h1 className="text-4xl sm:text-6xl font-bold tracking-tight font-mono-tech text-white">
               Your Fitness,{' '}
-              <span className="bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
                 Your Rules
               </span>
             </h1>
@@ -171,8 +171,8 @@ export default function Home() {
             {/* Control Your Data */}
             <Card className="border-0 bg-gray-800/50 backdrop-blur-sm">
               <CardContent className="p-8 text-center space-y-4">
-                <div className="w-12 h-12 mx-auto bg-orange-500/10 rounded-lg flex items-center justify-center">
-                  <Shield className="h-6 w-6 text-orange-500" />
+                <div className="w-12 h-12 mx-auto bg-primary/10 rounded-lg flex items-center justify-center">
+                  <Shield className="h-6 w-6 text-primary" />
                 </div>
                 <h3 className="text-xl font-semibold text-white">Control Your Data</h3>
                 <p className="text-gray-300">
@@ -185,8 +185,8 @@ export default function Home() {
             {/* Connect Globally */}
             <Card className="border-0 bg-gray-800/50 backdrop-blur-sm">
               <CardContent className="p-8 text-center space-y-4">
-                <div className="w-12 h-12 mx-auto bg-orange-500/10 rounded-lg flex items-center justify-center">
-                  <Globe className="h-6 w-6 text-orange-500" />
+                <div className="w-12 h-12 mx-auto bg-primary/10 rounded-lg flex items-center justify-center">
+                  <Globe className="h-6 w-6 text-primary" />
                 </div>
                 <h3 className="text-xl font-semibold text-white">Connect Globally</h3>
                 <p className="text-gray-300">
@@ -199,8 +199,8 @@ export default function Home() {
             {/* No Lock-in */}
             <Card className="border-0 bg-gray-800/50 backdrop-blur-sm">
               <CardContent className="p-8 text-center space-y-4">
-                <div className="w-12 h-12 mx-auto bg-orange-500/10 rounded-lg flex items-center justify-center">
-                  <Unlock className="h-6 w-6 text-orange-500" />
+                <div className="w-12 h-12 mx-auto bg-primary/10 rounded-lg flex items-center justify-center">
+                  <Unlock className="h-6 w-6 text-primary" />
                 </div>
                 <h3 className="text-xl font-semibold text-white">No Lock-in</h3>
                 <p className="text-gray-300">

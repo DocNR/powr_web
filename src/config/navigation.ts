@@ -1,4 +1,4 @@
-import { Library, Zap, BookOpen, TestTube } from 'lucide-react';
+import { Library, Dumbbell, BookOpen, TestTube } from 'lucide-react';
 import { NavigationTab } from '@/types/navigation';
 
 const allTabs: NavigationTab[] = [
@@ -10,7 +10,7 @@ const allTabs: NavigationTab[] = [
   {
     id: 'workout',
     label: 'Workout',
-    icon: Zap, // Active workout tab - energy/power theme
+    icon: Dumbbell, // Active workout tab - fitness/strength theme
     notificationDot: false, // Will be set dynamically if workout is active
   },
   {

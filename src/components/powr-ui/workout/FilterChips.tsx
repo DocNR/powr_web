@@ -44,8 +44,8 @@ export function FilterChips({
               "flex-shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-all duration-200",
               "min-h-[44px] touch-manipulation", // Ensure 44px touch target
               isSelected
-                ? "bg-orange-500 text-white hover:bg-orange-600 border-orange-500"
-                : "bg-white text-gray-700 border-gray-300 hover:border-orange-300 hover:text-orange-600"
+                ? "bg-primary text-white hover:bg-primary/90 border-primary"
+                : "bg-white text-gray-700 border-gray-300 hover:border-primary/30 hover:text-primary"
             )}
           >
             {filter.icon && (

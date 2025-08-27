@@ -87,9 +87,9 @@ export function AppHeader({
           icon: Smartphone,
           label: 'Amber Mobile',
           description: 'Connected to Amber app',
-          color: 'bg-orange-500',
-          textColor: 'text-orange-700',
-          bgColor: 'bg-orange-50'
+          color: 'bg-primary',
+          textColor: 'text-primary',
+          bgColor: 'bg-primary/10'
         };
       case 'readOnly':
         return {

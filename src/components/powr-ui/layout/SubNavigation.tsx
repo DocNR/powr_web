@@ -18,7 +18,7 @@ export function SubNavigation({ items, activeItem, onItemChange }: SubNavigation
           onClick={() => onItemChange(item.id)}
           className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${
             activeItem === item.id
-              ? 'border-orange-500 text-orange-500'
+              ? 'border-primary text-primary'
               : 'border-transparent text-muted-foreground hover:text-foreground'
           }`}
         >
