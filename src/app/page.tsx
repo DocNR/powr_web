@@ -3,12 +3,12 @@
 /**
  * POWR Workout PWA - Landing Page
  * 
- * Revolutionary fitness tracking with data control and Nostr integration.
- * Emphasizes user autonomy and the decentralized fitness movement.
+ * User-experience focused fitness tracking with data control.
+ * Emphasizes fitness value first, with technical benefits as credibility multipliers.
  */
 
 import { useEffect, useState } from 'react';
-import { Shield, Globe, Unlock, Zap, Users, ArrowRight } from 'lucide-react';
+import { Shield, Globe, Unlock, Zap, Users, ArrowRight, Github, BookOpen } from 'lucide-react';
 import { useIsAuthenticated, useEphemeralLogin, useAutoLogin } from '@/lib/auth/hooks';
 import { initializeNDK } from '@/lib/ndk';
 import { triggerLogin } from '@/lib/auth/nostrLoginBridge';
@@ -89,20 +89,30 @@ export default function Home() {
             <div className="flex flex-col">
               <span className="text-xl font-bold font-mono-tech text-white">POWR</span>
               <span className="text-xs text-gray-400 font-mono-tech hidden sm:block">
-                Proof of Workout over Relays
+                Fitness that travels with you
               </span>
             </div>
           </div>
-          <a 
-            href="https://njump.me" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="hidden sm:flex"
-          >
-            <Badge variant="secondary" className="font-mono-tech hover:bg-secondary/80 transition-colors cursor-pointer">
-              Powered by Nostr
-            </Badge>
-          </a>
+          <div className="flex items-center gap-3">
+            <a 
+              href="https://github.com/DocNR/powr_web" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-gray-400 hover:text-white transition-colors"
+            >
+              <Github className="h-5 w-5" />
+            </a>
+            <a 
+              href="https://nostr.com" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="hidden sm:flex"
+            >
+              <Badge variant="secondary" className="font-mono-tech hover:bg-secondary/80 transition-colors cursor-pointer">
+                Built on Nostr
+              </Badge>
+            </a>
+          </div>
         </div>
       </header>
 
@@ -112,28 +122,29 @@ export default function Home() {
           {/* Main Headline */}
           <div className="space-y-4">
             <h1 className="text-4xl sm:text-6xl font-bold tracking-tight font-mono-tech text-white">
-              Your Fitness,{' '}
+              Your Workouts,{' '}
               <span className="bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-                Your Rules
+                Your Community,
               </span>
+              {' '}Your Control
             </h1>
             <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-              Control your data. Connect with athletes worldwide. 
-              Join the decentralized fitness revolution.
+              Track workouts, connect with athletes, and control your fitness journey.
+              Simple tracking that works everywhere.
             </p>
           </div>
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                <Button 
-                  variant="primary-gradient" 
-                  size="lg" 
-                  className="w-full sm:w-auto"
-                  onClick={() => triggerLogin('welcome-login')}
-                >
-                  Login
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
+            <Button 
+              variant="primary-gradient" 
+              size="lg" 
+              className="w-full sm:w-auto"
+              onClick={() => triggerLogin('welcome-login')}
+            >
+              Start Tracking
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
             <Button 
               variant="secondary" 
               size="lg" 
@@ -168,64 +179,106 @@ export default function Home() {
         {/* Features Grid */}
         <div className="max-w-5xl mx-auto mt-24">
           <div className="grid md:grid-cols-3 gap-8">
-            {/* Control Your Data */}
+            {/* Simple Workout Tracking */}
+            <Card className="border-0 bg-gray-800/50 backdrop-blur-sm">
+              <CardContent className="p-8 text-center space-y-4">
+                <div className="w-12 h-12 mx-auto bg-primary/10 rounded-lg flex items-center justify-center">
+                  <Zap className="h-6 w-6 text-primary" />
+                </div>
+                <h3 className="text-xl font-semibold text-white">Simple Workout Tracking</h3>
+                <p className="text-gray-300">
+                  Log exercises, sets, and reps. Build your personal workout library 
+                  and track your progress over time.
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* Global Community */}
+            <Card className="border-0 bg-gray-800/50 backdrop-blur-sm">
+              <CardContent className="p-8 text-center space-y-4">
+                <div className="w-12 h-12 mx-auto bg-primary/10 rounded-lg flex items-center justify-center">
+                  <Users className="h-6 w-6 text-primary" />
+                </div>
+                <h3 className="text-xl font-semibold text-white">Open Community</h3>
+                <p className="text-gray-300">
+                  Connect with other athletes using open protocols. Your social connections 
+                  aren't trapped in any single app.
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* You Control Your Data */}
             <Card className="border-0 bg-gray-800/50 backdrop-blur-sm">
               <CardContent className="p-8 text-center space-y-4">
                 <div className="w-12 h-12 mx-auto bg-primary/10 rounded-lg flex items-center justify-center">
                   <Shield className="h-6 w-6 text-primary" />
                 </div>
-                <h3 className="text-xl font-semibold text-white">Control Your Data</h3>
+                <h3 className="text-xl font-semibold text-white">You Control Your Data</h3>
                 <p className="text-gray-300">
-                  Your workouts stay with you, not locked in an app. 
-                  Switch platforms anytime, keep your progress forever.
-                </p>
-              </CardContent>
-            </Card>
-
-            {/* Connect Globally */}
-            <Card className="border-0 bg-gray-800/50 backdrop-blur-sm">
-              <CardContent className="p-8 text-center space-y-4">
-                <div className="w-12 h-12 mx-auto bg-primary/10 rounded-lg flex items-center justify-center">
-                  <Globe className="h-6 w-6 text-primary" />
-                </div>
-                <h3 className="text-xl font-semibold text-white">Connect Globally</h3>
-                <p className="text-gray-300">
-                  Join athletes worldwide on the open Nostr network. 
-                  Share workouts, find motivation, build community.
-                </p>
-              </CardContent>
-            </Card>
-
-            {/* No Lock-in */}
-            <Card className="border-0 bg-gray-800/50 backdrop-blur-sm">
-              <CardContent className="p-8 text-center space-y-4">
-                <div className="w-12 h-12 mx-auto bg-primary/10 rounded-lg flex items-center justify-center">
-                  <Unlock className="h-6 w-6 text-primary" />
-                </div>
-                <h3 className="text-xl font-semibold text-white">No Lock-in</h3>
-                <p className="text-gray-300">
-                  Break free from app ecosystems. Your fitness journey 
-                  belongs to you, not to any single company.
+                  Your workouts are secured with your keys, not locked in our database. 
+                  Keep your fitness journey with you, forever.
                 </p>
               </CardContent>
             </Card>
           </div>
         </div>
 
-        {/* Social Proof / Revolution Message */}
+        {/* Future-Focused Section */}
+        <div className="max-w-4xl mx-auto mt-24 text-center space-y-8">
+          <h2 className="text-2xl font-semibold text-white">Building the Foundation for Open Fitness</h2>
+          
+          <div className="grid md:grid-cols-2 gap-6">
+            <Card className="border-0 bg-gray-800/30">
+              <CardContent className="p-6 text-left">
+                <h3 className="font-semibold text-white mb-2">Today</h3>
+                <ul className="text-sm text-gray-300 space-y-1">
+                  <li>• Track workouts and build your library</li>
+                  <li>• Connect with athletes globally</li>
+                  <li>• Control your data with your keys</li>
+                  <li>• Works offline, syncs everywhere</li>
+                </ul>
+              </CardContent>
+            </Card>
+            
+            <Card className="border-0 bg-gray-800/30">
+              <CardContent className="p-6 text-left">
+                <h3 className="font-semibold text-white mb-2">Tomorrow</h3>
+                <ul className="text-sm text-gray-300 space-y-1">
+                  <li>• Full ecosystem of compatible apps</li>
+                  <li>• Your data works across all fitness platforms</li>
+                  <li>• Enhanced analytics and insights</li>
+                  <li>• Built-in payments and challenges</li>
+                </ul>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Trust Indicators */}
         <div className="max-w-3xl mx-auto mt-24 text-center space-y-6">
           <div className="flex items-center justify-center gap-2 text-sm text-gray-400">
             <Users className="h-4 w-4" />
-            <span>Join tens of athletes taking control of their data</span>
+            <span>Join athletes who've chosen control over lock-in</span>
           </div>
           
           <div className="bg-gray-800/30 rounded-lg p-6 border border-gray-700">
-            <p className="text-lg font-medium mb-2 text-white">
-              &ldquo;The future of fitness is open, decentralized, and user-controlled.&rdquo;
+            <p className="text-lg font-medium mb-4 text-white">
+              "Your Keys, Your Control, Your Fitness Journey"
             </p>
-            <p className="text-sm text-gray-300">
-              Built on Nostr protocol • No ads • No tracking • No vendor lock-in
-            </p>
+            <div className="flex flex-wrap items-center justify-center gap-4 text-sm text-gray-300">
+              <span className="flex items-center gap-1">
+                <Shield className="h-3 w-3" />
+                No ads, no tracking
+              </span>
+              <span className="flex items-center gap-1">
+                <Unlock className="h-3 w-3" />
+                No vendor lock-in
+              </span>
+              <span className="flex items-center gap-1">
+                <Github className="h-3 w-3" />
+                Open source
+              </span>
+            </div>
           </div>
         </div>
       </main>
@@ -233,20 +286,33 @@ export default function Home() {
       {/* Footer */}
       <footer className="container mx-auto px-6 py-12 mt-24 border-t border-gray-700">
         <div className="max-w-4xl mx-auto text-center space-y-4">
-          <div className="flex items-center justify-center gap-2 text-sm text-gray-400">
-            <span>Powered by</span>
+          <div className="flex items-center justify-center gap-4 text-sm">
             <a 
-              href="https://nstart.me" 
+              href="https://nostr.com" 
               target="_blank" 
               rel="noopener noreferrer"
+              className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
             >
-              <Badge variant="outline" className="text-xs font-mono-tech hover:bg-gray-700/80 transition-colors cursor-pointer border-gray-600 text-gray-300">
-                Nostr Protocol
+              <Badge variant="outline" className="text-xs font-mono-tech border-gray-600 text-gray-300 hover:bg-gray-700/80 transition-colors">
+                Learn about Nostr
               </Badge>
             </a>
+            <a 
+              href="https://github.com/DocNR/powr_web" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
+            >
+              <Github className="h-3 w-3" />
+              <span className="text-xs">View Code</span>
+            </a>
+            <div className="flex items-center gap-2 text-gray-400">
+              <BookOpen className="h-3 w-3" />
+              <span className="text-xs">Blog Coming Soon</span>
+            </div>
           </div>
           <p className="text-xs text-gray-400">
-            POWR never stores your private keys. Your data, your control.
+            POWR never stores your private keys. Your privacy depends on keeping your keys secure.
           </p>
         </div>
       </footer>
