@@ -30,4 +30,4 @@ export const navigationTabs: NavigationTab[] = process.env.NODE_ENV === 'product
   ? allTabs.filter(tab => tab.id !== 'test')
   : allTabs;
 
-export const defaultTab = 'library';
+export const defaultTab = 'workout';

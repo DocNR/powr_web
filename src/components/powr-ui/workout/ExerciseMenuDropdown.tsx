@@ -49,8 +49,19 @@ export const ExerciseMenuDropdown: React.FC<ExerciseMenuDropdownProps> = ({
   onExercisePreferences,
   className = ''
 }) => {
+  const [isOpen, setIsOpen] = React.useState(false);
+
   return (
-    <DropdownMenu>
+    <>
+      {/* Backdrop blur when dropdown is open */}
+      {isOpen && (
+        <div 
+          className="dropdown-backdrop"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+      
+      <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
         <button 
           className={`text-primary hover:text-primary/80 transition-colors p-1 -m-1 cursor-pointer hover:bg-primary/10 rounded ${className}`}
@@ -124,7 +135,8 @@ export const ExerciseMenuDropdown: React.FC<ExerciseMenuDropdownProps> = ({
             </DropdownMenuItem>
           )}
         </DropdownMenuContent>
-    </DropdownMenu>
+      </DropdownMenu>
+    </>
   );
 };
 

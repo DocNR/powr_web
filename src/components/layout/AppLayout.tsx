@@ -27,20 +27,6 @@ export function AppLayout() {
   const { activeTab, setActiveTab } = useNavigation();
   const { getActiveSubTab, setActiveSubTab } = useSubNavigation();
   const mainScrollRef = useRef<HTMLElement>(null);
-
-  // Reset scroll position when tab changes (mobile only)
-  useEffect(() => {
-    if (isMobile && mainScrollRef.current) {
-      // Small delay to ensure DOM has updated
-      const timer = setTimeout(() => {
-        if (mainScrollRef.current) {
-          mainScrollRef.current.scrollTop = 0;
-        }
-      }, 0);
-
-      return () => clearTimeout(timer);
-    }
-  }, [activeTab, isMobile]);
   
   // Authentication hooks
   const pubkey = usePubkey();
@@ -48,6 +34,32 @@ export function AppLayout() {
   
   const subNavItems = getSubNavigation(activeTab);
   const activeSubTab = getActiveSubTab(activeTab);
+
+  // Reset scroll position when tab or sub-tab changes (mobile only)
+  useEffect(() => {
+    if (isMobile && mainScrollRef.current) {
+      // Small delay to ensure DOM has updated
+      const timer = setTimeout(() => {
+        if (mainScrollRef.current) {
+          // Reset main container scroll
+          mainScrollRef.current.scrollTop = 0;
+          
+          // Also reset any nested scrollable containers within the current tab
+          const scrollableElements = mainScrollRef.current.querySelectorAll(
+            '[data-scrollable], .overflow-y-auto, .overflow-auto, [style*="overflow-y: auto"], [style*="overflow: auto"]'
+          );
+          
+          scrollableElements.forEach((element) => {
+            if (element instanceof HTMLElement) {
+              element.scrollTop = 0;
+            }
+          });
+        }
+      }, 0);
+
+      return () => clearTimeout(timer);
+    }
+  }, [activeTab, activeSubTab, isMobile]);
   
   const handleSubTabChange = (subTabId: string) => {
     setActiveSubTab(activeTab, subTabId);

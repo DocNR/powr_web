@@ -13,6 +13,7 @@ import { CalendarBar, WorkoutCard, ScrollableGallery, SearchableWorkoutDiscovery
 import { WorkoutSummaryModal } from '@/components/powr-ui/workout/WorkoutSummaryModal';
 import WorkoutCardSkeleton from '@/components/powr-ui/workout/WorkoutCardSkeleton';
 import { useWorkoutData } from '@/providers/WorkoutDataProvider';
+import { useWorkoutHistory } from '@/providers/WorkoutHistoryProvider';
 import { useWorkoutContext } from '@/hooks/useWorkoutContext';
 
 export default function WorkoutsTab() {
@@ -28,7 +29,6 @@ export default function WorkoutsTab() {
   const {
     socialWorkouts, // Now contains templates with social proof
     discoveryTemplates,
-    workoutIndicators,
     rawEventData,
     isLoading,
     error,
@@ -38,6 +38,18 @@ export default function WorkoutsTab() {
     hasMoreTemplates,
     isLoadingMore
   } = useWorkoutData();
+
+  // ✅ NEW: Get user's actual workout records for calendar indicators
+  const { workoutRecords } = useWorkoutHistory();
+
+  // ✅ NEW: Generate workout indicators from user's actual 1301 records
+  const workoutIndicators = useMemo(() => {
+    return workoutRecords.slice(0, 20).map(workout => ({
+      date: new Date(workout.createdAt), // Use actual workout completion date
+      count: 1,
+      type: 'completed' as const
+    }));
+  }, [workoutRecords]);
 
   // Global Workout Context - replaces local machine
   const { workoutState, workoutSend } = useWorkoutContext();
@@ -229,12 +241,6 @@ export default function WorkoutsTab() {
     workoutSend({ type: 'CLOSE_SUMMARY' });
   };
 
-  const handleAuthorClick = (pubkey: string) => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('👤 View author profile:', pubkey);
-    }
-    // TODO: Navigate to author profile
-  };
 
   const handleMenuAction = (action: string, workoutId: string) => {
     if (process.env.NODE_ENV === 'development') {
@@ -291,7 +297,6 @@ export default function WorkoutsTab() {
           variant="hero"
           workout={powrWOD}
           onSelect={handleWorkoutSelect}
-          onAuthorClick={handleAuthorClick}
           showImage={true}
           showAuthor={false}
           showStats={true}
@@ -374,10 +379,13 @@ export default function WorkoutsTab() {
                         triedByPubkey: workout.socialProof.triedByPubkey, // This is the key field that was missing!
                         completedAt: workout.socialProof.completedAt
                       },
-                      eventId: workout.eventId
+                      eventId: workout.eventId,
+                      // Add required Nostr event fields for WorkoutCard (use fallback values since SocialWorkout doesn't have these)
+                      eventTags: [['t', 'fitness']],
+                      eventContent: JSON.stringify({ description: workout.description }),
+                      eventKind: 33402
                     }}
                     onSelect={handleWorkoutSelect}
-                    onAuthorClick={handleAuthorClick}
                     showImage={true}
                     showAuthor={true}
                     showStats={true}
@@ -455,36 +463,26 @@ export default function WorkoutsTab() {
           content: (workoutState.context.resolvedTemplate as { description?: string })?.description || 
                    (workoutState.matches('setup') ? 'Resolving workout details from Nostr network...' : 'Loading workout description...'),
           
-          // ✅ CRITICAL FIX: Pass resolved data directly from machine context
-          resolvedTemplate: workoutState.context.resolvedTemplate as {
-            name?: string;
-            description?: string;
-            exercises?: Array<{
-              exerciseRef: string;
-              sets?: number;
-              reps?: number;
-              weight?: number;
-            }>;
-          },
+          // ✅ CRITICAL FIX: Pass resolved data directly from machine context with proper type handling
+          resolvedTemplate: workoutState.context.resolvedTemplate ? {
+            name: (workoutState.context.resolvedTemplate as { name?: string })?.name || 'Loading...',
+            description: (workoutState.context.resolvedTemplate as { description?: string })?.description || 'Loading workout details...',
+            exercises: (workoutState.context.resolvedTemplate as { exercises?: Array<{ exerciseRef: string; sets?: number; reps?: number; weight?: number }> })?.exercises || []
+          } : undefined,
           resolvedExercises: workoutState.context.resolvedExercises as Array<{
             id: string;
             name: string;
             equipment: string;
             description: string;
             muscleGroups: string[];
-          }>,
+          }> | undefined,
           
           // Also pass as loadedTemplate/loadedExercises for backward compatibility
-          loadedTemplate: workoutState.context.resolvedTemplate as {
-            name?: string;
-            description?: string;
-            exercises?: Array<{
-              exerciseRef: string;
-              sets?: number;
-              reps?: number;
-              weight?: number;
-            }>;
-          } | undefined,
+          loadedTemplate: workoutState.context.resolvedTemplate ? {
+            name: (workoutState.context.resolvedTemplate as { name?: string })?.name || 'Loading...',
+            description: (workoutState.context.resolvedTemplate as { description?: string })?.description || 'Loading workout details...',
+            exercises: (workoutState.context.resolvedTemplate as { exercises?: Array<{ exerciseRef: string; sets?: number; reps?: number; weight?: number }> })?.exercises || []
+          } : undefined,
           loadedExercises: workoutState.context.resolvedExercises as Array<{
             id: string;
             name: string;

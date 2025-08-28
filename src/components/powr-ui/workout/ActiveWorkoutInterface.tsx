@@ -6,7 +6,6 @@ import { Button, WorkoutTimer } from '@/components/powr-ui';
 import { ExerciseSection } from './ExerciseSection';
 import { ExercisePicker } from './ExercisePicker';
 import { SupersetCreationModal } from './SupersetCreationModal';
-import { SupersetGroup } from './SupersetGroup';
 import { ExerciseReorderModal } from './ExerciseReorderModal';
 import { WorkoutImageHandler } from './WorkoutImageHandler';
 import { ExerciseDetailModal } from '@/components/library/ExerciseDetailModal';
@@ -15,6 +14,7 @@ import { WorkoutMenuDropdown } from './WorkoutMenuDropdown';
 import { WorkoutDetailModal } from './WorkoutDetailModal';
 import { WorkoutDescription } from './WorkoutDescription';
 import { useWeightUnits } from '@/providers/WeightUnitsProvider';
+import { usePWA } from '@/hooks/usePWA';
 import { ArrowLeft, Square, Plus } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { ConfirmationDialog } from '@/components/powr-ui/primitives/ConfirmationDialog';
@@ -121,6 +121,9 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
   
   // ✅ WEIGHT UNIT FIX: Get weight unit for component keys
   const { weightUnit } = useWeightUnits();
+  
+  // ✅ PWA SAFE AREA: Get iOS PWA detection for safe area handling
+  const { isIOSPWA } = usePWA();
   
   
   // ✅ ADDED: Select extraSetsRequested from actor context (THE FIX!)
@@ -625,35 +628,26 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
                 </div>
               </div>
 
-              {/* Finish Button Only */}
-              <Button
-                variant="workout-success"
-                onClick={() => setShowFinishDialog(true)}
-                className="px-6"
-              >
-                Finish
-              </Button>
+              {/* Menu Dropdown */}
+              <WorkoutMenuDropdown 
+                onMenuAction={(action) => {
+                  console.log('🔧 Workout menu action:', action);
+                  if (action === 'template-info') {
+                    setShowTemplateInfo(true);
+                  }
+                  // TODO: Handle other workout menu actions in Phase 2, Item 6
+                }}
+                workoutData={workoutData}
+                templateData={templateData}
+              />
             </div>
 
-            {/* Workout Title and Description Section with Menu */}
+            {/* Workout Title and Description Section */}
             {(workoutData?.title || templateData?.description) && (
               <div className="px-4 py-3 border-b border-border bg-muted/30">
-                <div className="flex items-center justify-between mb-1">
-                  <h2 className="text-lg font-semibold text-foreground">
-                    {workoutData?.title || 'Active Workout'}
-                  </h2>
-                  <WorkoutMenuDropdown 
-                    onMenuAction={(action) => {
-                      console.log('🔧 Workout menu action:', action);
-                      if (action === 'template-info') {
-                        setShowTemplateInfo(true);
-                      }
-                      // TODO: Handle other workout menu actions in Phase 2, Item 6
-                    }}
-                    workoutData={workoutData}
-                    templateData={templateData}
-                  />
-                </div>
+                <h2 className="text-lg font-semibold text-foreground mb-2">
+                  {workoutData?.title || 'Active Workout'}
+                </h2>
                 {templateData?.description && (
                   <WorkoutDescription 
                     description={templateData.description}
@@ -707,8 +701,18 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
               </div>
             </div>
 
-            {/* Bottom Action Bar */}
-            <div className="p-4 border-t border-border bg-background flex-shrink-0">
+            {/* Bottom Action Bar with iOS PWA Safe Area */}
+            <div 
+              className="border-t border-border bg-background flex-shrink-0"
+              style={{ 
+                paddingTop: '1rem', // 16px - standard top padding
+                paddingLeft: '1rem', // 16px - standard left padding
+                paddingRight: '1rem', // 16px - standard right padding
+                paddingBottom: isIOSPWA 
+                  ? `calc(1rem + env(safe-area-inset-bottom, 0px) + 1.25rem)` // 16px + safe area + 20px extra for PWA home indicator
+                  : `calc(1rem + env(safe-area-inset-bottom, 0px))` // 16px + safe area - standard bottom padding
+              }}
+            >
               <div className="flex items-center justify-between gap-4">
                 {/* Cancel Button - Fixed for dark mode with semantic styling */}
                 <Button

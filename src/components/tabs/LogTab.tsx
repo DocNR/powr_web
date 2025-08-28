@@ -215,22 +215,6 @@ export function LogTab() {
 
   return (
     <>
-      {/* Header */}
-      <div className="text-center space-y-2 mb-6">
-        <div className="flex items-center justify-center gap-3">
-          <BookOpen className="h-8 w-8 text-[color:var(--workout-primary)]" />
-          <h1 className="text-3xl font-bold tracking-tight">Workout Log</h1>
-        </div>
-        <p className="text-muted-foreground text-lg">
-          Your complete workout history on Nostr
-        </p>
-        {isRefreshing && (
-          <p className="text-sm text-muted-foreground">
-            🔄 Refreshing workout history...
-          </p>
-        )}
-      </div>
-
       {/* Content */}
       <div className="space-y-6">
         {/* Search Input - matching LibraryTab styling */}
@@ -238,12 +222,21 @@ export function LogTab() {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             type="text"
-            placeholder="Search workouts and exercises..."
+            placeholder="Search your previous records"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10 h-12 text-base"
           />
         </div>
+
+        {/* Refresh indicator */}
+        {isRefreshing && (
+          <div className="text-center">
+            <p className="text-sm text-muted-foreground">
+              🔄 Refreshing workout history...
+            </p>
+          </div>
+        )}
 
         {/* Status Text */}
         {getStatusText() && (

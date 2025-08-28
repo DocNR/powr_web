@@ -48,6 +48,13 @@ formatting_rules:
 ## 🟡 High Priority
 
 ### User Experience Improvements
+- [ ] **Log Tab Real-Time Updates** (S)
+  - **Issue**: Log Tab not refreshing/updating with new completed workouts after publishing 1301 events
+  - **Context**: WorkoutHistoryProvider has multiple real-time update mechanisms (PARALLEL strategy, 'powr-workout-complete' event listener, pull-to-refresh) but updates not reflecting in UI
+  - **Impact**: Users don't see their completed workouts immediately after finishing them
+  - **Files**: `src/components/tabs/LogTab.tsx`, `src/providers/WorkoutHistoryProvider.tsx`
+  - **Investigation Needed**: Determine why existing real-time infrastructure isn't working
+
 - [ ] **Global Search Enhancement** (M)
   - Add filtering capabilities (difficulty, muscle groups, equipment, duration)
   - Expand search to include Kind 33401 (Exercise Templates)
