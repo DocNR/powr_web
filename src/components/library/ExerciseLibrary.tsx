@@ -86,8 +86,8 @@ export function ExerciseLibrary({ onShowOnboarding }: ExerciseLibraryProps) {
           );
           
           // Collection will be automatically refetched by the hook
-        } catch (error) {
-          console.error('[ExerciseLibrary] Failed to create collection:', error);
+        } catch {
+          // Collection creation failed - will be handled by error state
         } finally {
           setIsCreatingCollection(false);
         }
@@ -108,8 +108,6 @@ export function ExerciseLibrary({ onShowOnboarding }: ExerciseLibraryProps) {
     if (exerciseItem) {
       setSelectedExercise(exerciseItem);
       setIsModalOpen(true);
-    } else {
-      console.warn('[ExerciseLibrary] Exercise not found for ID:', exerciseId);
     }
   };
 
@@ -150,8 +148,7 @@ export function ExerciseLibrary({ onShowOnboarding }: ExerciseLibraryProps) {
       setConfirmDialog({ isOpen: false, exerciseRef: '', exerciseName: '' });
       
       // Data will automatically refresh via LibraryDataProvider
-    } catch (error) {
-      console.error('[ExerciseLibrary] Failed to remove exercise:', error);
+    } catch {
       showToast(
         'Failed to remove exercise',
         'error',
@@ -180,8 +177,7 @@ export function ExerciseLibrary({ onShowOnboarding }: ExerciseLibraryProps) {
           result.error || 'Failed to copy NADDR to clipboard'
         );
       }
-    } catch (error) {
-      console.error('[ExerciseLibrary] Failed to copy exercise NADDR:', error);
+    } catch {
       showToast(
         'Copy failed',
         'error',
@@ -441,7 +437,7 @@ export function ExerciseLibrary({ onShowOnboarding }: ExerciseLibraryProps) {
                   picture: undefined
                 } : undefined,
                 eventId: item.exercise.eventId,
-                eventTags: undefined,
+                eventTags: item.exercise.eventTags || [],
                 eventContent: item.exercise.description,
                 eventKind: 33401
               }}
@@ -479,7 +475,22 @@ export function ExerciseLibrary({ onShowOnboarding }: ExerciseLibraryProps) {
       {/* Exercise Detail Modal */}
       {selectedExercise && (
         <ExerciseDetailModal
-          exercise={selectedExercise.exercise}
+          exercise={{
+            id: selectedExercise.exercise.id,
+            name: selectedExercise.exercise.name,
+            description: selectedExercise.exercise.description,
+            equipment: selectedExercise.exercise.equipment || '',
+            difficulty: selectedExercise.exercise.difficulty,
+            muscleGroups: selectedExercise.exercise.muscleGroups || [],
+            format: selectedExercise.exercise.format,
+            formatUnits: selectedExercise.exercise.format_units,
+            authorPubkey: selectedExercise.exercise.authorPubkey || '',
+            createdAt: selectedExercise.exercise.createdAt || Math.floor(Date.now() / 1000),
+            eventId: selectedExercise.exercise.eventId,
+            eventTags: selectedExercise.exercise.eventTags || [], // ✅ FIXED: Now passing the actual tags!
+            eventContent: selectedExercise.exercise.description,
+            eventKind: 33401
+          }}
           isOpen={isModalOpen}
           onClose={handleModalClose}
         />

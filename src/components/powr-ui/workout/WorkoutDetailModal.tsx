@@ -36,6 +36,18 @@ interface Exercise {
   muscleGroups?: string[];
   equipment?: string;
   difficulty?: string;
+  // ✅ CRITICAL: Add NIP-92 media support fields to match ExpandableExerciseCard
+  id?: string;
+  eventTags?: string[][];
+  authorPubkey?: string;
+  createdAt?: number;
+  eventId?: string;
+  eventKind?: number;
+  eventContent?: string;
+  format?: string[];
+  formatUnits?: string[];
+  hashtags?: string[];
+  instructions?: string[];
 }
 
 interface TemplateData {
@@ -67,6 +79,14 @@ interface TemplateData {
     description: string;
     muscleGroups: string[];
     difficulty?: string;
+    // ✅ CRITICAL: Add tags property for NIP-92 media support
+    tags?: string[][];
+    // ✅ CRITICAL: Add missing fields for ExerciseDetailModal "Created by" card
+    authorPubkey?: string;
+    createdAt?: number;
+    eventId?: string;
+    eventKind?: number;
+    eventContent?: string;
   }>;
   // NEW: Support for workout machine context data
   workoutData?: {
@@ -97,6 +117,14 @@ interface TemplateData {
     equipment: string;
     description: string;
     muscleGroups: string[];
+    // ✅ CRITICAL: Add tags property for NIP-92 media support
+    tags?: string[][];
+    // ✅ CRITICAL: Add missing fields for ExerciseDetailModal "Created by" card
+    authorPubkey?: string;
+    createdAt?: number;
+    eventId?: string;
+    eventKind?: number;
+    eventContent?: string;
   }>;
   // NEW: Direct resolved template and exercises access
   resolvedTemplate?: {
@@ -179,8 +207,8 @@ export const WorkoutDetailModal = ({
   // Check if workout is already in user's library
   const isInLibrary = useMemo(() => {
     if (!templateData?.templateRef || !workoutLibrary.content) return false;
-    return workoutLibrary.content.some((template: any) => 
-      template.templateRef === templateData.templateRef
+    return workoutLibrary.content.some((template: unknown) => 
+      (template as { templateRef?: string }).templateRef === templateData.templateRef
     );
   }, [templateData?.templateRef, workoutLibrary.content]);
   
@@ -211,8 +239,7 @@ export const WorkoutDetailModal = ({
         );
         showToast("Added to Library", "success", `"${title}" has been saved to your workout library`);
       }
-    } catch (error) {
-      console.error('Library operation failed:', error);
+    } catch {
       showToast(
         "Error", 
         "error", 
@@ -225,7 +252,7 @@ export const WorkoutDetailModal = ({
     }
   }, [templateData?.templateRef, userPubkey, isInLibrary, title, showToast]);
   
-  // QUICK FIX: Map resolved template data to Exercise interface for ExpandableExerciseCard
+  // ✅ SIMPLE FIX: Pass full resolved exercise data to preserve NIP-92 media information
   const exercises = useMemo(() => {
     // Priority 1: Extract from resolvedTemplate.exercises (has correct sets/reps data)
     if (templateData?.resolvedTemplate?.exercises) {
@@ -235,15 +262,29 @@ export const WorkoutDetailModal = ({
           ex.id === templateExercise.exerciseRef.split(':')[2]
         );
         
+        // ✅ CRITICAL: Return the full resolved exercise data with NIP-92 tags preserved
+        // This enables ExerciseDetailModal to display media correctly via prepareExerciseForModal()
         return {
+          // ✅ CRITICAL: Spread the full resolved exercise data first to preserve NIP-92 imeta data
+          ...resolvedExercise,
+          
+          // Then override specific properties needed for ExpandableExerciseCard display
           name: resolvedExercise?.name || `Exercise ${index + 1}`,
           sets: templateExercise.sets || 1, // Use actual sets from template
           reps: templateExercise.reps || 1, // Use actual reps from template
           weight: templateExercise.weight,
           description: resolvedExercise?.description || 'No description available',
-          equipment: resolvedExercise?.equipment,
-          difficulty: resolvedExercise?.difficulty,
-          muscleGroups: resolvedExercise?.muscleGroups || []
+          muscleGroups: resolvedExercise?.muscleGroups || [],
+          
+          // ✅ CRITICAL FIX: Map 'tags' field to 'eventTags' for NIP-92 media support
+          eventTags: resolvedExercise?.tags || [],
+          
+          // ✅ CRITICAL FIX: Add missing fields for ExerciseDetailModal "Created by" card
+          authorPubkey: resolvedExercise?.authorPubkey,
+          createdAt: resolvedExercise?.createdAt,
+          eventId: resolvedExercise?.eventId,
+          eventKind: resolvedExercise?.eventKind || 33401,
+          eventContent: resolvedExercise?.eventContent
         };
       });
     }
@@ -251,13 +292,23 @@ export const WorkoutDetailModal = ({
     // Priority 2: Use resolved exercises directly (fallback)
     if (templateData?.resolvedExercises) {
       return templateData.resolvedExercises.map(ex => ({
-        name: ex.name,
+        // ✅ CRITICAL: Spread the full resolved exercise data first to preserve NIP-92 imeta data
+        ...ex,
+        
+        // Then override specific fallback properties
         sets: 3, // Fallback - will be fixed by service layer
         reps: 12, // Fallback - will be fixed by service layer
-        description: ex.description,
-        equipment: ex.equipment,
-        difficulty: ex.difficulty,
-        muscleGroups: ex.muscleGroups || []
+        muscleGroups: ex.muscleGroups || [],
+        
+        // ✅ CRITICAL FIX: Map 'tags' field to 'eventTags' for NIP-92 media support
+        eventTags: ex.tags || [],
+        
+        // ✅ CRITICAL FIX: Add missing fields for ExerciseDetailModal "Created by" card
+        authorPubkey: ex.authorPubkey,
+        createdAt: ex.createdAt,
+        eventId: ex.eventId,
+        eventKind: ex.eventKind || 33401,
+        eventContent: ex.eventContent
       }));
     }
     
@@ -533,17 +584,14 @@ export const WorkoutDetailModal = ({
                     <TabsContent value="exercises" className="mt-0 h-full overflow-y-auto data-[state=inactive]:hidden">
                       <div className="px-6 pt-4 pb-6 space-y-3">
                         {exercises.length > 0 ? (
-                          exercises.map((exercise: Exercise, index: number) => {
-                            console.log('[WorkoutDetailModal] Rendering exercise card with onExerciseClick:', !!onExerciseClick, 'for exercise:', exercise.name);
-                            return (
-                              <ExpandableExerciseCard
-                                key={index}
-                                exercise={exercise}
-                                index={index}
-                                onExerciseClick={onExerciseClick}
-                              />
-                            );
-                          })
+                          exercises.map((exercise: Exercise, index: number) => (
+                            <ExpandableExerciseCard
+                              key={index}
+                              exercise={exercise}
+                              index={index}
+                              onExerciseClick={onExerciseClick}
+                            />
+                          ))
                         ) : (
                           <>
                             <div className="p-4 border border-border rounded-lg bg-muted/30 text-center">

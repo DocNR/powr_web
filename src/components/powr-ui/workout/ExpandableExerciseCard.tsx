@@ -18,6 +18,18 @@ interface Exercise {
   muscleGroups?: string[];
   equipment?: string;
   difficulty?: string;
+  // ✅ CRITICAL: Add NIP-92 media support fields
+  id?: string;
+  eventTags?: string[][];
+  authorPubkey?: string;
+  createdAt?: number;
+  eventId?: string;
+  eventKind?: number;
+  eventContent?: string;
+  format?: string[];
+  formatUnits?: string[];
+  hashtags?: string[];
+  instructions?: string[];
 }
 
 interface ExpandableExerciseCardProps {
@@ -59,16 +71,6 @@ export const ExpandableExerciseCard = ({
                               exercise.equipment || 
                               exercise.difficulty;
 
-  // Debug logging to understand what content is available
-  console.log(`[ExpandableExerciseCard] ${exercise.name}:`, {
-    hasExpandableContent,
-    gifUrl: !!exercise.gifUrl,
-    personalRecords: !!exercise.personalRecords,
-    muscleGroups: exercise.muscleGroups?.length || 0,
-    equipment: exercise.equipment || 'none',
-    difficulty: exercise.difficulty || 'none',
-    onExerciseClick: !!onExerciseClick
-  });
 
   return (
     <div className="bg-muted/50 backdrop-blur-sm rounded-lg p-4 overflow-hidden transition-all duration-300 ease-in-out">

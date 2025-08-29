@@ -30,6 +30,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **NIP-92 Media Attachments Support COMPLETE (August 29, 2025) ✅**
+  
+  **User Impact**: Exercise templates now display YouTube video demonstrations, thumbnails, and rich media content. Users can view instructional videos directly from exercise detail modals with proper "View Video Demonstration" links.
+  
+  **Developer Notes**: Implemented comprehensive NIP-92 media support with POWR custom fields (purpose/context). Fixed critical data flow issues where imeta tags were lost in exercise library pathway. Enhanced WorkoutImageHandler with robust imeta parsing and video URL extraction.
+  
+  **Architecture Changes**: Established NIP-92 compliant media architecture with extensible POWR custom fields. Fixed dataParsingService.parseExerciseTemplate to preserve `tags: event.tags` for media attachments. Centralized media handling through WorkoutImageHandler component.
+
+### Fixed
+- **Exercise Detail Modal Media Display Issues COMPLETE (August 29, 2025) ✅**
+  
+  **User Impact**: Exercise detail modals now consistently display media content regardless of navigation pathway (exercise library, global search, or workout detail modal).
+  
+  **Developer Notes**: Fixed missing `tags: event.tags` preservation in dataParsingService.parseExerciseTemplate function. Corrected extractVideoUrls function to properly distinguish between video content and thumbnail images. Enhanced data flow chain from NDK events through parsing services to UI components.
+  
+  **Architecture Changes**: Established proper data flow patterns for NIP-92 media preservation across all exercise detail modal access pathways. Improved service layer integration for media-rich content handling.
+
+- **Console Logging Cleanup COMPLETE (August 29, 2025) ✅**
+  
+  **User Impact**: Cleaner browser console output with reduced diagnostic noise while maintaining proper error reporting for debugging.
+  
+  **Developer Notes**: Systematically removed diagnostic console.log statements from dataParsingService, dependencyResolution, ExerciseDetailModal, ExerciseLibrary, ExpandableExerciseCard, WorkoutDetailModal, WorkoutImageHandler, and useLibraryDataWithCollections. Preserved console.warn and console.error for critical error handling.
+  
+  **Architecture Changes**: Maintained service layer error handling patterns while eliminating console spam. Improved development experience with cleaner logging output.
+
 ### Fixed
 - **Global Search NADDR Event Kind Differentiation Bug Fix COMPLETE (August 28, 2025) ✅**
   

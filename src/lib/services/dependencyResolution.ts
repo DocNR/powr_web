@@ -83,6 +83,9 @@ export interface Exercise {
   authorPubkey: string;
   createdAt: number;
   eventId?: string;
+  
+  // NEW: Original event tags for NIP-92 media attachments
+  tags?: string[][];          // Original Nostr event tags (includes imeta tags)
 }
 
 // Validation result interface
@@ -271,7 +274,10 @@ export class DependencyResolutionService {
       instructions,
       authorPubkey: event.pubkey,
       createdAt: event.created_at || Math.floor(Date.now() / 1000),
-      eventId: event.id
+      eventId: event.id,
+      
+      // NEW: Preserve original event tags for NIP-92 media attachments
+      tags: event.tags
     };
   }
 
@@ -284,10 +290,6 @@ export class DependencyResolutionService {
     filter: NDKFilter, 
     cacheUsage: 'ONLY_CACHE' | 'CACHE_FIRST' | 'PARALLEL' | 'ONLY_RELAY' = 'CACHE_FIRST'
   ): Promise<Set<NDKEvent>> {
-    const startTime = Date.now();
-    
-    console.log(`[DependencyResolutionService] Fetching events with ${cacheUsage} strategy:`, filter);
-
     // ENHANCED PATTERN: Use Universal NDK Cache Service with proper interface
     let events: NDKEvent[];
     
@@ -307,9 +309,6 @@ export class DependencyResolutionService {
       default:
         events = await universalNDKCacheService.fetchCacheFirst([filter], { timeout: 10000 });
     }
-
-    const fetchTime = Date.now() - startTime;
-    console.log(`[DependencyResolutionService] ✅ Fetched ${events.length} events in ${fetchTime}ms using ${cacheUsage}`);
 
     // Convert array back to Set for backward compatibility
     return new Set(events);
@@ -340,9 +339,6 @@ export class DependencyResolutionService {
       return [];
     }
 
-    const startTime = Date.now();
-    console.log('[DependencyResolutionService] Resolving template dependencies:', templateRefs.length);
-
     // PROVEN PATTERN: Batched author grouping and d-tag collection
     const templateAuthors = new Set<string>();
     const templateDTags: string[] = [];
@@ -372,9 +368,6 @@ export class DependencyResolutionService {
     // Use DataParsingService for template parsing
     const templates = dataParsingService.parseWorkoutTemplatesBatch(Array.from(templateEvents));
 
-    const resolveTime = Date.now() - startTime;
-    console.log(`[DependencyResolutionService] ✅ Resolved ${templates.length} templates in ${resolveTime}ms`);
-
     return templates;
   }
 
@@ -386,9 +379,6 @@ export class DependencyResolutionService {
     if (exerciseRefs.length === 0) {
       return [];
     }
-
-    const startTime = Date.now();
-    console.log('[DependencyResolutionService] Resolving exercise references:', exerciseRefs.length);
 
     // Stage 1: Validate exercise reference format using DataParsingService
     const validRefs = exerciseRefs.filter(ref => {
@@ -423,9 +413,6 @@ export class DependencyResolutionService {
     // Stage 3: Use DataParsingService for batch parsing with validation
     const exercises = dataParsingService.parseExerciseTemplatesBatch(Array.from(exerciseEvents));
 
-    const resolveTime = Date.now() - startTime;
-    console.log(`[DependencyResolutionService] ✅ Resolved ${exercises.length} exercises in ${resolveTime}ms`);
-
     return exercises;
   }
 
@@ -439,15 +426,6 @@ export class DependencyResolutionService {
     totalTime: number;
   }> {
     const startTime = Date.now();
-    console.log('[DependencyResolutionService] Resolving all collection content:', collections.length);
-
-    // 🔍 DEBUG: Log collection details to understand what's happening
-    collections.forEach((collection, index) => {
-      console.log(`[DependencyResolutionService] 📋 Collection ${index + 1}: "${collection.name}"`, {
-        contentRefs: collection.contentRefs,
-        contentCount: collection.contentRefs.length
-      });
-    });
 
     // PROVEN PATTERN: Extract all template references from collections
     const allTemplateRefs = new Set<string>();
@@ -456,32 +434,17 @@ export class DependencyResolutionService {
     for (const collection of collections) {
       for (const contentRef of collection.contentRefs) {
         const [kind] = contentRef.split(':');
-        console.log(`[DependencyResolutionService] 🔍 Processing contentRef: "${contentRef}" (kind: ${kind})`);
         
         if (kind === '33402') {
           allTemplateRefs.add(contentRef);
-          console.log(`[DependencyResolutionService] ✅ Added template ref: ${contentRef}`);
         } else if (kind === '33401') {
           allDirectExerciseRefs.add(contentRef);
-          console.log(`[DependencyResolutionService] ✅ Added direct exercise ref: ${contentRef}`);
         }
       }
     }
 
-    console.log(`[DependencyResolutionService] 📊 Content extraction summary:`, {
-      templateRefs: Array.from(allTemplateRefs),
-      directExerciseRefs: Array.from(allDirectExerciseRefs),
-      templateCount: allTemplateRefs.size,
-      directExerciseCount: allDirectExerciseRefs.size
-    });
-
     // Resolve templates first
     const templates = await this.resolveTemplateDependencies(Array.from(allTemplateRefs));
-    console.log(`[DependencyResolutionService] 📦 Template resolution result:`, {
-      requested: allTemplateRefs.size,
-      resolved: templates.length,
-      templates: templates.map(t => ({ id: t.id, name: t.name }))
-    });
 
     // PROVEN PATTERN: Extract exercise references from resolved templates
     const allExerciseRefs = new Set<string>();
@@ -497,26 +460,10 @@ export class DependencyResolutionService {
       allExerciseRefs.add(directRef);
     }
 
-    console.log(`[DependencyResolutionService] 🏋️ Exercise reference summary:`, {
-      fromTemplates: templates.reduce((sum, t) => sum + t.exercises.length, 0),
-      directFromCollections: allDirectExerciseRefs.size,
-      totalUnique: allExerciseRefs.size,
-      exerciseRefs: Array.from(allExerciseRefs)
-    });
-
     // Resolve exercises
     const exercises = await this.resolveExerciseReferences(Array.from(allExerciseRefs));
-    console.log(`[DependencyResolutionService] 📦 Exercise resolution result:`, {
-      requested: allExerciseRefs.size,
-      resolved: exercises.length,
-      exercises: exercises.map(e => ({ id: e.id, name: e.name }))
-    });
 
     const totalTime = Date.now() - startTime;
-    console.log(`[DependencyResolutionService] ✅ Resolved complete dependency chain in ${totalTime}ms:`, {
-      templates: templates.length,
-      exercises: exercises.length
-    });
 
     return {
       templates,
@@ -531,21 +478,17 @@ export class DependencyResolutionService {
    */
   async resolveSingleTemplate(templateRef: string): Promise<ResolvedTemplate> {
     const startTime = Date.now();
-    console.log('[DependencyResolutionService] 🔧 Starting resolveSingleTemplate for:', templateRef);
 
     try {
       // Parse template reference: 33402:pubkey:d-tag
       const [kind, pubkey, dTag] = templateRef.split(':');
-      console.log('[DependencyResolutionService] 📋 Parsed template ref:', { kind, pubkey, dTag });
       
       if (kind !== '33402' || !pubkey || !dTag) {
         throw new Error(`Invalid template reference format: ${templateRef}`);
       }
 
       // Resolve the template
-      console.log('[DependencyResolutionService] 🔍 Resolving template dependencies...');
       const templates = await this.resolveTemplateDependencies([templateRef]);
-      console.log('[DependencyResolutionService] 📦 Template dependencies result:', templates);
       
       if (templates.length === 0) {
         console.error('[DependencyResolutionService] ❌ No templates found for:', templateRef);
@@ -553,28 +496,14 @@ export class DependencyResolutionService {
       }
 
       const template = templates[0];
-      console.log('[DependencyResolutionService] ✅ Found template:', {
-        id: template.id,
-        name: template.name,
-        exerciseCount: template.exercises.length,
-        exercises: template.exercises
-      });
 
       // Extract exercise references from this template
       const exerciseRefs = template.exercises.map(ex => ex.exerciseRef);
-      console.log('[DependencyResolutionService] 🏋️ Exercise references to resolve:', exerciseRefs);
 
       // Resolve exercises for this template
-      console.log('[DependencyResolutionService] 🔍 Resolving exercise references...');
       const exercises = await this.resolveExerciseReferences(exerciseRefs);
-      console.log('[DependencyResolutionService] 📦 Exercise resolution result:', exercises);
 
       const loadTime = Date.now() - startTime;
-      console.log(`[DependencyResolutionService] ✅ Resolved single template in ${loadTime}ms:`, {
-        template: template.name,
-        exercises: exercises.length,
-        exerciseDetails: exercises.map(ex => ({ id: ex.id, name: ex.name }))
-      });
 
       return {
         template,
@@ -592,9 +521,6 @@ export class DependencyResolutionService {
    * Optimized for workout history tab with CACHE_FIRST strategy
    */
   async resolveWorkoutRecords(userPubkey: string, limit: number = 50): Promise<WorkoutRecord[]> {
-    const startTime = Date.now();
-    console.log('[DependencyResolutionService] Resolving workout records for user:', userPubkey.slice(0, 8));
-
     const filter: NDKFilter = {
       kinds: [WORKOUT_EVENT_KINDS.WORKOUT_RECORD as number],
       authors: [userPubkey],
@@ -605,9 +531,6 @@ export class DependencyResolutionService {
 
     // Use DataParsingService for workout record parsing
     const workoutRecords = dataParsingService.parseWorkoutEventsBatch(Array.from(workoutEvents));
-
-    const resolveTime = Date.now() - startTime;
-    console.log(`[DependencyResolutionService] ✅ Resolved ${workoutRecords.length} workout records in ${resolveTime}ms`);
 
     return workoutRecords;
   }

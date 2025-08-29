@@ -164,7 +164,6 @@ export class DataParsingService {
       this.parseCache.delete(eventId);
       this.parseCache.set(eventId, result);
       
-      console.log(`[DataParsingService] 🎯 Cache HIT for ${eventId.slice(0, 8)}... (${this.metrics.cacheHits}/${this.metrics.cacheHits + this.metrics.cacheMisses} hit rate)`);
       return result;
     }
     
@@ -182,14 +181,12 @@ export class DataParsingService {
       const firstKey = this.parseCache.keys().next().value as string | undefined;
       if (firstKey) {
         this.parseCache.delete(firstKey);
-        console.log(`[DataParsingService] 🗑️ Cache evicted oldest entry: ${firstKey.slice(0, 8)}...`);
       }
     }
     
     // Store in cache
     this.parseCache.set(eventId, result);
     
-    console.log(`[DataParsingService] ⚡ Cache MISS for ${eventId.slice(0, 8)}... - parsed in ${parseTime}ms (cache size: ${this.parseCache.size})`);
     return result;
   }
 
@@ -212,9 +209,7 @@ export class DataParsingService {
    * Clear cache (useful for testing or memory management)
    */
   clearCache() {
-    const cacheSize = this.parseCache.size;
     this.parseCache.clear();
-    console.log(`[DataParsingService] 🧹 Cache cleared (${cacheSize} entries removed)`);
   }
   
   /**
@@ -280,7 +275,6 @@ export class DataParsingService {
         tags: event.tags
       };
       
-      console.log(`[DataParsingService] ✅ Parsed workout: ${title} (${exercises.length} sets)`);
       return parsed;
       
     } catch (error) {
@@ -343,10 +337,11 @@ export class DataParsingService {
         instructions,
         authorPubkey: event.pubkey,
         createdAt: event.created_at || Math.floor(Date.now() / 1000),
-        eventId: event.id
+        eventId: event.id,
+        // ✅ CRITICAL FIX: Preserve original event tags for NIP-92 media attachments
+        tags: event.tags
       };
       
-      console.log(`[DataParsingService] ✅ Parsed exercise template: ${name}`);
       return parsed;
       
     } catch (error) {
@@ -363,8 +358,6 @@ export class DataParsingService {
    * Format: ["exercise", "33401:pubkey:d-tag", "relay-url", "weight", "reps", "rpe", "set_type"]
    */
   parseWorkoutTemplate(event: NDKEvent): WorkoutTemplate | null {
-    console.log(`[DataParsingService] Parsing workout template: ${event.id}`);
-    
     try {
       const tagMap = new Map(event.tags.map(tag => [tag[0], tag]));
       
@@ -390,15 +383,6 @@ export class DataParsingService {
       const exercises: TemplateExercise[] = Array.from(exerciseGroups.entries()).map(([exerciseRef, tags]) => {
         // Use the first tag for the exercise parameters (they should all be the same for a template)
         const [, , , weight, reps, rpe, setType] = tags[0];
-        
-        console.log(`[DataParsingService] 🔍 TEMPLATE EXERCISE DEBUG: ${exerciseRef}`, {
-          exerciseRef,
-          tagCount: tags.length,
-          weight,
-          reps,
-          rpe,
-          setType
-        });
         
         return {
           exerciseRef,
@@ -429,7 +413,6 @@ export class DataParsingService {
         tags: event.tags
       };
       
-      console.log(`[DataParsingService] ✅ Parsed workout template: ${name} (${exercises.length} exercises)`);
       return parsed;
       
     } catch (error) {
@@ -443,8 +426,6 @@ export class DataParsingService {
    * Extracted from dependencyResolution.ts resolveCollections()
    */
   parseCollection(event: NDKEvent): Collection | null {
-    console.log(`[DataParsingService] Parsing collection: ${event.id}`);
-    
     try {
       const tagMap = new Map(event.tags.map(tag => [tag[0], tag]));
       
@@ -467,7 +448,6 @@ export class DataParsingService {
         eventId: event.id
       };
       
-      console.log(`[DataParsingService] ✅ Parsed collection: ${name} (${contentRefs.length} items)`);
       return parsed;
       
     } catch (error) {
@@ -481,8 +461,6 @@ export class DataParsingService {
    * Extracted from WorkoutDataProvider.tsx socialWorkouts useMemo
    */
   parseSocialWorkout(workoutEvent: NDKEvent, templateEvent?: NDKEvent): SocialWorkout | null {
-    console.log(`[DataParsingService] Parsing social workout: ${workoutEvent.id}`);
-    
     return this.getCachedParse(`social_${workoutEvent.id}`, () => {
       try {
         const parsedWorkout = this.getCachedParse(`workout_${workoutEvent.id}`, () => 
@@ -514,7 +492,6 @@ export class DataParsingService {
           tags: parsedWorkout.tags
         };
         
-        console.log(`[DataParsingService] ✅ Parsed social workout: ${social.title}`);
         return social;
         
       } catch (error) {
@@ -529,8 +506,6 @@ export class DataParsingService {
    * Extracted from WorkoutDataProvider.tsx discoveryTemplates useMemo
    */
   parseDiscoveryTemplate(templateEvent: NDKEvent): DiscoveryWorkout | null {
-    console.log(`[DataParsingService] Parsing discovery template: ${templateEvent.id}`);
-    
     return this.getCachedParse(`discovery_${templateEvent.id}`, () => {
       try {
         const parsedTemplate = this.getCachedParse(`template_${templateEvent.id}`, () => 
@@ -555,7 +530,6 @@ export class DataParsingService {
           tags: parsedTemplate.tags || []
         };
         
-        console.log(`[DataParsingService] ✅ Parsed discovery template: ${discovery.title}`);
         return discovery;
         
       } catch (error) {
@@ -570,8 +544,6 @@ export class DataParsingService {
    * Extracted from workoutAnalytics.ts parseExerciseReference()
    */
   parseExerciseReference(exerciseRef: string): ParsedExerciseRef {
-    console.log(`[DataParsingService] Parsing exercise reference: ${exerciseRef}`);
-    
     const parts = exerciseRef.split(':');
     if (parts.length !== 3) {
       return {
@@ -619,8 +591,6 @@ export class DataParsingService {
    * New method for template reference parsing
    */
   parseTemplateReference(templateRef: string): ParsedTemplateRef {
-    console.log(`[DataParsingService] Parsing template reference: ${templateRef}`);
-    
     const parts = templateRef.split(':');
     if (parts.length !== 3) {
       return {
@@ -672,8 +642,6 @@ export class DataParsingService {
     rawParams: string[],
     exerciseTemplate: Exercise
   ): InterpretedExercise | null {
-    console.log(`[DataParsingService] Parsing exercise with parameters: ${exerciseRef}`);
-    
     try {
       const refValidation = this.parseExerciseReference(exerciseRef);
       if (!refValidation.isValid) {
@@ -702,7 +670,6 @@ export class DataParsingService {
         setType: interpretation.backwardCompatibility.setType
       };
       
-      console.log(`[DataParsingService] ✅ Parsed exercise with parameters: ${exerciseTemplate.name}`);
       return interpreted;
       
     } catch (error) {
@@ -856,9 +823,6 @@ export class DataParsingService {
    * Optimized batch parsing for social feeds and discovery
    */
   parseWorkoutEventsBatch(events: NDKEvent[]): ParsedWorkoutEvent[] {
-    console.log(`[DataParsingService] Batch parsing ${events.length} workout events`);
-    
-    const startTime = Date.now();
     const parsed: ParsedWorkoutEvent[] = [];
     
     for (const event of events) {
@@ -868,9 +832,6 @@ export class DataParsingService {
       }
     }
     
-    const parseTime = Date.now() - startTime;
-    console.log(`[DataParsingService] ✅ Batch parsed ${parsed.length}/${events.length} workout events in ${parseTime}ms`);
-    
     return parsed;
   }
 
@@ -879,9 +840,6 @@ export class DataParsingService {
    * Optimized batch parsing for dependency resolution
    */
   parseExerciseTemplatesBatch(events: NDKEvent[]): Exercise[] {
-    console.log(`[DataParsingService] Batch parsing ${events.length} exercise templates`);
-    
-    const startTime = Date.now();
     const parsed: Exercise[] = [];
     const errors: string[] = [];
     
@@ -906,9 +864,6 @@ export class DataParsingService {
       console.groupEnd();
     }
     
-    const parseTime = Date.now() - startTime;
-    console.log(`[DataParsingService] ✅ Batch parsed ${parsed.length}/${events.length} exercise templates in ${parseTime}ms`);
-    
     return parsed;
   }
 
@@ -917,9 +872,6 @@ export class DataParsingService {
    * Optimized batch parsing for dependency resolution
    */
   parseWorkoutTemplatesBatch(events: NDKEvent[]): WorkoutTemplate[] {
-    console.log(`[DataParsingService] Batch parsing ${events.length} workout templates`);
-    
-    const startTime = Date.now();
     const parsed: WorkoutTemplate[] = [];
     
     for (const event of events) {
@@ -929,9 +881,6 @@ export class DataParsingService {
       }
     }
     
-    const parseTime = Date.now() - startTime;
-    console.log(`[DataParsingService] ✅ Batch parsed ${parsed.length}/${events.length} workout templates in ${parseTime}ms`);
-    
     return parsed;
   }
 
@@ -940,9 +889,6 @@ export class DataParsingService {
    * Optimized batch parsing for dependency resolution
    */
   parseCollectionsBatch(events: NDKEvent[]): Collection[] {
-    console.log(`[DataParsingService] Batch parsing ${events.length} collections`);
-    
-    const startTime = Date.now();
     const parsed: Collection[] = [];
     
     for (const event of events) {
@@ -951,9 +897,6 @@ export class DataParsingService {
         parsed.push(parsedCollection);
       }
     }
-    
-    const parseTime = Date.now() - startTime;
-    console.log(`[DataParsingService] ✅ Batch parsed ${parsed.length}/${events.length} collections in ${parseTime}ms`);
     
     return parsed;
   }

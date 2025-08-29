@@ -19,6 +19,11 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ['@radix-ui/react-icons'],
   },
   
+  // Disable image optimization to allow any external domain (perfect for user-generated content)
+  images: {
+    unoptimized: true,
+  },
+  
   // Configure headers for mobile development
   async headers() {
     return [

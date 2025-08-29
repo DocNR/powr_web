@@ -5,7 +5,7 @@ import { Button } from '@/components/powr-ui/primitives/Button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/powr-ui/primitives/Tabs';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/powr-ui/primitives/Avatar';
 import { Badge } from '@/components/powr-ui/primitives/Badge';
-import { ArrowLeft, TrendingUp, Calendar, Target, Plus, Check } from 'lucide-react';
+import { ArrowLeft, TrendingUp, Calendar, Target, Plus, Check, Play } from 'lucide-react';
 import { 
   Dialog, 
   DialogContent, 
@@ -17,11 +17,12 @@ import { WorkoutImageHandler } from '@/components/powr-ui/workout/WorkoutImageHa
 import { useProfile, getDisplayName, getAvatarUrl } from '@/hooks/useProfile';
 import { usePubkey } from '@/lib/auth/hooks';
 import { getNDKInstance } from '@/lib/ndk';
-import { NDKFilter, NDKEvent } from '@nostr-dev-kit/ndk';
+import { NDKFilter, NDKEvent, NDKKind } from '@nostr-dev-kit/ndk';
 import { exerciseAnalyticsService } from '@/lib/services/workoutAnalytics';
 import { libraryManagementService } from '@/lib/services/libraryManagement';
 import { useLibraryData } from '@/providers/LibraryDataProvider';
 import { useToast } from '@/providers/ToastProvider';
+import { prepareExerciseForModal, extractVideoUrls, extractYouTubeVideoId, type ExerciseModalData } from '@/lib/utils/exerciseModalData';
 import type { ExercisePerformanceAnalysis } from '@/lib/services/workoutAnalytics';
 
 interface ExerciseData {
@@ -80,6 +81,29 @@ export const ExerciseDetailModal = ({
   // Library state
   const [isAddingToLibrary, setIsAddingToLibrary] = useState(false);
 
+  // Prepare exercise data using centralized utility
+  const exerciseModalData = useMemo(() => {
+    if (!exercise) return null;
+    
+    try {
+      // Ensure eventTags is defined for the utility function
+      const exerciseWithTags = {
+        ...exercise,
+        eventTags: exercise.eventTags || []
+      };
+      return prepareExerciseForModal(exerciseWithTags);
+    } catch {
+      // Fallback to original exercise data
+      return exercise as ExerciseModalData;
+    }
+  }, [exercise]);
+
+  // Extract video data from prepared exercise
+  const videoData = useMemo(() => {
+    if (!exerciseModalData?.eventTags) return [];
+    return extractVideoUrls(exerciseModalData.eventTags);
+  }, [exerciseModalData]);
+
   // Check if exercise is in user's library
   const isInLibrary = useMemo(() => {
     if (!exercise || !exerciseLibrary.content) return false;
@@ -128,8 +152,7 @@ export const ExerciseDetailModal = ({
           `${exercise.name} has been added to your exercise library`
         );
       }
-    } catch (error) {
-      console.error('[ExerciseDetailModal] Library operation failed:', error);
+    } catch {
       showToast(
         "Error",
         "error",
@@ -155,7 +178,7 @@ export const ExerciseDetailModal = ({
     }
 
     const filter: NDKFilter = {
-      kinds: [1301],
+      kinds: [1301 as NDKKind],
       authors: [userPubkey],
       limit: 100
     };
@@ -307,10 +330,10 @@ export const ExerciseDetailModal = ({
       {isOpen && !hideBackground && (
         <div className="fixed inset-0 z-40 opacity-100">
           <WorkoutImageHandler
-            tags={exercise.eventTags}
-            content={exercise.eventContent || exercise.description}
-            eventKind={exercise.eventKind || 33401}
-            alt={exercise.name}
+            tags={exerciseModalData?.eventTags || exercise.eventTags}
+            content={exerciseModalData?.eventContent || exercise.eventContent || exercise.description}
+            eventKind={exerciseModalData?.eventKind || exercise.eventKind || 33401}
+            alt={exerciseModalData?.name || exercise.name}
             className="w-full h-full object-cover"
             fill={true}
             priority={true}
@@ -369,26 +392,11 @@ export const ExerciseDetailModal = ({
               </Button>
             </div>
 
-            {/* Exercise Image */}
-            <div className="flex-shrink-0 px-6 pt-4">
-              <div className="relative w-full h-48 rounded-lg overflow-hidden bg-muted/30">
-                <WorkoutImageHandler
-                  tags={exercise.eventTags}
-                  content={exercise.eventContent || exercise.description}
-                  eventKind={exercise.eventKind || 33401}
-                  alt={exercise.name}
-                  className="w-full h-full object-cover"
-                  fill={true}
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent" />
-              </div>
-            </div>
-
-            {/* Main content */}
+            {/* Main content - Tabs moved directly below header */}
             <div className="flex-1 flex flex-col overflow-hidden">
               <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-                {/* Fixed Tab Headers */}
-                <div className="px-6 flex-shrink-0 pt-4">
+                {/* Fixed Tab Headers with proper padding */}
+                <div className="px-6 flex-shrink-0 pt-6">
                   <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger 
                       value="overview"
@@ -436,12 +444,68 @@ export const ExerciseDetailModal = ({
                       </div>
 
                       {/* Exercise Description */}
-                      {exercise.description && (
+                      {exerciseModalData?.description && (
                         <div className="bg-muted/50 backdrop-blur-sm rounded-lg p-4">
                           <h4 className="text-foreground font-medium text-sm mb-3">Description</h4>
                           <p className="text-foreground text-sm leading-relaxed">
-                            {exercise.description}
+                            {exerciseModalData.description}
                           </p>
+                        </div>
+                      )}
+
+                      {/* Video Demonstration Section */}
+                      {videoData.length > 0 && (
+                        <div className="bg-muted/50 backdrop-blur-sm rounded-lg p-4">
+                          <h4 className="text-foreground font-medium text-sm mb-3 flex items-center gap-2">
+                            <Play className="h-4 w-4" />
+                            Video Demonstration
+                          </h4>
+                          <div className="space-y-3">
+                            {videoData.map((video, index) => (
+                              <div key={index} className="border border-border rounded-lg overflow-hidden">
+                                {video.isYouTube && video.videoId ? (
+                                  <div className="relative aspect-video">
+                                    <iframe
+                                      src={`https://www.youtube.com/embed/${video.videoId}`}
+                                      title={`${exerciseModalData?.name} demonstration ${index + 1}`}
+                                      className="w-full h-full"
+                                      frameBorder="0"
+                                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                      allowFullScreen
+                                    />
+                                  </div>
+                                ) : video.isDirectVideo ? (
+                                  <div className="relative aspect-video">
+                                    <video
+                                      src={video.url}
+                                      className="w-full h-full object-cover"
+                                      controls
+                                      preload="metadata"
+                                    >
+                                      Your browser does not support the video tag.
+                                    </video>
+                                  </div>
+                                ) : (
+                                  <div className="p-3 bg-background/50">
+                                    <a
+                                      href={video.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-sm text-primary hover:underline flex items-center gap-2"
+                                    >
+                                      <Play className="h-3 w-3" />
+                                      View demonstration video
+                                    </a>
+                                    {video.purpose && (
+                                      <p className="text-xs text-muted-foreground mt-1">
+                                        Purpose: {video.purpose}
+                                      </p>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       )}
 
@@ -452,20 +516,20 @@ export const ExerciseDetailModal = ({
                           <div>
                             <p className="text-xs text-muted-foreground mb-1">Equipment</p>
                             <Badge variant="secondary" className="text-xs">
-                              {exercise.equipment}
+                              {exerciseModalData?.equipment || exercise.equipment}
                             </Badge>
                           </div>
-                          {exercise.difficulty && (
+                          {(exerciseModalData?.difficulty || exercise.difficulty) && (
                             <div>
                               <p className="text-xs text-muted-foreground mb-1">Difficulty</p>
                               <Badge 
                                 variant={
-                                  exercise.difficulty === 'beginner' ? 'default' :
-                                  exercise.difficulty === 'intermediate' ? 'secondary' : 'destructive'
+                                  (exerciseModalData?.difficulty || exercise.difficulty) === 'beginner' ? 'default' :
+                                  (exerciseModalData?.difficulty || exercise.difficulty) === 'intermediate' ? 'secondary' : 'destructive'
                                 }
                                 className="text-xs"
                               >
-                                {exercise.difficulty}
+                                {exerciseModalData?.difficulty || exercise.difficulty}
                               </Badge>
                             </div>
                           )}
@@ -475,7 +539,7 @@ export const ExerciseDetailModal = ({
                         <div className="mt-4">
                           <p className="text-xs text-muted-foreground mb-2">Muscle Groups</p>
                           <div className="flex flex-wrap gap-1">
-                            {exercise.muscleGroups.map((muscle) => (
+                            {(exerciseModalData?.muscleGroups || exercise.muscleGroups).map((muscle) => (
                               <Badge key={muscle} variant="outline" className="text-xs">
                                 {muscle}
                               </Badge>

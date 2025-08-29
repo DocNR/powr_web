@@ -19,6 +19,11 @@ interface ImetaTag {
     width: number;
     height: number;
   };
+  // POWR custom fields (NIP-92 compliant extensions)
+  purpose?: 'cover' | 'icon' | 'demonstration' | 'thumbnail' | 'progress' | 'gallery';
+  context?: 'workout' | 'exercise' | 'user' | 'system';
+  blurhash?: string;
+  fallback?: string;
 }
 
 interface WorkoutImageHandlerProps {
@@ -67,41 +72,69 @@ export function WorkoutImageHandler({
     
     // Find imeta tags in the tags array
     for (const tag of tags) {
-      if (tag[0] === 'imeta') {
+      if (tag[0] === 'imeta' && tag[1]) {
+        
         const imetaData: ImetaTag = {
           url: '',
         };
         
-        // Parse imeta tag parameters (NIP-92 format: space-delimited key/value pairs)
-        for (let i = 1; i < tag.length; i++) {
-          const param = tag[i];
+        // NIP-92 format: single string with space-delimited key/value pairs
+        const imetaString = tag[1];
+        const parts = imetaString.split(' ');
+        
+        console.log('[WorkoutImageHandler] Parsing imeta string:', imetaString);
+        console.log('[WorkoutImageHandler] Split parts:', parts);
+        
+        // Parse key/value pairs
+        for (let i = 0; i < parts.length; i += 2) {
+          const key = parts[i];
+          const value = parts[i + 1];
           
-          // Each parameter is "key value" format
-          if (param.startsWith('url ')) {
-            imetaData.url = param.substring(4);
-          } else if (param.startsWith('m ')) {
-            imetaData.mimeType = param.substring(2);
-          } else if (param.startsWith('alt ')) {
-            imetaData.alt = param.substring(4);
-          } else if (param.startsWith('dim ')) {
-            const dimensions = param.substring(4).split('x');
-            if (dimensions.length === 2) {
-              imetaData.dimensions = {
-                width: parseInt(dimensions[0]),
-                height: parseInt(dimensions[1])
-              };
-            }
+          if (!key || !value) continue;
+          
+          switch (key) {
+            case 'url':
+              imetaData.url = value;
+              break;
+            case 'm':
+              imetaData.mimeType = value;
+              break;
+            case 'alt':
+              imetaData.alt = value;
+              break;
+            case 'dim':
+              const dimensions = value.split('x');
+              if (dimensions.length === 2) {
+                imetaData.dimensions = {
+                  width: parseInt(dimensions[0]),
+                  height: parseInt(dimensions[1])
+                };
+              }
+              break;
+            case 'blurhash':
+              imetaData.blurhash = value;
+              break;
+            case 'fallback':
+              imetaData.fallback = value;
+              break;
+            // POWR custom fields (NIP-92 compliant extensions)
+            case 'purpose':
+              imetaData.purpose = value as ImetaTag['purpose'];
+              break;
+            case 'context':
+              imetaData.context = value as ImetaTag['context'];
+              break;
           }
-          // Note: NIP-92 also supports blurhash, x (hash), fallback, etc.
-          // We can extend this as needed
         }
         
         if (imetaData.url) {
+          console.log('[WorkoutImageHandler] Parsed imeta data:', imetaData);
           images.push(imetaData);
         }
       }
     }
     
+    console.log('[WorkoutImageHandler] Final parsed images:', images);
     return images;
   }, [tags]);
 
@@ -114,17 +147,66 @@ export function WorkoutImageHandler({
 
   // Determine the best image to use
   const primaryImage = useMemo(() => {
-    // Priority: imeta tags > content URLs > fallback
-    if (imetaImages.length > 0 && imetaImages[0].url && isValidImageUrl(imetaImages[0].url)) {
-      return {
-        src: imetaImages[0].url,
-        alt: imetaImages[0].alt || alt,
-        width: imetaImages[0].dimensions?.width || width,
-        height: imetaImages[0].dimensions?.height || height
-      };
+    console.log('[WorkoutImageHandler] Determining primary image...');
+    console.log('[WorkoutImageHandler] imetaImages:', imetaImages);
+    console.log('[WorkoutImageHandler] contentImages:', contentImages);
+    
+    // Priority: image-compatible imeta tags > content URLs > fallback
+    if (imetaImages.length > 0) {
+      // First, try to find image-compatible media (thumbnails, covers, etc.)
+      const imageCompatibleMedia = imetaImages.filter(img => {
+        const isValid = isValidImageUrl(img.url);
+        const isImageType = img.mimeType?.startsWith('image/') || 
+                           img.purpose === 'thumbnail' || 
+                           img.purpose === 'cover' ||
+                           img.purpose === 'icon';
+        console.log('[WorkoutImageHandler] Checking media:', {
+          url: img.url,
+          mimeType: img.mimeType,
+          purpose: img.purpose,
+          isValid,
+          isImageType
+        });
+        return isValid && isImageType;
+      });
+      
+      if (imageCompatibleMedia.length > 0) {
+        // Prioritize by purpose: thumbnail > cover > icon > others
+        const priorityOrder = ['thumbnail', 'cover', 'icon', 'demonstration', 'progress', 'gallery'];
+        const sortedMedia = imageCompatibleMedia.sort((a, b) => {
+          const aIndex = priorityOrder.indexOf(a.purpose || '');
+          const bIndex = priorityOrder.indexOf(b.purpose || '');
+          return (aIndex === -1 ? 999 : aIndex) - (bIndex === -1 ? 999 : bIndex);
+        });
+        
+        const selectedImage = sortedMedia[0];
+        const result = {
+          src: selectedImage.url,
+          alt: selectedImage.alt || alt,
+          width: selectedImage.dimensions?.width || width,
+          height: selectedImage.dimensions?.height || height
+        };
+        console.log('[WorkoutImageHandler] Selected image-compatible media:', result);
+        return result;
+      }
+      
+      // Fallback to any valid imeta URL (including videos if no images available)
+      for (const img of imetaImages) {
+        if (isValidImageUrl(img.url)) {
+          const result = {
+            src: img.url,
+            alt: img.alt || alt,
+            width: img.dimensions?.width || width,
+            height: img.dimensions?.height || height
+          };
+          console.log('[WorkoutImageHandler] Selected fallback imeta media:', result);
+          return result;
+        }
+      }
     }
     
     if (contentImages.length > 0 && isValidImageUrl(contentImages[0])) {
+      console.log('[WorkoutImageHandler] Using content image:', contentImages[0]);
       return {
         src: contentImages[0],
         alt,
@@ -133,6 +215,7 @@ export function WorkoutImageHandler({
       };
     }
     
+    console.log('[WorkoutImageHandler] No valid images found, returning null');
     return null;
   }, [imetaImages, contentImages, alt, width, height]);
 
@@ -154,6 +237,11 @@ export function WorkoutImageHandler({
   const finalImageSrc = imageError || !primaryImage 
     ? getFallbackImage() 
     : primaryImage.src;
+
+  console.log('[WorkoutImageHandler] Final image selection:');
+  console.log('[WorkoutImageHandler] - imageError:', imageError);
+  console.log('[WorkoutImageHandler] - primaryImage:', primaryImage);
+  console.log('[WorkoutImageHandler] - finalImageSrc:', finalImageSrc);
 
   const finalAlt = primaryImage?.alt || alt;
   const finalWidth = primaryImage?.width || width;
@@ -223,19 +311,42 @@ export function WorkoutImageHandler({
 
 // Helper function to extract images from Nostr event
 export function extractImagesFromEvent(tags: string[][], content: string) {
-  // Parse imeta tags
+  // Parse imeta tags using correct NIP-92 format
   const imetaImages: ImetaTag[] = [];
   for (const tag of tags) {
-    if (tag[0] === 'imeta') {
+    if (tag[0] === 'imeta' && tag[1]) {
       const imetaData: ImetaTag = { url: '' };
-      for (let i = 1; i < tag.length; i++) {
-        const param = tag[i];
-        if (param.startsWith('url ')) {
-          imetaData.url = param.substring(4);
-        } else if (param.startsWith('alt ')) {
-          imetaData.alt = param.substring(4);
+      
+      // NIP-92 format: single string with space-delimited key/value pairs
+      const imetaString = tag[1];
+      const parts = imetaString.split(' ');
+      
+      // Parse key/value pairs
+      for (let i = 0; i < parts.length; i += 2) {
+        const key = parts[i];
+        const value = parts[i + 1];
+        
+        if (!key || !value) continue;
+        
+        switch (key) {
+          case 'url':
+            imetaData.url = value;
+            break;
+          case 'alt':
+            imetaData.alt = value;
+            break;
+          case 'm':
+            imetaData.mimeType = value;
+            break;
+          case 'purpose':
+            imetaData.purpose = value as ImetaTag['purpose'];
+            break;
+          case 'context':
+            imetaData.context = value as ImetaTag['context'];
+            break;
         }
       }
+      
       if (imetaData.url) {
         imetaImages.push(imetaData);
       }
@@ -255,13 +366,45 @@ export function extractImagesFromEvent(tags: string[][], content: string) {
 
 // Helper function to validate image URLs
 export function isValidImageUrl(url: string): boolean {
+  console.log('[isValidImageUrl] Validating URL:', url);
+  
   try {
     const urlObj = new URL(url);
+    console.log('[isValidImageUrl] Parsed URL - hostname:', urlObj.hostname, 'pathname:', urlObj.pathname);
+    
+    // Check for standard image extensions
     const validExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
-    return validExtensions.some(ext => 
-      urlObj.pathname.toLowerCase().endsWith(ext)
-    );
-  } catch {
+    const hasValidExtension = validExtensions.some(ext => urlObj.pathname.toLowerCase().endsWith(ext));
+    console.log('[isValidImageUrl] Has valid extension:', hasValidExtension);
+    
+    if (hasValidExtension) {
+      console.log('[isValidImageUrl] Valid - standard image extension');
+      return true;
+    }
+    
+    // Special handling for YouTube thumbnail URLs
+    const isYouTubeThumbnail = urlObj.hostname === 'img.youtube.com' && urlObj.pathname.includes('/vi/');
+    console.log('[isValidImageUrl] Is YouTube thumbnail:', isYouTubeThumbnail);
+    
+    if (isYouTubeThumbnail) {
+      console.log('[isValidImageUrl] Valid - YouTube thumbnail');
+      return true;
+    }
+    
+    // Special handling for other known image hosting services
+    const imageHosts = ['imgur.com', 'i.imgur.com', 'nostr.build', 'void.cat', 'nostrcheck.me'];
+    const isKnownImageHost = imageHosts.some(host => urlObj.hostname.includes(host));
+    console.log('[isValidImageUrl] Is known image host:', isKnownImageHost);
+    
+    if (isKnownImageHost) {
+      console.log('[isValidImageUrl] Valid - known image host');
+      return true;
+    }
+    
+    console.log('[isValidImageUrl] Invalid - no matching criteria');
+    return false;
+  } catch (error) {
+    console.log('[isValidImageUrl] Invalid - URL parsing error:', error);
     return false;
   }
 }

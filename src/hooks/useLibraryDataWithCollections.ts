@@ -48,6 +48,7 @@ export interface ExerciseLibraryItem {
     createdAt: number;
     eventId: string;
     hashtags: string[];
+    eventTags: string[][]; // ✅ ADDED: Preserve original Nostr event tags for NIP-92 media
   };
 }
 
@@ -154,7 +155,6 @@ export function useLibraryDataWithCollections(userPubkey: string | undefined): L
         setCollectionEvents(events);
         
       } catch (err) {
-        console.error('[useLibraryDataWithCollections] Failed to fetch collections:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch collections');
         setCollectionEvents([]);
       } finally {
@@ -222,7 +222,8 @@ export function useLibraryDataWithCollections(userPubkey: string | undefined): L
             authorPubkey: exercise.authorPubkey,
             createdAt: exercise.createdAt,
             eventId: exercise.eventId || '',
-            hashtags: exercise.hashtags
+            hashtags: exercise.hashtags,
+            eventTags: exercise.tags || [] // ✅ CRITICAL FIX: Preserve original event tags for NIP-92 media
           }
         }));
 
@@ -268,7 +269,6 @@ export function useLibraryDataWithCollections(userPubkey: string | undefined): L
         });
 
       } catch (err) {
-        console.error('[useLibraryDataWithCollections] Service layer integration failed:', err);
         setError(err instanceof Error ? err.message : 'Failed to resolve library content');
       } finally {
         setIsResolving(false);
@@ -310,7 +310,6 @@ export function useLibraryDataWithCollections(userPubkey: string | undefined): L
       setCollectionEvents(events);
       
     } catch (err) {
-      console.error('[useLibraryDataWithCollections] Refetch failed:', err);
       setError(err instanceof Error ? err.message : 'Failed to refetch collections');
     } finally {
       setIsLoading(false);
