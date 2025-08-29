@@ -19,6 +19,7 @@ import { ArrowLeft, Square, Plus } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { ConfirmationDialog } from '@/components/powr-ui/primitives/ConfirmationDialog';
 import { cn } from '@/lib/utils';
+import { exerciseModalResolutionService } from '@/lib/services/exerciseModalResolution';
 import type { 
   CompletedSet, 
   WorkoutData, 
@@ -81,6 +82,8 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
   const [showAddExercisePicker, setShowAddExercisePicker] = useState(false);
   const [showExerciseDetail, setShowExerciseDetail] = useState(false);
   const [selectedExerciseRef, setSelectedExerciseRef] = useState<string | null>(null);
+  const [selectedExerciseData, setSelectedExerciseData] = useState<any>(null);
+  const [exerciseResolving, setExerciseResolving] = useState(false);
   const [showSupersetPicker, setShowSupersetPicker] = useState(false);
   const [supersetTriggerExerciseIndex, setSupersetTriggerExerciseIndex] = useState<number | null>(null);
   const [showExerciseReorder, setShowExerciseReorder] = useState(false);
@@ -151,9 +154,9 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
   // ✅ Send function - direct from actorRef (from XState React docs)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const actorSend = (event: any) => {
-    // Only log important events to reduce console spam
-    if (event.type === 'COMPLETE_SET' || event.type === 'COMPLETE_SPECIFIC_SET' || event.type === 'COMPLETE_WORKOUT' || event.type === 'CANCEL_WORKOUT') {
-      console.log('🔧 ActiveWorkoutInterface: Sending event:', event.type, event);
+    // Only log critical events to reduce console spam
+    if (event.type === 'COMPLETE_WORKOUT' || event.type === 'CANCEL_WORKOUT') {
+      console.log('🔧 ActiveWorkoutInterface: Sending event:', event.type);
     }
     activeWorkoutActor.send(event);
   };
@@ -311,10 +314,29 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
   };
 
 
-  // NEW: Exercise detail modal handler
-  const handleExerciseNameClick = (exerciseRef: string) => {
+  // NEW: Exercise detail modal handler with facade service
+  const handleExerciseNameClick = async (exerciseRef: string) => {
     setSelectedExerciseRef(exerciseRef);
+    setExerciseResolving(true);
     setShowExerciseDetail(true);
+    
+    try {
+      // ✅ FIXED: Use facade service for consistent NIP-92 media preservation
+      const preparedExercise = await exerciseModalResolutionService.resolveFromReference(exerciseRef);
+      
+      console.log('🔧 ActiveWorkoutInterface: Resolved exercise for modal via facade:', {
+        exerciseRef,
+        hasEventTags: !!preparedExercise.eventTags,
+        eventTagsCount: preparedExercise.eventTags?.length || 0
+      });
+      
+      setSelectedExerciseData(preparedExercise);
+    } catch (error) {
+      console.error('🔧 ActiveWorkoutInterface: Failed to resolve exercise via facade:', error);
+      setSelectedExerciseData(null);
+    } finally {
+      setExerciseResolving(false);
+    }
   };
 
   // NEW: Set selection handler for input focus following
@@ -851,17 +873,39 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
           onClose={() => {
             setShowExerciseDetail(false);
             setSelectedExerciseRef(null);
+            setSelectedExerciseData(null);
           }}
           hideBackground={true} // Hide background to keep parent ActiveWorkout background
-          exercise={{
+          exercise={selectedExerciseData ? {
+            // ✅ CORRECT: selectedExerciseData is already an ExerciseModalData object from the facade service
+            id: selectedExerciseData.id || selectedExerciseRef.split(':')[2] || selectedExerciseRef,
+            name: selectedExerciseData.name || 'Exercise',
+            description: selectedExerciseData.description || 'Exercise details will be loaded from Nostr',
+            equipment: selectedExerciseData.equipment || 'Unknown',
+            difficulty: selectedExerciseData.difficulty,
+            muscleGroups: selectedExerciseData.muscleGroups || [],
+            format: selectedExerciseData.format,
+            formatUnits: selectedExerciseData.format_units,
+            authorPubkey: selectedExerciseData.authorPubkey || '',
+            createdAt: selectedExerciseData.createdAt,
+            eventId: selectedExerciseData.eventId,
+            eventTags: selectedExerciseData.eventTags, // ✅ CRITICAL: NIP-92 tags from facade service
+            eventContent: selectedExerciseData.eventContent || selectedExerciseData.description,
+            eventKind: selectedExerciseData.eventKind || 33401
+          } : {
+            // Loading state while resolving
             id: selectedExerciseRef.split(':')[2] || selectedExerciseRef,
-            name: exercises.find(ex => ex.exerciseRef === selectedExerciseRef)?.name || 'Exercise',
-            description: 'Exercise details will be loaded from Nostr',
+            name: exerciseResolving ? 'Loading...' : 'Exercise',
+            description: exerciseResolving ? 'Loading exercise details...' : 'Exercise details will be loaded from Nostr',
             equipment: 'Unknown',
             difficulty: 'intermediate',
             muscleGroups: [],
-            authorPubkey: selectedExerciseRef.split(':')[1] || '',
-            eventId: selectedExerciseRef
+            authorPubkey: '',
+            createdAt: Date.now() / 1000,
+            eventId: undefined,
+            eventTags: [],
+            eventContent: undefined,
+            eventKind: 33401
           }}
         />
       )}
@@ -955,7 +999,7 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
           resolvedTemplate: {
             name: workoutData?.title || templateData?.title || 'Active Workout',
             description: templateData?.description || 'Workout template information',
-            exercises: workoutData?.exercises?.map((exercise: WorkoutExercise, _index: number) => ({
+            exercises: workoutData?.exercises?.map((exercise: WorkoutExercise) => ({
               exerciseRef: exercise.exerciseRef,
               sets: exercise.sets || 3, // Prescribed sets
               reps: exercise.reps || 10, // Prescribed reps  

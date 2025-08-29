@@ -31,6 +31,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **ExerciseDetailModal Facade Service Implementation COMPLETE (August 29, 2025) ✅**
+  
+  **User Impact**: Exercise detail modals now consistently display YouTube thumbnails and video demonstrations across all navigation pathways. Fixed critical "fix one pathway, break another" cycle where media would work from global search but not exercise library. All 4 pathways (ExerciseLibrary, GlobalWorkoutSearch, ActiveWorkoutInterface, WorkoutDetailModal) now use unified data resolution ensuring 100% NIP-92 media display consistency.
+  
+  **Developer Notes**: Implemented ExerciseModalResolutionService facade pattern following .clinerules/exercise-modal-data-resolution.md to prevent service layer fragmentation. Created unified facade with resolveFromLibraryExercise(), resolveFromNaddr(), and resolveFromReference() methods. Fixed critical dataParsingService.parseExerciseTemplate() missing `tags: event.tags` preservation. Enhanced GlobalWorkoutSearch with proper async/await handling and TypeScript property fixes. Added ExerciseDetailModal tab persistence fix ensuring modal always opens to overview tab.
+  
+  **Architecture Changes**: Established facade service pattern preventing "fix one pathway, break another" cycles through single source of truth for exercise data resolution. All pathways now guarantee NIP-92 tag preservation for consistent media display. Enhanced service layer architecture with unified data resolution patterns. Foundation ready for reliable exercise detail modal functionality across all user interaction pathways.
+
 - **NIP-92 Media Attachments Support COMPLETE (August 29, 2025) ✅**
   
   **User Impact**: Exercise templates now display YouTube video demonstrations, thumbnails, and rich media content. Users can view instructional videos directly from exercise detail modals with proper "View Video Demonstration" links.

@@ -30,6 +30,7 @@ import { ExerciseListView } from './ExerciseListView';
 import { ExerciseDetailModal } from './ExerciseDetailModal';
 import { ConfirmationDialog } from '@/components/powr-ui/primitives/ConfirmationDialog';
 import { socialSharingService } from '@/lib/services/socialSharingService';
+import { exerciseModalResolutionService } from '@/lib/services/exerciseModalResolution';
 import type { ExerciseLibraryItem } from '@/hooks/useLibraryDataWithCollections';
 
 interface ExerciseLibraryProps {
@@ -99,15 +100,35 @@ export function ExerciseLibrary({ onShowOnboarding }: ExerciseLibraryProps) {
 
 
   // Handle exercise click to open detail modal
-  const handleExerciseClick = (exerciseId: string) => {
+  const handleExerciseClick = async (exerciseId: string) => {
     // Find the exercise item by ID
     const exerciseItem = exerciseLibrary.content?.find(item => 
       item.exercise.id === exerciseId || item.exerciseRef === exerciseId
     );
     
     if (exerciseItem) {
-      setSelectedExercise(exerciseItem);
-      setIsModalOpen(true);
+      try {
+        // ✅ FACADE SERVICE: Use facade service to ensure consistent NIP-92 media preservation
+        const modalData = await exerciseModalResolutionService.resolveFromLibraryExercise(exerciseItem.exercise);
+        
+        // Create a temporary exercise item with the resolved modal data
+        const resolvedExerciseItem = {
+          ...exerciseItem,
+          exercise: {
+            ...exerciseItem.exercise,
+            // Ensure eventTags are properly set from the facade service
+            eventTags: modalData.eventTags || exerciseItem.exercise.eventTags || []
+          }
+        };
+        
+        setSelectedExercise(resolvedExerciseItem);
+        setIsModalOpen(true);
+      } catch (error) {
+        console.error('[ExerciseLibrary] Failed to resolve exercise for modal:', error);
+        // Fallback to original behavior if facade service fails
+        setSelectedExercise(exerciseItem);
+        setIsModalOpen(true);
+      }
     }
   };
 

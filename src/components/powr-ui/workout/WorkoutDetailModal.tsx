@@ -18,6 +18,7 @@ import { useLibraryData } from '@/providers/LibraryDataProvider';
 import { libraryManagementService } from '@/lib/services/libraryManagement';
 import { usePubkey } from '@/lib/auth/hooks';
 import { cn } from '@/lib/utils';
+import { exerciseModalResolutionService } from '@/lib/services/exerciseModalResolution';
 
 interface PersonalRecord {
   oneRM?: number;
@@ -169,6 +170,68 @@ export const WorkoutDetailModal = ({
   
   // Get library data to check if workout is already in library
   const { workoutLibrary } = useLibraryData();
+
+  // ✅ CRITICAL FIX: Handle ExerciseDetailModal integration using facade service
+  const handleExerciseClick = async (exercise: Exercise) => {
+    console.log(`[WorkoutDetailModal] 🔗 Exercise clicked: ${exercise.name}`, {
+      id: exercise.id,
+      authorPubkey: exercise.authorPubkey,
+      eventTags: exercise.eventTags?.length || 0
+    });
+    
+    try {
+      // Validate that we have the necessary data to create an exercise reference
+      if (!exercise.authorPubkey || !exercise.id) {
+        console.warn(`[WorkoutDetailModal] ⚠️ Missing required data for exercise reference:`, {
+          authorPubkey: !!exercise.authorPubkey,
+          id: !!exercise.id
+        });
+        
+        // Fallback: call onExerciseClick with original data
+        if (onExerciseClick) {
+          onExerciseClick(exercise);
+        }
+        return;
+      }
+      
+      // Create exercise reference from resolved exercise data
+      const exerciseRef = `33401:${exercise.authorPubkey}:${exercise.id}`;
+      
+      console.log(`[WorkoutDetailModal] 📋 Created exercise reference: ${exerciseRef}`);
+      
+      // ✅ REQUIRED: Use facade service to resolve exercise data for modal
+      const modalData = await exerciseModalResolutionService.resolveFromReference(exerciseRef);
+      
+      console.log(`[WorkoutDetailModal] ✅ Facade service resolved exercise with ${modalData.eventTags?.length || 0} tags`);
+      
+        // Call the parent's onExerciseClick with the properly resolved data
+        if (onExerciseClick) {
+          // Convert modalData back to Exercise format for compatibility
+          const exerciseForModal: Exercise = {
+            ...exercise,
+            // Ensure NIP-92 tags are preserved
+            eventTags: modalData.eventTags || exercise.eventTags || [],
+            // Preserve other modal-specific data (modalData properties are directly accessible)
+            authorPubkey: modalData.authorPubkey || exercise.authorPubkey,
+            createdAt: modalData.createdAt || exercise.createdAt,
+            eventId: modalData.eventId || exercise.eventId,
+            eventKind: modalData.eventKind || exercise.eventKind,
+            eventContent: modalData.eventContent || exercise.eventContent
+          };
+          
+          onExerciseClick(exerciseForModal);
+        }
+      
+    } catch (error) {
+      console.error(`[WorkoutDetailModal] ❌ Failed to resolve exercise for modal:`, error);
+      showToast("Error", "error", "Failed to load exercise details");
+      
+      // Fallback: call onExerciseClick with original data
+      if (onExerciseClick) {
+        onExerciseClick(exercise);
+      }
+    }
+  };
 
   // Extract data with priority: resolved template > machine context > fallback
   const title = templateData?.resolvedTemplate?.name || 
@@ -589,7 +652,7 @@ export const WorkoutDetailModal = ({
                               key={index}
                               exercise={exercise}
                               index={index}
-                              onExerciseClick={onExerciseClick}
+                              onExerciseClick={handleExerciseClick}
                             />
                           ))
                         ) : (

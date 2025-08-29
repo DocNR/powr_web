@@ -56,7 +56,8 @@ type ExerciseDataSource = NDKEvent | { exercise: Record<string, unknown> } | Dir
 interface DirectExerciseData {
   id: string;
   name: string;
-  eventTags: string[][];
+  eventTags?: string[][]; // Made optional to handle Exercise type from dependencyResolution
+  tags?: string[][]; // Added to handle Exercise type from dependencyResolution
   description?: string;
   equipment?: string;
   difficulty?: string;
@@ -229,8 +230,16 @@ function prepareFromDirectExercise(source: DirectExerciseData): ExerciseModalDat
   console.log('[prepareFromDirectExercise] Processing direct exercise:', {
     id: source.id,
     name: source.name,
-    eventTagsCount: source.eventTags?.length || 0
+    eventTagsCount: source.eventTags?.length || 0,
+    tagsCount: source.tags?.length || 0,
+    hasEventTags: !!source.eventTags,
+    hasTags: !!source.tags
   });
+
+  // ✅ CRITICAL: Handle both eventTags and tags properties for compatibility
+  // dependencyResolutionService returns Exercise with tags?: string[][]
+  // while other sources may use eventTags: string[][]
+  const eventTags = source.eventTags || source.tags || [];
 
   const result: ExerciseModalData = {
     id: source.id,
@@ -239,7 +248,7 @@ function prepareFromDirectExercise(source: DirectExerciseData): ExerciseModalDat
     equipment: source.equipment || 'unknown',
     difficulty: source.difficulty || 'intermediate',
     muscleGroups: source.muscleGroups || [],
-    eventTags: source.eventTags || [], // ✅ CRITICAL: Preserve event tags
+    eventTags, // ✅ CRITICAL: Use resolved eventTags (handles both eventTags and tags)
     format: source.format || [],
     format_units: source.format_units || [],
     hashtags: source.hashtags || [],
@@ -254,7 +263,8 @@ function prepareFromDirectExercise(source: DirectExerciseData): ExerciseModalDat
   console.log('[prepareFromDirectExercise] Result:', {
     id: result.id,
     name: result.name,
-    eventTagsCount: result.eventTags.length
+    eventTagsCount: result.eventTags.length,
+    resolvedFromTags: !source.eventTags && !!source.tags
   });
 
   return result;

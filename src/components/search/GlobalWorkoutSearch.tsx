@@ -9,6 +9,7 @@ import { WorkoutCard } from '@/components/powr-ui/workout';
 import { ExerciseCard } from '@/components/powr-ui/workout/ExerciseCard';
 import { ExerciseDetailModal } from '@/components/library/ExerciseDetailModal';
 import { dataParsingService } from '@/lib/services/dataParsingService';
+import { exerciseModalResolutionService } from '@/lib/services/exerciseModalResolution';
 import { WORKOUT_EVENT_KINDS } from '@/lib/ndk';
 import { Button } from '@/components/powr-ui/primitives/Button';
 import { Input } from '@/components/powr-ui/primitives/Input';
@@ -475,25 +476,57 @@ export function GlobalWorkoutSearch({
                             key={`naddr-exercise-${resolvedEvent.id}`}
                             variant="compact"
                             exercise={exerciseData}
-                            onSelect={() => {
-                              const modalData = {
-                                id: parsedExercise.id,
-                                name: parsedExercise.name,
-                                description: parsedExercise.description,
-                                equipment: parsedExercise.equipment,
-                                difficulty: parsedExercise.difficulty,
-                                muscleGroups: parsedExercise.muscleGroups,
-                                format: parsedExercise.format,
-                                formatUnits: parsedExercise.format_units,
-                                authorPubkey: parsedExercise.authorPubkey,
-                                createdAt: parsedExercise.createdAt,
-                                eventId: parsedExercise.eventId,
-                                eventTags: resolvedEvent.tags,
-                                eventContent: resolvedEvent.content,
-                                eventKind: resolvedEvent.kind
-                              };
-                              setSelectedExercise(modalData);
-                              setIsExerciseModalOpen(true);
+                            onSelect={async () => {
+                        try {
+                          // ✅ FACADE SERVICE: Use facade service for consistent NIP-92 media preservation
+                          const exerciseRef = `33401:${parsedExercise.authorPubkey}:${parsedExercise.id}`;
+                          const modalData = await exerciseModalResolutionService.resolveFromNaddr(exerciseRef);
+                          
+                          console.log('🔗 [GlobalWorkoutSearch] Resolved exercise via facade service:', {
+                            exerciseRef,
+                            hasEventTags: !!modalData.eventTags,
+                            eventTagsCount: modalData.eventTags?.length || 0
+                          });
+                          
+                          setSelectedExercise({
+                            id: modalData.id || parsedExercise.id,
+                            name: modalData.name || parsedExercise.name,
+                            description: modalData.description || parsedExercise.description,
+                            equipment: modalData.equipment || parsedExercise.equipment,
+                            difficulty: modalData.difficulty || parsedExercise.difficulty,
+                            muscleGroups: modalData.muscleGroups || parsedExercise.muscleGroups,
+                            format: modalData.format || parsedExercise.format,
+                            formatUnits: modalData.format_units || parsedExercise.format_units,
+                            authorPubkey: modalData.authorPubkey || parsedExercise.authorPubkey,
+                            createdAt: modalData.createdAt || parsedExercise.createdAt,
+                            eventId: modalData.eventId || parsedExercise.eventId,
+                            eventTags: modalData.eventTags, // ✅ CRITICAL: NIP-92 tags from facade service
+                            eventContent: modalData.eventContent || resolvedEvent.content,
+                            eventKind: modalData.eventKind || resolvedEvent.kind
+                          });
+                          setIsExerciseModalOpen(true);
+                        } catch (error) {
+                          console.error('🔗 [GlobalWorkoutSearch] Failed to resolve exercise via facade service:', error);
+                          // Fallback to original behavior if facade service fails
+                          const modalData = {
+                            id: parsedExercise.id,
+                            name: parsedExercise.name,
+                            description: parsedExercise.description,
+                            equipment: parsedExercise.equipment,
+                            difficulty: parsedExercise.difficulty,
+                            muscleGroups: parsedExercise.muscleGroups,
+                            format: parsedExercise.format,
+                            formatUnits: parsedExercise.format_units,
+                            authorPubkey: parsedExercise.authorPubkey,
+                            createdAt: parsedExercise.createdAt,
+                            eventId: parsedExercise.eventId,
+                            eventTags: resolvedEvent.tags,
+                            eventContent: resolvedEvent.content,
+                            eventKind: resolvedEvent.kind
+                          };
+                          setSelectedExercise(modalData);
+                          setIsExerciseModalOpen(true);
+                        }
                             }}
                             showAuthor={true}
                             showEquipment={true}

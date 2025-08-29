@@ -69,6 +69,13 @@ export const ExerciseDetailModal = ({
   const { showToast } = useToast();
   const { exerciseLibrary } = useLibraryData();
 
+  // ✅ FIX: Reset tab to overview whenever modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setActiveTab('overview');
+    }
+  }, [isOpen]);
+
   // Get author profile data
   const { profile: authorProfile } = useProfile(exercise?.authorPubkey);
   const authorDisplayName = getDisplayName(authorProfile, exercise?.authorPubkey);
