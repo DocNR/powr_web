@@ -31,6 +31,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Global Search NADDR Event Kind Differentiation Bug Fix COMPLETE (August 28, 2025) ✅**
+  
+  **User Impact**: Users can now paste both exercise (33401) and workout (33402) NADDR addresses in the global search, and each opens the appropriate modal. Exercise NADDRs now correctly open ExerciseDetailModal instead of being forced into workout template format. Both exercise and workout search results display with consistent styling including author avatars. Fixed critical bug where pasting a 33401 exercise NADDR would incorrectly try to resolve it as a 33402 workout template.
+  
+  **Developer Notes**: Fixed NADDR resolution display logic to properly differentiate between event kinds using dataParsingService.parseExerciseTemplate() for 33401 events and dataParsingService.parseWorkoutTemplate() for 33402 events. Added ExerciseDetailModal state management with proper TypeScript typing. Updated handleWorkoutSelect to use dataParsingService.parseWorkoutTemplate() for 33402 events only. Changed ExerciseCard from "list" variant to "compact" variant for styling consistency with WorkoutCard author avatar display. Removed unused NDKEvent import and unused exerciseId parameter to resolve ESLint errors.
+  
+  **Architecture Changes**: Established proper event kind detection patterns in NADDR resolution using WORKOUT_EVENT_KINDS constants. Enhanced search component with dual modal routing based on event type. Integrated existing dataParsingService instead of custom parsing logic for consistency. Foundation ready for reliable cross-network content discovery with proper modal routing for all NIP-101e event types.
+
+### Fixed
 - **Mobile Bottom Tab Height & Styling Optimization COMPLETE (August 27, 2025) ✅**
   
   **User Impact**: Bottom navigation tabs now use standard iOS tab bar height (49px + safe area) instead of oversized 88px, providing a more native mobile experience. Removed prominent blue background boxes from active tabs in favor of clean color-only highlighting using the primary blue color. Active tabs now show subtle icon scaling (105%) and primary color text/icons, while inactive tabs use muted colors. Compact layout with smaller icons (16px) and text (10px) matches iOS design standards while maintaining accessibility with proper touch targets.

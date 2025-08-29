@@ -6,6 +6,10 @@ import { useNDKSearch } from '@/hooks/useNDKSearch';
 import { useNDKNaddrResolution } from '@/hooks/useNDKNaddrResolution';
 import { WorkoutTemplate } from '@/lib/services/searchService';
 import { WorkoutCard } from '@/components/powr-ui/workout';
+import { ExerciseCard } from '@/components/powr-ui/workout/ExerciseCard';
+import { ExerciseDetailModal } from '@/components/library/ExerciseDetailModal';
+import { dataParsingService } from '@/lib/services/dataParsingService';
+import { WORKOUT_EVENT_KINDS } from '@/lib/ndk';
 import { Button } from '@/components/powr-ui/primitives/Button';
 import { Input } from '@/components/powr-ui/primitives/Input';
 import { 
@@ -16,7 +20,6 @@ import {
   DialogDescription 
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
-import type { NDKEvent } from '@nostr-dev-kit/ndk';
 
 interface GlobalWorkoutSearchProps {
   onTemplateSelect?: (template: WorkoutTemplate) => void;
@@ -33,6 +36,25 @@ export function GlobalWorkoutSearch({
   const [isOpen, setIsOpen] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  
+  // Exercise Detail Modal state
+  const [selectedExercise, setSelectedExercise] = useState<{
+    id: string;
+    name: string;
+    description?: string;
+    equipment: string;
+    difficulty?: string;
+    muscleGroups: string[];
+    format?: string[];
+    formatUnits?: string[];
+    authorPubkey: string;
+    createdAt?: number;
+    eventId?: string;
+    eventTags?: string[][];
+    eventContent?: string;
+    eventKind?: number;
+  } | null>(null);
+  const [isExerciseModalOpen, setIsExerciseModalOpen] = useState(false);
   
   const {
     searchState,
@@ -96,12 +118,20 @@ export function GlobalWorkoutSearch({
   const handleWorkoutSelect = (workoutId: string) => {
     let selectedTemplate: WorkoutTemplate | null = null;
 
-    // Check if this is from NADDR resolution
-    if (resolvedEvent) {
-      const naddrTemplate = transformNDKEventToTemplate(resolvedEvent);
-      // Check if the workoutId matches either the event ID or the d-tag
-      if (resolvedEvent.id === workoutId || naddrTemplate.id === workoutId) {
-        selectedTemplate = naddrTemplate;
+    // Check if this is from NADDR resolution - only for workout templates (33402)
+    if (resolvedEvent && resolvedEvent.kind === WORKOUT_EVENT_KINDS.WORKOUT_TEMPLATE) {
+      const parsedTemplate = dataParsingService.parseWorkoutTemplate(resolvedEvent);
+      if (parsedTemplate && (resolvedEvent.id === workoutId || parsedTemplate.id === workoutId)) {
+        selectedTemplate = {
+          id: parsedTemplate.id,
+          name: parsedTemplate.name,
+          description: parsedTemplate.description,
+          author: parsedTemplate.authorPubkey,
+          exerciseRefs: parsedTemplate.exercises.map(ex => ex.exerciseRef),
+          created_at: parsedTemplate.createdAt,
+          tags: parsedTemplate.tags?.filter(tag => tag[0] === 't').map(tag => tag[1]) || [],
+          rating: undefined
+        };
         console.log('🔗 [Search] Selected NADDR-resolved template:', selectedTemplate);
       }
     }
@@ -147,25 +177,6 @@ export function GlobalWorkoutSearch({
     clearResolution();
   };
 
-  // Transform NDK event to WorkoutTemplate format
-  const transformNDKEventToTemplate = (event: NDKEvent): WorkoutTemplate => {
-    const dTag = event.tags?.find((tag: string[]) => tag[0] === 'd')?.[1] || event.id || 'unknown';
-    const nameTag = event.tags?.find((tag: string[]) => tag[0] === 'title')?.[1] || 'Untitled Workout';
-    const descTag = event.tags?.find((tag: string[]) => tag[0] === 'description')?.[1] || '';
-    const exerciseRefs = event.tags?.filter((tag: string[]) => tag[0] === 'exercise').map((tag: string[]) => tag[1]) || [];
-    const tags = event.tags?.filter((tag: string[]) => tag[0] === 't').map((tag: string[]) => tag[1]) || [];
-
-    return {
-      id: dTag,
-      name: nameTag,
-      description: descTag,
-      author: event.pubkey || 'unknown',
-      exerciseRefs,
-      created_at: event.created_at || 0,
-      tags,
-      rating: undefined
-    };
-  };
 
   // Transform search results to WorkoutCard format
   const transformTemplateToWorkoutCard = (template: WorkoutTemplate) => {
@@ -402,22 +413,103 @@ export function GlobalWorkoutSearch({
                     <span className="font-medium">NADDR Resolved</span>
                   </div>
                   <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                    Direct workout access via Nostr address
+                    {resolvedEvent.kind === WORKOUT_EVENT_KINDS.EXERCISE_TEMPLATE 
+                      ? 'Direct exercise access via Nostr address'
+                      : 'Direct workout access via Nostr address'
+                    }
                   </p>
                 </div>
                 <div className="space-y-3 pb-4">
-                  {(() => {
-                    const template = transformNDKEventToTemplate(resolvedEvent);
-                    const workoutCardData = transformTemplateToWorkoutCard(template);
-                    return (
-                      <WorkoutCard
-                        key={`naddr-${resolvedEvent.id}`}
-                        variant="compact"
-                        workout={workoutCardData}
-                        onSelect={handleWorkoutSelect}
-                      />
-                    );
-                  })()}
+                  {resolvedEvent.kind === WORKOUT_EVENT_KINDS.WORKOUT_TEMPLATE ? (
+                    // Show workout template as WorkoutCard
+                    (() => {
+                      const parsedTemplate = dataParsingService.parseWorkoutTemplate(resolvedEvent);
+                      if (parsedTemplate) {
+                        const workoutTemplate: WorkoutTemplate = {
+                          id: parsedTemplate.id,
+                          name: parsedTemplate.name,
+                          description: parsedTemplate.description,
+                          author: parsedTemplate.authorPubkey,
+                          exerciseRefs: parsedTemplate.exercises.map(ex => ex.exerciseRef),
+                          created_at: parsedTemplate.createdAt,
+                          tags: parsedTemplate.tags?.filter(tag => tag[0] === 't').map(tag => tag[1]) || [],
+                          rating: undefined
+                        };
+                        const workoutCardData = transformTemplateToWorkoutCard(workoutTemplate);
+                        return (
+                          <WorkoutCard
+                            key={`naddr-${resolvedEvent.id}`}
+                            variant="compact"
+                            workout={workoutCardData}
+                            onSelect={handleWorkoutSelect}
+                          />
+                        );
+                      }
+                      return null;
+                    })()
+                  ) : resolvedEvent.kind === WORKOUT_EVENT_KINDS.EXERCISE_TEMPLATE ? (
+                    // Show exercise template using ExerciseCard with compact variant to match WorkoutCard styling
+                    (() => {
+                      const parsedExercise = dataParsingService.parseExerciseTemplate(resolvedEvent);
+                      if (parsedExercise) {
+                        const exerciseData = {
+                          id: parsedExercise.id,
+                          name: parsedExercise.name,
+                          description: parsedExercise.description,
+                          equipment: parsedExercise.equipment,
+                          difficulty: parsedExercise.difficulty as 'beginner' | 'intermediate' | 'advanced' | undefined,
+                          muscleGroups: parsedExercise.muscleGroups,
+                          author: {
+                            pubkey: parsedExercise.authorPubkey,
+                            name: parsedExercise.authorPubkey.slice(0, 8) + '...',
+                            picture: undefined
+                          },
+                          eventId: parsedExercise.eventId,
+                          eventTags: resolvedEvent.tags,
+                          eventContent: resolvedEvent.content,
+                          eventKind: resolvedEvent.kind
+                        };
+                        
+                        return (
+                          <ExerciseCard
+                            key={`naddr-exercise-${resolvedEvent.id}`}
+                            variant="compact"
+                            exercise={exerciseData}
+                            onSelect={() => {
+                              const modalData = {
+                                id: parsedExercise.id,
+                                name: parsedExercise.name,
+                                description: parsedExercise.description,
+                                equipment: parsedExercise.equipment,
+                                difficulty: parsedExercise.difficulty,
+                                muscleGroups: parsedExercise.muscleGroups,
+                                format: parsedExercise.format,
+                                formatUnits: parsedExercise.format_units,
+                                authorPubkey: parsedExercise.authorPubkey,
+                                createdAt: parsedExercise.createdAt,
+                                eventId: parsedExercise.eventId,
+                                eventTags: resolvedEvent.tags,
+                                eventContent: resolvedEvent.content,
+                                eventKind: resolvedEvent.kind
+                              };
+                              setSelectedExercise(modalData);
+                              setIsExerciseModalOpen(true);
+                            }}
+                            showAuthor={true}
+                            showEquipment={true}
+                          />
+                        );
+                      }
+                      return null;
+                    })()
+                  ) : (
+                    // Unsupported event kind
+                    <div className="p-4 bg-muted/30 border border-border rounded-lg">
+                      <p className="text-sm text-muted-foreground">
+                        Unsupported event kind: {resolvedEvent.kind}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -472,6 +564,18 @@ export function GlobalWorkoutSearch({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Exercise Detail Modal */}
+      {selectedExercise && (
+        <ExerciseDetailModal
+          isOpen={isExerciseModalOpen}
+          onClose={() => {
+            setIsExerciseModalOpen(false);
+            setSelectedExercise(null);
+          }}
+          exercise={selectedExercise}
+        />
+      )}
     </>
   );
 }
