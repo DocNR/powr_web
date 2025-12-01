@@ -52,7 +52,7 @@ Exercise templates (Kind 33401) now use a schema-driven approach for parameter v
 ["d", "pushups"]                                    // Unique identifier
 ["title", "Push ups"]                              // Display name (NIP-101e uses "title", not "name")
 ["format", "weight", "reps", "rpe", "set_type"]   // Parameter schema
-["format_units", "bodyweight", "count", "0-10", "enum"]  // Unit validation
+["format_units", "kg", "count", "0-10", "enum"]   // Unit validation
 ["equipment", "bodyweight"]                        // Equipment required
 ["difficulty", "beginner"]                         // Skill level (optional)
 ["t", "chest"]                                     // Muscle group hashtag
@@ -65,12 +65,35 @@ The `format` and `format_units` arrays work together:
 
 | Parameter | Unit Type | Validation | Examples |
 |-----------|-----------|------------|----------|
-| `weight` | `kg`, `lbs`, `bodyweight` | Numeric ≥ 0 | `"60"`, `"0"` (bodyweight) |
+| `weight` | `kg`, `lbs` | Numeric (can be negative) | `"60"` (60kg), `"0"` (bodyweight), `"-15"` (15kg assistance) |
 | `reps` | `count`, `reps` | Integer > 0 | `"10"`, `"15"` |
 | `rpe` | `0-10`, `1-10`, `rpe` | Float in range | `"7"`, `"8.5"` |
 | `set_type` | `enum`, `type` | Predefined values | `"normal"`, `"warmup"`, `"drop"`, `"failure"`, `"working"` |
 | `duration` | `seconds`, `minutes`, `sec`, `min` | Numeric ≥ 0 | `"30"`, `"1.5"` |
 | `distance` | `meters`, `km`, `miles`, `yards`, `m` | Numeric ≥ 0 | `"100"`, `"5.2"` |
+
+### Weight Value Interpretation (CRITICAL)
+The numeric weight system supports all exercise variations:
+
+```typescript
+// Weight value interpretation:
+// Positive values: Added weight (weighted vest, plates, dumbbells, etc.)
+// Zero: Pure bodyweight exercise
+// Negative values: Assistance (bands, machine assistance, etc.)
+
+// Examples:
+"75"   // 75kg barbell squat
+"0"    // Bodyweight pushup
+"-20"  // Assisted pullup with 20kg assistance
+"10"   // Weighted pushup with 10kg vest
+"-5"   // Assisted dip with 5kg assistance
+```
+
+**Benefits of Numeric Weight System:**
+- **Universal**: Works for all exercise variations
+- **Analytics-Friendly**: Easy volume calculations: `(bodyweight + weight) * reps * sets`
+- **Progression Tracking**: Clear progression from assisted → bodyweight → weighted
+- **UI-Friendly**: Simple numeric input with clear conventions
 
 ### Extensibility Benefits
 - **Self-Describing**: Each exercise defines its own parameter schema
@@ -102,7 +125,7 @@ The `format` and `format_units` arrays work together:
 ["exercise", "33401:pubkey:squats", "", "60", "5", "8", "normal", "2"]      // ✅ Second set same exercise
 
 // Standard parameters (weight, reps, rpe, set_type, set_number)
-// weight: kg (empty string for bodyweight, negative for assisted)
+// weight: kg (numeric values: positive for added weight, 0 for bodyweight, negative for assistance)
 // reps: count
 // rpe: 0-10 (Rate of Perceived Exertion)
 // set_type: warmup|normal|drop|failure

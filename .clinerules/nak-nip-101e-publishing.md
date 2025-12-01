@@ -28,7 +28,7 @@ This rule establishes standardized NAK commands for publishing NIP-101e complian
 ```bash
 nak event --sec 8aaa02c7539d421391b1ac915e24dfcf9730b0e2ad3c8bf5e377320ff05e3e24 --kind 33401 \
   --tag 'd=EXERCISE_ID' \
-  --tag 'title=Exercise Name' \
+  --tag 'title=Exercise Name (Equipment or Variation)' \
   --tag 'format=weight;reps;rpe;set_type' \
   --tag 'format_units=UNIT1;UNIT2;UNIT3;UNIT4' \
   --tag 'equipment=EQUIPMENT_TYPE' \
@@ -40,19 +40,28 @@ nak event --sec 8aaa02c7539d421391b1ac915e24dfcf9730b0e2ad3c8bf5e377320ff05e3e24
   wss://nos.lol wss://relay.damus.io wss://relay.primal.net
 ```
 
-#### **Example: Push-up Exercise**
+#### **Title Convention (CRITICAL)**
+- **✅ REQUIRED**: Use format "Exercise Name (Equipment or Variation)"
+- **Examples**: 
+  - "Pull Up (Assisted)" - variation specified
+  - "Back Row (TRX)" - equipment specified
+  - "Bent Over Row (Barbell)" - equipment specified
+  - "Face Pull (TRX)" - equipment specified
+  - "Biceps Curl (Dumbbell)" - equipment specified
+
+#### **Example: Pull Up Exercise**
 ```bash
 nak event --sec 8aaa02c7539d421391b1ac915e24dfcf9730b0e2ad3c8bf5e377320ff05e3e24 --kind 33401 \
-  --tag 'd=push-up' \
-  --tag 'title=Push-up' \
+  --tag 'd=pullup-assisted' \
+  --tag 'title=Pull Up (Assisted)' \
   --tag 'format=weight;reps;rpe;set_type' \
-  --tag 'format_units=bodyweight;count;0-10;enum' \
-  --tag 'equipment=bodyweight' \
-  --tag 'difficulty=beginner' \
-  --tag 't=chest' \
-  --tag 't=push' \
+  --tag 'format_units=kg;count;0-10;enum' \
+  --tag 'equipment=pullup_bar' \
+  --tag 'difficulty=intermediate' \
+  --tag 't=back' \
+  --tag 't=pull' \
   --tag 't=fitness' \
-  --content 'Classic bodyweight exercise targeting chest, shoulders, and triceps. Perfect for building upper body strength.' \
+  --content 'Assisted pull-up using resistance bands to reduce bodyweight load. Perfect for building strength toward unassisted pull-ups.' \
   wss://nos.lol wss://relay.damus.io wss://relay.primal.net
 ```
 
@@ -61,17 +70,17 @@ nak event --sec 8aaa02c7539d421391b1ac915e24dfcf9730b0e2ad3c8bf5e377320ff05e3e24
 {
   "kind": 33401,
   "tags": [
-    ["d", "push-up"],
-    ["title", "Push-up"],
+    ["d", "pullup-assisted"],
+    ["title", "Pull Up (Assisted)"],
     ["format", "weight", "reps", "rpe", "set_type"],
-    ["format_units", "bodyweight", "count", "0-10", "enum"],
-    ["equipment", "bodyweight"],
-    ["difficulty", "beginner"],
-    ["t", "chest"],
-    ["t", "push"],
+    ["format_units", "kg", "count", "0-10", "enum"],
+    ["equipment", "pullup_bar"],
+    ["difficulty", "intermediate"],
+    ["t", "back"],
+    ["t", "pull"],
     ["t", "fitness"]
   ],
-  "content": "Classic bodyweight exercise targeting chest, shoulders, and triceps. Perfect for building upper body strength."
+  "content": "Assisted pull-up using resistance bands to reduce bodyweight load. Perfect for building strength toward unassisted pull-ups."
 }
 ```
 
@@ -295,6 +304,25 @@ The 33402 workout template **prescribes** specific parameter values for exercise
 - **Set numbers**: Enable deduplication prevention and workout structure analysis
 - **Flexibility**: Actual performance can differ from prescription while maintaining set structure
 
+## NAK Utility Commands
+
+### **Generate naddr from kind:pubkey:dtag**
+```bash
+# Generate naddr for addressable events (kinds 30000-39999)
+nak encode naddr --kind KIND --pubkey PUBKEY --identifier D_TAG
+
+# Example: Generate naddr for workout template
+nak encode naddr --kind 33402 --pubkey 55127fc9e1c03c6b459a3bab72fdb99def1644c5f239bdd09f3e5fb401ed9b21 --identifier pull-workout
+
+# Example: Generate naddr for exercise template
+nak encode naddr --kind 33401 --pubkey 55127fc9e1c03c6b459a3bab72fdb99def1644c5f239bdd09f3e5fb401ed9b21 --identifier pullup-assisted
+```
+
+### **Library Collection References**
+After publishing events, use these formats for library collections:
+- **Kind:Pubkey:Dtag Format**: `33402:55127fc9e1c03c6b459a3bab72fdb99def1644c5f239bdd09f3e5fb401ed9b21:pull-workout`
+- **Naddr Format**: Generated using NAK encode command above
+
 ## Verification Commands
 
 ### **Verify Published Event**
@@ -356,10 +384,33 @@ nak req -k 33401 -a 55127fc9e1c03c6b459a3bab72fdb99def1644c5f239bdd09f3e5fb401ed
 
 ## Parameter Validation
 
+### **Weight Value Interpretation (CRITICAL)**
+The numeric weight system supports all exercise variations:
+
+```typescript
+// Weight value interpretation:
+// Positive values: Added weight (weighted vest, plates, dumbbells, etc.)
+// Zero: Pure bodyweight exercise
+// Negative values: Assistance (bands, machine assistance, etc.)
+
+// Examples:
+"75"   // 75kg barbell squat
+"0"    // Bodyweight pushup
+"-20"  // Assisted pullup with 20kg assistance
+"10"   // Weighted pushup with 10kg vest
+"-5"   // Assisted dip with 5kg assistance
+```
+
+**Benefits of Numeric Weight System:**
+- **Universal**: Works for all exercise variations
+- **Analytics-Friendly**: Easy volume calculations: `(bodyweight + weight) * reps * sets`
+- **Progression Tracking**: Clear progression from assisted → bodyweight → weighted
+- **UI-Friendly**: Simple numeric input with clear conventions
+
 ### **Format Units Reference**
 | Parameter | Valid Units | Example Values |
 |-----------|-------------|----------------|
-| `weight` | `kg`, `lbs`, `bodyweight` | `"60"`, `"0"` (bodyweight) |
+| `weight` | `kg`, `lbs` | `"60"`, `"0"` (bodyweight), `"-20"` (assistance) |
 | `reps` | `count`, `reps` | `"10"`, `"15"` |
 | `rpe` | `0-10`, `1-10`, `rpe` | `"7"`, `"8.5"` |
 | `set_type` | `enum`, `type` | `"normal"`, `"warmup"`, `"drop"`, `"failure"` |
@@ -432,7 +483,8 @@ This rule ensures reliable, compliant NIP-101e event publishing using NAK while 
 
 ---
 
-**Last Updated**: 2025-07-26
+**Last Updated**: 2025-09-09
 **Project**: POWR Workout PWA
 **Environment**: Web Browser + NAK CLI
 **Test Credentials**: Included for development use
+**Title Convention**: Exercise Name (Equipment or Variation)

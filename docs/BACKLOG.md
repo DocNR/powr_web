@@ -242,7 +242,7 @@ formatting_rules:
 - **Web-Optimized**: Browser-specific patterns for authentication and caching
 
 ### Golf App Migration
-All patterns and components are being designed for eventual migration to the golf app, particularly:
+All patterns and components are being designed for future application development, particularly:
 - Authentication system (proven and tested)
 - Event publishing patterns
 - State management architecture

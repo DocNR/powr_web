@@ -8,13 +8,13 @@
 ## Project Overview
 
 ### Vision
-Build a fitness tracking Progressive Web App (PWA) using Next.js and NDK (Nostr Development Kit) to validate NDK-first architecture patterns before applying lessons learned to enhance the existing golf app.
+Build a fitness tracking Progressive Web App (PWA) using Next.js and NDK (Nostr Development Kit) to validate NDK-first architecture patterns for complex real-time applications.
 
 ## Primary Architectural Hypothesis
 
 **Core Question**: Can NDK IndexedDB cache + Nostr events completely replace custom database architecture for complex real-time applications?
 
-**Current Problem**: My existing golf and fitness apps (powr and noga) use dual-database approach:
+**Current Problem**: Complex applications often use dual-database approaches:
 - Custom SQLite database for app data
 - NDK SQLite cache for Nostr events  
 - Complex field mapping between systems
@@ -24,15 +24,15 @@ Build a fitness tracking Progressive Web App (PWA) using Next.js and NDK (Nostr 
 - NDK IndexedDB cache as only persistence layer
 - Nostr events (NIP-101e) as primary data model
 - No custom database, no field mapping, no sync complexity
-- Add custom analytics database ONLY if needed later for gamekeeper features
+- Add custom analytics database ONLY if needed later for advanced features
 
-**Success = Proof**: If workout tracking works seamlessly with just NDK cache + events, then we can confidently refactor the golf app to eliminate database complexity.
+**Success = Proof**: If workout tracking works seamlessly with just NDK cache + events, then NDK-first architecture is validated for complex real-time applications.
 
 ### Core Goals
 1. **Validate NDK-first architecture** for complex real-time tracking applications
 2. **Prove XState patterns work seamlessly** with Nostr event-driven data
 3. **Build genuinely useful fitness app** with social features via Nostr protocol
-4. **Create proven patterns** for later golf app refactoring
+4. **Create proven patterns** for future application development
 5. **Rapid iteration and user feedback** without App Store constraints
 
 ### Success Metrics
@@ -50,7 +50,7 @@ Build a fitness tracking Progressive Web App (PWA) using Next.js and NDK (Nostr 
 
 ### Stack Decision
 - **Framework**: Next.js 14 (App Router)
-- **State Management**: XState v5 (proven patterns from golf app)
+- **State Management**: XState v5 (proven patterns from existing applications)
 - **Nostr Integration**: NDK browser packages
 - **Styling**: Tailwind CSS + Mantine UI components
 - **Caching**: NDKCacheAdapterDexie (IndexedDB)
@@ -94,9 +94,9 @@ Browse Templates (33402) → Setup Workout (XState) → Track Sets/Reps (XState)
 ### Phase 1: Foundation (Days 1-3)
 **Day 1**: Next.js + NDK setup, basic authentication  
 **Day 2**: NIP-101e event utilities, test publishing/reading  
-**Day 3**: XState machine adaptation from golf app patterns  
+**Day 3**: XState machine adaptation from established patterns  
 
-**Deliverables**: Working NDK integration, basic event publishing, adapted state machines
+**Deliverables**: Working NDK integration, basic event publishing, proven state machine patterns
 
 ### Phase 2: Core Workflow (Days 4-7)
 **Day 4**: Active workout machine with timer  
@@ -213,20 +213,20 @@ docker run -p 7777:7777 strfry
   - [x] NIP-101e event publishing (Event ID: 189a048ece6dc5fb12a4255a4a4fbd523254a8f344565ceacaa640e8d8d62373)
   - [x] End-to-end workflow validation: Template selection → Active tracking → Published workout
   - [x] NDK-first architecture FULLY VALIDATED - zero custom database code
-  - [x] XState + NDK integration patterns established for golf app migration
+  - [x] XState + NDK integration patterns established for future application development
 
 ### 🚧 In Progress
 - [ ] Phase 3: UI/UX Polish and Service Extraction
 
 ### 📋 Next Up
 - [ ] Phase 3A: Beautiful workout interface with shadcn/ui components
-- [ ] Phase 3B: Service extraction for golf app migration preparation
+- [ ] Phase 3B: Service extraction for future application development
 - [ ] Production deployment planning
-- [ ] Golf app migration roadmap
+- [ ] Future application development roadmap
 
-## Key Learnings from Golf App
+## Key Architectural Learnings
 
-### What Worked Well (Keep)
+### What Works Well (Keep)
 - ✅ XState machines for complex state management
 - ✅ Local-first approach with sync
 - ✅ Professional UI patterns
@@ -239,7 +239,7 @@ docker run -p 7777:7777 strfry
 - ❌ Custom sync logic → NDK automatic sync
 - ❌ Complex repository patterns → Simple event utilities
 
-### Proven Patterns to Transfer
+### Proven Patterns to Apply
 - **XState Machine Architecture**: Setup → Active → Completed workflows
 - **Error Boundary Patterns**: Comprehensive error handling
 - **Timer Management**: Real-time updates and background timers
@@ -249,7 +249,7 @@ docker run -p 7777:7777 strfry
 
 ### Technical Risks
 1. **NDK Browser Performance**: Mitigation via IndexedDB benchmarking
-2. **XState Integration Complexity**: Leverage proven golf app patterns
+2. **XState Integration Complexity**: Leverage proven application patterns
 3. **Event Structure Evolution**: Design for NIP-101e extensibility
 4. **Offline Sync Conflicts**: Use NDK's built-in conflict resolution
 
@@ -261,7 +261,7 @@ docker run -p 7777:7777 strfry
 ### Project Risks
 1. **Scope Creep**: Strict MVP boundaries, resist feature additions
 2. **Timeline Pressure**: Focus on core workflow first
-3. **Migration Path**: Document all patterns for golf app application
+3. **Migration Path**: Document all patterns for future application development
 
 ## Testing Strategy
 
@@ -294,7 +294,7 @@ docker run -p 7777:7777 strfry
 ### Architecture Documentation
 - Decision records for major choices
 - Integration patterns with examples
-- Migration guides for golf app application
+- Migration guides for future application development
 - Performance benchmarks and optimizations
 
 ## Success Criteria & KPIs
@@ -313,7 +313,7 @@ docker run -p 7777:7777 strfry
 
 ### Business Success
 - [ ] Validates NDK-first architecture viability
-- [ ] Provides concrete patterns for golf app refactoring
+- [ ] Provides concrete patterns for future application development
 - [ ] Demonstrates social fitness app potential
 - [ ] Creates foundation for future gamekeeper analytics
 
@@ -346,4 +346,4 @@ docker run -p 7777:7777 strfry
 
 ---
 
-*This document should be updated as the project progresses. Key decisions, learnings, and changes should be documented for future reference and golf app migration planning.*
+*This document should be updated as the project progresses. Key decisions, learnings, and changes should be documented for future reference and application development planning.*

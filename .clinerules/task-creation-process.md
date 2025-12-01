@@ -11,7 +11,7 @@ Always begin by reviewing `docs/project-kickoff.md` which serves as the central 
 ### 2. Select Task from Project Goals
 - Review `docs/project-kickoff.md` for prioritized features and 10-day MVP timeline
 - Choose tasks that align with NDK-first architecture validation goals
-- Note any dependencies or prerequisites for golf app migration
+- Note any dependencies or prerequisites for fitness app development
 
 ### 3. Create Task Document
 Create a new task document in `docs/tasks/[feature-name]-task.md` with this structure:
@@ -88,7 +88,7 @@ After implementation is complete:
 1. **Create/Update Feature Documentation**
    - Add to `docs/features/[feature-name]/`
    - Include usage examples
-   - Document any new patterns for golf app migration
+   - Document any new patterns for fitness app development
 
 2. **Update Core Documentation**
    - Mark complete in project tracking
@@ -97,7 +97,7 @@ After implementation is complete:
 
 3. **Archive Task Document**
    - Move to `docs/archive/tasks/`
-   - Preserves implementation history for golf app reference
+   - Preserves implementation history for future reference
 
 ### 7. Provide Task Kickoff Prompt
 After creating the task document, provide a brief prompt for starting the task in a fresh context:
@@ -138,7 +138,7 @@ This prompt enables efficient task startup in new contexts without requiring ful
 1. **NDK-First Validation**: Every task should validate or refine NDK-first architecture
 2. **Reference Existing Patterns**: Use established web patterns from .clinerules
 3. **Small Steps**: Break down into manageable chunks for 10-day timeline
-4. **Golf App Migration**: Document patterns that will transfer to golf app
+4. **Pattern Documentation**: Document reusable patterns for future development
 5. **Complete the Cycle**: Archive tasks when done for future reference
 
 ## Web-Specific Considerations
@@ -166,7 +166,7 @@ This prompt enables efficient task startup in new contexts without requiring ful
 - Starting coding without reviewing NDK-first goals
 - Creating new patterns when web-optimized ones exist
 - Forgetting to validate architecture assumptions
-- Not documenting insights for golf app migration
+- Not documenting insights for future development
 - Skipping the documentation review step
 - Ignoring 10-day MVP timeline constraints
 
@@ -193,14 +193,14 @@ This prompt enables efficient task startup in new contexts without requiring ful
 - Creating technical design documents
 - Planning sprint work within 10-day timeline
 - Validating NDK-first architecture decisions
-- Preparing patterns for golf app migration
+- Preparing patterns for future development
 
 ## Success Metrics
 
 ### Task Quality Indicators
 - Clear connection to NDK-first validation goals
 - Realistic timeline within 10-day MVP
-- Documented patterns for golf app reuse
+- Documented patterns for future reuse
 - Proper integration with existing web architecture
 
 ### Architecture Validation Indicators
@@ -209,7 +209,7 @@ This prompt enables efficient task startup in new contexts without requiring ful
 - No custom database code required
 - Simplified architecture compared to dual-database approach
 
-This rule ensures that all POWR PWA development contributes to the primary goal of validating NDK-first architecture for eventual golf app migration.
+This rule ensures that all POWR PWA development contributes to the primary goal of validating NDK-first architecture for fitness application development.
 
 ---
 

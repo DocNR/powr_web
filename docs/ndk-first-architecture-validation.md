@@ -28,7 +28,7 @@ formatting_rules:
 - ✅ **Cross-Account Subscriptions**: Publisher/subscriber model working seamlessly
 - ✅ **Cache-Only Operations**: Zero network queries after initial hydration
 - ✅ **Performance Excellence**: Exceeds all targets with room for optimization
-- ✅ **Golf App Migration Ready**: High confidence for immediate migration
+- ✅ **Architecture Validated**: High confidence for complex real-time applications
 
 ## Architecture Overview
 
@@ -102,12 +102,12 @@ See: `src/components/test/WorkoutListManager.tsx`
 - **Cross-Publisher References**: Subscribe to test publisher's collections
 - **Automatic Cache Hydration**: Complete dependency chains cached automatically
 
-### **Phase 5: Performance & Golf App Migration Validation - COMPLETE ✅**
+### **Phase 5: Performance & Architecture Validation - COMPLETE ✅**
 **Performance Excellence**: All targets exceeded
 - **Subsequent Operations**: Cache-only operations under 500ms target
 - **Cross-Session Persistence**: All data survives browser restart
-- **Golf App Migration**: HIGH CONFIDENCE for immediate migration
-- **XState + NDK Patterns**: Proven integration ready for golf app migration
+- **Architecture Validation**: HIGH CONFIDENCE for complex real-time applications
+- **XState + NDK Patterns**: Proven integration ready for future application development
 
 ## Technical Architecture Patterns
 
@@ -154,32 +154,32 @@ const workoutWithExercises = await resolveFromCache(workoutId);
 - **Batched Queries**: Optimized for larger datasets
 - **Memory Usage**: Minimal IndexedDB footprint
 
-## Golf App Migration Architecture
+## Validated Architecture Patterns
 
-### **Direct Pattern Transfer**
+### **Proven Pattern Transferability**
 ```
-Golf Course Collections ←→ Workout Collections
+Content Collections ←→ Workout Collections
         ↓                        ↓
-Hole Templates         ←→ Exercise Templates  
+Item Templates     ←→ Exercise Templates  
         ↓                        ↓
-Round Records          ←→ Workout Records
+Activity Records   ←→ Workout Records
         ↓                        ↓
-Shot Data              ←→ Set/Rep Data
+Event Data         ←→ Set/Rep Data
 ```
 
-### **Golf-Specific Benefits**
-- **Course Data**: Golf courses as collections, holes as individual content
-- **Scorecard Templates**: Course layouts with hole dependencies
-- **Round History**: Complete round data with course/hole dependency resolution
-- **Social Features**: Course recommendations and cross-account sharing
-- **Offline Reliability**: Complete course data available without connectivity
+### **Architecture Benefits**
+- **Content Organization**: Collections as content containers, items as individual templates
+- **Template Systems**: Structured layouts with dependency resolution
+- **Activity History**: Complete activity data with content/item dependency resolution
+- **Social Features**: Content recommendations and cross-account sharing
+- **Offline Reliability**: Complete content data available without connectivity
 
-### **Migration Confidence Factors**
-1. **Proven Performance**: Web performance validates mobile feasibility
-2. **Dependency Complexity**: Golf data simpler than workout dependencies
-3. **Offline Requirements**: Golf courses need offline-first (validated)
-4. **Cross-Account Sharing**: Golf courses shared between accounts (validated)
-5. **Event Structure**: Golf shots similar to workout sets (proven pattern)
+### **Validation Confidence Factors**
+1. **Proven Performance**: Web performance validates complex application feasibility
+2. **Dependency Complexity**: Complex dependency resolution patterns validated
+3. **Offline Requirements**: Offline-first architecture fully validated
+4. **Cross-Account Sharing**: Publisher/subscriber model working seamlessly
+5. **Event Structure**: Flexible event patterns proven for various data types
 
 ## Business Model Architecture
 
@@ -229,60 +229,60 @@ Shot Data              ←→ Set/Rep Data
 **Rationale**: Social features, content discovery, business model foundation
 **Consequences**: Rich content ecosystem, viral growth potential, premium content model
 
-## Implementation Patterns for Golf App
+## Implementation Patterns for Complex Applications
 
-### **Course Data Structure**
+### **Content Collection Structure**
 ```typescript
-// Golf Course Collection (Kind 30003)
-const courseCollection = {
+// Content Collection (Kind 30003)
+const contentCollection = {
   kind: 30003,
   tags: [
-    ['d', 'pebble-beach-golf-links'],
-    ['title', 'Pebble Beach Golf Links'],
-    ['a', '33401:course-designer-pubkey:hole-1'],
-    ['a', '33401:course-designer-pubkey:hole-18']
+    ['d', 'fitness-program-beginner'],
+    ['title', 'Beginner Fitness Program'],
+    ['a', '33401:trainer-pubkey:exercise-1'],
+    ['a', '33401:trainer-pubkey:exercise-12']
   ]
 };
 
-// Hole Template (Kind 33401) 
-const holeTemplate = {
+// Content Template (Kind 33401) 
+const contentTemplate = {
   kind: 33401,
   tags: [
-    ['d', 'hole-7-pebble-beach'],
-    ['title', 'Hole 7 - Pebble Beach'],
-    ['par', '3'],
-    ['yardage', '106']
+    ['d', 'pushup-standard'],
+    ['title', 'Standard Push-up'],
+    ['difficulty', 'beginner'],
+    ['equipment', 'bodyweight']
   ]
 };
 ```
 
-### **Round Recording Pattern**
+### **Activity Recording Pattern**
 ```typescript
-// Golf Round Record (Kind 1301)
-const roundRecord = {
+// Activity Record (Kind 1301)
+const activityRecord = {
   kind: 1301,
   tags: [
-    ['d', 'round-uuid'],
-    ['course', '30003:course-pubkey:pebble-beach'],
-    ['hole', '33401:course-pubkey:hole-7', '3', '106', '4'] // hole-ref, par, yardage, score
+    ['d', 'activity-uuid'],
+    ['template', '30003:trainer-pubkey:fitness-program'],
+    ['exercise', '33401:trainer-pubkey:pushup-standard', '', '0', '10', '7', 'normal']
   ]
 };
 ```
 
-### **Dependency Resolution for Golf**
+### **Dependency Resolution Pattern**
 ```typescript
-// Course → Holes → Round Data
-const resolveGolfDependencies = async (courseId) => {
-  const course = await resolveFromCache(courseId);
-  const holes = await batchResolveHoles(course);
-  const rounds = await resolveRoundHistory(course, holes);
-  return { course, holes, rounds };
+// Collection → Templates → Activity Data
+const resolveDependencies = async (collectionId) => {
+  const collection = await resolveFromCache(collectionId);
+  const templates = await batchResolveTemplates(collection);
+  const activities = await resolveActivityHistory(collection, templates);
+  return { collection, templates, activities };
 };
 ```
 
 ## Service Layer Architecture
 
-### **Business Logic Services (Ready for Golf)**
+### **Business Logic Services (Validated Patterns)**
 See: `.clinerules/service-layer-architecture.md`
 
 **Proven Patterns**:
@@ -291,20 +291,20 @@ See: `.clinerules/service-layer-architecture.md`
 - **Validation Service**: Event structure and data integrity validation
 - **Sync Service**: Offline queue management and network synchronization
 
-### **Golf-Specific Services (Ready to Implement)**
+### **Extensible Service Architecture**
 ```typescript
-// Golf Analytics Service
-interface GolfAnalyticsService {
-  calculateHandicap(rounds: RoundEvent[]): number;
-  analyzeHolePerformance(hole: HoleTemplate, rounds: RoundEvent[]): HoleStats;
-  generateRoundSummary(round: RoundEvent): RoundSummary;
+// Analytics Service Pattern
+interface AnalyticsService {
+  calculateMetrics(events: ActivityEvent[]): MetricResults;
+  analyzePerformance(template: ContentTemplate, events: ActivityEvent[]): PerformanceStats;
+  generateSummary(event: ActivityEvent): ActivitySummary;
 }
 
-// Course Management Service  
-interface CourseManagementService {
-  resolveCourseData(courseId: string): Promise<CourseData>;
-  validateRoundData(roundData: any): ValidationResult;
-  optimizeCourseCache(courses: CourseEvent[]): Promise<void>;
+// Content Management Service Pattern
+interface ContentManagementService {
+  resolveContentData(contentId: string): Promise<ContentData>;
+  validateActivityData(activityData: any): ValidationResult;
+  optimizeContentCache(content: ContentEvent[]): Promise<void>;
 }
 ```
 
@@ -377,11 +377,11 @@ The NDK-first architecture has been **definitively validated** for complex depen
 4. **Cross-account content sharing** enables rich social and business features
 5. **Performance targets** are easily achievable with room for optimization
 
-### **Golf App Migration: PROCEED IMMEDIATELY**
+### **Architecture Validation: COMPLETE SUCCESS**
 
 **Confidence Level**: **VERY HIGH**
 
-The validation results provide overwhelming evidence that the golf app should migrate to NDK-first architecture immediately. All technical risks have been mitigated, performance targets exceeded, and business model foundation established.
+The validation results provide overwhelming evidence that NDK-first architecture is ready for complex real-time applications. All technical risks have been mitigated, performance targets exceeded, and business model foundation established.
 
 ### **Business Impact**
 
@@ -392,7 +392,7 @@ The NDK-first architecture enables:
 - **Competitive Advantage**: User data ownership and cross-app compatibility
 - **Scalable Business Model**: Foundation for free/premium tiers
 
-**The future of fitness and golf applications is NDK-first.**
+**The future of complex real-time applications is NDK-first.**
 
 ---
 
@@ -400,5 +400,5 @@ The NDK-first architecture enables:
 **Project**: POWR Workout PWA  
 **Environment**: Web Browser  
 **Status**: Architecture Validation Complete  
-**Next Phase**: Golf App Migration  
+**Next Phase**: Production Features or Future Application Development  
 **Confidence**: Very High

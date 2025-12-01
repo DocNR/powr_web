@@ -690,34 +690,33 @@ Based on XState documentation research, our service patterns align perfectly wit
 - **Input Patterns**: Services receive data via input, not context injection
 - **Provider Pattern**: Use `.provide({ actors })` for runtime actor logic, not service injection
 
-## Golf App Migration Context
+## Advanced Service Integration Patterns
 
-### **Parallel Service Structures**
+### **Multi-Domain Service Architecture**
 ```typescript
-// Workout services (current)
+// Fitness services (current implementation)
 export const workoutAnalyticsService = new WorkoutAnalyticsService();
 export const exerciseAnalyticsService = new ExerciseAnalyticsService();
+export const nutritionAnalyticsService = new NutritionAnalyticsService();
 
-// Golf services (same patterns)
-export const golfAnalyticsService = new GolfAnalyticsService();
-export const courseAnalyticsService = new CourseAnalyticsService();
-export const shotAnalyticsService = new ShotAnalyticsService();
-
-// Both use identical XState integration patterns
-const golfRoundMachine = setup({
+// All use identical XState integration patterns
+const fitnessAnalyticsMachine = setup({
   actors: {
-    analyzeRound: fromPromise(async ({ input }) => {
-      return golfAnalyticsService.calculateRoundStats(input.shots);
+    analyzeWorkout: fromPromise(async ({ input }) => {
+      return workoutAnalyticsService.calculateWorkoutStats(input.workouts);
+    }),
+    analyzeNutrition: fromPromise(async ({ input }) => {
+      return nutritionAnalyticsService.calculateNutritionStats(input.meals);
     })
   }
 });
 ```
 
-### **Cross-Domain Pattern Reuse**
-- **Same Service Architecture**: Pure business logic, no data fetching
-- **Same XState Integration**: Direct calls in `fromPromise` actors
-- **Same NDK Patterns**: Components handle data, services handle logic
-- **Same Testing Approach**: Pure service testing + mocked component testing
+### **Cross-Domain Pattern Benefits**
+- **Consistent Service Architecture**: Pure business logic, no data fetching
+- **Unified XState Integration**: Direct calls in `fromPromise` actors
+- **Standardized NDK Patterns**: Components handle data, services handle logic
+- **Scalable Testing Approach**: Pure service testing + mocked component testing
 
 ## Performance Benefits
 
@@ -872,7 +871,7 @@ workoutAnalyticsService.calculateStats = withLogging(
 );
 ```
 
-This NDK-first service architecture eliminates database complexity while maintaining clean separation of concerns and excellent testability. The patterns are fully validated against XState v5 official documentation and provide a solid foundation for both workout and golf app development.
+This NDK-first service architecture eliminates database complexity while maintaining clean separation of concerns and excellent testability. The patterns are fully validated against XState v5 official documentation and provide a solid foundation for fitness application development.
 
 ---
 
