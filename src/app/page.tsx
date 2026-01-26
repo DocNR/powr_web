@@ -11,7 +11,7 @@ import { useEffect, useState } from 'react';
 import { Shield, Globe, Unlock, Zap, Users, ArrowRight, Github, BookOpen } from 'lucide-react';
 import { useIsAuthenticated, useEphemeralLogin, useAutoLogin } from '@/lib/auth/hooks';
 import { initializeNDK } from '@/lib/ndk';
-import { triggerLogin } from '@/lib/auth/nostrLoginBridge';
+import { LoginDialog } from '@/components/auth/LoginDialog';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/powr-ui/primitives/Button';
 import { Card, CardContent } from '@/components/powr-ui/primitives/Card';
@@ -136,24 +136,30 @@ export default function Home() {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Button 
-              variant="primary-gradient" 
-              size="lg" 
-              className="w-full sm:w-auto"
-              onClick={() => triggerLogin('welcome-login')}
-            >
-              Start Tracking
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-            <Button 
-              variant="secondary" 
-              size="lg" 
-              className="w-full sm:w-auto"
-              onClick={() => triggerLogin('connection-string')}
-            >
-              NostrConnect
-              <Globe className="ml-2 h-4 w-4" />
-            </Button>
+            <LoginDialog 
+              trigger={
+                <Button 
+                  variant="primary-gradient" 
+                  size="lg" 
+                  className="w-full sm:w-auto"
+                >
+                  Start Tracking
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              }
+            />
+            <LoginDialog 
+              trigger={
+                <Button 
+                  variant="secondary" 
+                  size="lg" 
+                  className="w-full sm:w-auto"
+                >
+                  NostrConnect
+                  <Globe className="ml-2 h-4 w-4" />
+                </Button>
+              }
+            />
             <Button 
               variant="outline" 
               size="lg" 
