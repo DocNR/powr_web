@@ -2,7 +2,7 @@
 title: POWR Workout PWA Changelog
 description: Record of all notable changes to the POWR Workout PWA project
 status: verified
-last_updated: 2025-06-29
+last_updated: 2026-01-25
 last_verified: 2025-06-29
 related_code: 
   - /src/lib/machines/workout/
@@ -48,6 +48,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   **Architecture Changes**: Established NIP-92 compliant media architecture with extensible POWR custom fields. Fixed dataParsingService.parseExerciseTemplate to preserve `tags: event.tags` for media attachments. Centralized media handling through WorkoutImageHandler component.
 
 ### Fixed
+- **NIP-46 Mobile Handshake Support COMPLETE (2026-01-25) ✅**
+  
+  **User Impact**: Mobile signers like Primal iOS can now complete NIP-46 “connect” handshakes because POWR emits and logs the `nostrconnect://` URI needed to finish authentication. This unblocks remote signing flows on mobile while keeping extension auth unchanged.
+  
+  **Developer Notes**: Enabled `customNostrConnect` in nostr-login init, added `nlNeedAuth` listener to log the `nostrconnect://` URI, and prevented NIP-07 signer overrides for `connect` sessions. Added explicit logging to trace URI generation and handshake flow.
+  
+  **Architecture Changes**: Preserved nostr-login as the source of truth for NIP-46 session setup while ensuring POWR’s bridge no longer overrides remote signers. Established a clear handoff point for mobile connect URIs.
 - **Exercise Detail Modal Media Display Issues COMPLETE (August 29, 2025) ✅**
   
   **User Impact**: Exercise detail modals now consistently display media content regardless of navigation pathway (exercise library, global search, or workout detail modal).
