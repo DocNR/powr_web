@@ -3,14 +3,13 @@
 /**
  * Login Dialog Component for POWR Workout PWA
  * 
- * RESTORED: Original clean 3-button design with smooth authentication flows.
- * Uses direct NDK operations for NIP-07 and ephemeral login.
- * Uses nostr-login only for NIP-46 remote signing.
+ * MIGRATED: Now uses direct NDK authentication hooks.
+ * All authentication methods use direct NDK calls (no nostr-login dependency).
  * 
  * Design:
  * - Connect Extension (primary - direct NIP-07)
  * - Try Demo (secondary - direct ephemeral)
- * - Advanced Options (collapsible - NIP-46 via nostr-login)
+ * - Advanced Options (collapsible - direct NIP-46 with DEFAULT_RELAYS)
  */
 
 import { useState, ReactNode, useEffect } from 'react';
@@ -29,14 +28,14 @@ import {
 } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
-// Authentication hooks - using nostr-login for extension auth
+// Authentication hooks - Direct NDK implementation
 import { 
+  useNip07Login,
   useNip46Login, 
   useEphemeralLogin,
   useNip07Available,
   useIsAuthenticated 
 } from '@/lib/auth/hooks';
-import { triggerLogin } from '@/lib/auth/nostrLoginBridge';
 import type { AuthenticationError } from '@/lib/auth/types';
 
 interface LoginDialogProps {
@@ -52,6 +51,7 @@ export function LoginDialog({ trigger, isCompact = false, onSuccess, defaultOpen
   const [error, setError] = useState<AuthenticationError | null>(null);
   const [open, setOpen] = useState(defaultOpen);
 
+  const nip07Login = useNip07Login();
   const nip46Login = useNip46Login();
   const ephemeralLogin = useEphemeralLogin();
   const nip07Available = useNip07Available();
@@ -72,51 +72,60 @@ export function LoginDialog({ trigger, isCompact = false, onSuccess, defaultOpen
     }
   }, [open]);
 
-  function handleNip07Login() {
+  async function handleNip07Login() {
     try {
       setIsLoggingIn(true);
       setError(null);
       
-      console.log('[Login Dialog] Triggering nostr-login extension flow...');
+      console.log('[Login Dialog] Starting NIP-07 extension authentication...');
       
-      // Use nostr-login for extension authentication
-      triggerLogin('extension');
+      // Direct NDK NIP-07 authentication
+      const result = await nip07Login();
       
-      // Note: nostr-login will handle the authentication flow
-      // The bridge will receive nlAuth events and update Jotai state
-      // isAuthenticated will change and close the dialog automatically
+      if (!result.success && result.error) {
+        setError({
+          code: 'UNKNOWN_ERROR',
+          message: result.error,
+        });
+        setIsLoggingIn(false);
+      }
+      // Success case: isAuthenticated will change and close dialog automatically
       
     } catch (err) {
-      console.error('[Login Dialog] Extension trigger error:', err);
+      console.error('[Login Dialog] Extension error:', err);
       setError({
         code: 'UNKNOWN_ERROR',
-        message: 'Failed to start extension authentication. Please try again.',
+        message: 'Failed to authenticate with extension. Please try again.',
       });
       setIsLoggingIn(false);
     }
   }
 
-  function handleNip46Login() {
+  async function handleNip46Login() {
     try {
       setIsLoggingIn(true);
       setError(null);
       
-      // Use nostr-login for NIP-46 (the reliable option)
-      const result = nip46Login();
+      console.log('[Login Dialog] Starting NIP-46 remote signer authentication...');
+      
+      // Direct NDK NIP-46 authentication with DEFAULT_RELAYS
+      const result = await nip46Login(remoteSigner);
       
       if (!result.success && result.error) {
         setError({
           code: 'NIP46_CONNECTION_FAILED',
           message: result.error,
         });
+        setIsLoggingIn(false);
       }
+      // Success case: isAuthenticated will change and close dialog automatically
+      
     } catch (err) {
       console.error('[Login Dialog] NIP-46 error:', err);
       setError({
         code: 'UNKNOWN_ERROR',
         message: 'An unexpected error occurred. Please try again.',
       });
-    } finally {
       setIsLoggingIn(false);
     }
   }
@@ -126,7 +135,9 @@ export function LoginDialog({ trigger, isCompact = false, onSuccess, defaultOpen
       setIsLoggingIn(true);
       setError(null);
       
-      // Use restored smooth ephemeral implementation
+      console.log('[Login Dialog] Starting ephemeral demo authentication...');
+      
+      // Direct NDK ephemeral authentication
       const result = await ephemeralLogin();
       
       if (!result.success && result.error) {
@@ -134,14 +145,16 @@ export function LoginDialog({ trigger, isCompact = false, onSuccess, defaultOpen
           code: 'EPHEMERAL_GENERATION_FAILED',
           message: result.error,
         });
+        setIsLoggingIn(false);
       }
+      // Success case: isAuthenticated will change and close dialog automatically
+      
     } catch (err) {
       console.error('[Login Dialog] Ephemeral login error:', err);
       setError({
         code: 'UNKNOWN_ERROR',
         message: 'Failed to generate demo account. Please try again.',
       });
-    } finally {
       setIsLoggingIn(false);
     }
   }
@@ -223,38 +236,43 @@ export function LoginDialog({ trigger, isCompact = false, onSuccess, defaultOpen
             </Button>
           </div>
 
-          {/* Advanced Options - Collapsible NIP-46 */}
+          {/* Advanced Options - Collapsible NIP-46 with DEFAULT_RELAYS */}
           <details className="group">
             <summary className="flex cursor-pointer items-center justify-between py-2 text-sm font-medium text-muted-foreground hover:text-foreground">
-              Advanced Options
+              Advanced Options (Mobile Signer)
               <Cable className="size-4 transition-transform group-open:rotate-180" />
             </summary>
             
-            <div className="mt-3 flex gap-2">
-              <Input
-                placeholder="bunker://... or user@domain.com"
-                value={remoteSigner}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRemoteSigner(e.target.value)}
-                disabled={isLoggingIn}
-                className="flex-1"
-                onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
-                  if (e.key === 'Enter' && remoteSigner.trim()) {
-                    handleNip46Login();
-                  }
-                }}
-              />
-              <Button
-                variant="outline"
-                disabled={isLoggingIn || !remoteSigner.trim()}
-                onClick={handleNip46Login}
-                size="icon"
-              >
-                {isLoggingIn ? (
-                  <RotateCw className="animate-spin size-4" />
-                ) : (
-                  <Cable className="size-4" />
-                )}
-              </Button>
+            <div className="mt-3 flex flex-col gap-2">
+              <div className="text-xs text-muted-foreground mb-1">
+                Uses your DEFAULT_RELAYS for reliable mobile signer connectivity
+              </div>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="bunker://... or user@domain.com"
+                  value={remoteSigner}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRemoteSigner(e.target.value)}
+                  disabled={isLoggingIn}
+                  className="flex-1"
+                  onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                    if (e.key === 'Enter' && remoteSigner.trim()) {
+                      handleNip46Login();
+                    }
+                  }}
+                />
+                <Button
+                  variant="outline"
+                  disabled={isLoggingIn || !remoteSigner.trim()}
+                  onClick={handleNip46Login}
+                  size="icon"
+                >
+                  {isLoggingIn ? (
+                    <RotateCw className="animate-spin size-4" />
+                  ) : (
+                    <Cable className="size-4" />
+                  )}
+                </Button>
+              </div>
             </div>
           </details>
         </div>
