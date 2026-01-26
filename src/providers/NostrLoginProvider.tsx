@@ -42,6 +42,10 @@ export function NostrLoginProvider({ children }: NostrLoginProviderProps) {
           // Welcome screen configuration
           title: 'POWR Workout PWA',
           description: 'Track your workouts on Nostr with POWR',
+
+          // Enable custom Nostr Connect flow so we can
+          // forward nostrconnect:// strings to mobile signers
+          customNostrConnect: true,
           
           // Don't override relay configuration - let nostr-login handle it
           // This prevents conflicts with internal relay selection

@@ -26,6 +26,7 @@ declare global {
     'nlAuth': CustomEvent<{ type: string; pubkey?: string; method?: string }>;
     'nlLaunch': CustomEvent<string>;
     'nlLogout': Event;
+    'nlNeedAuth': CustomEvent<{ nostrconnect?: string }>;
   }
 }
 
@@ -53,6 +54,7 @@ export class NostrLoginBridge {
 
     // Listen to nostr-login authentication events
     document.addEventListener('nlAuth', this.handleAuthEvent);
+    document.addEventListener('nlNeedAuth', this.handleNeedAuthEvent);
 
     this.isInitialized = true;
     console.log('[NostrLoginBridge] Bridge service initialized');
@@ -63,9 +65,30 @@ export class NostrLoginBridge {
    */
   destroy(): void {
     document.removeEventListener('nlAuth', this.handleAuthEvent);
+    document.removeEventListener('nlNeedAuth', this.handleNeedAuthEvent);
     this.isInitialized = false;
     console.log('[NostrLoginBridge] Bridge service destroyed');
   }
+
+  /**
+   * Handle nostr-login custom NIP-46 requests
+   */
+  private handleNeedAuthEvent = (event: Event) => {
+    if (!(event instanceof CustomEvent)) {
+      console.warn('[NostrLoginBridge] Received invalid nlNeedAuth event');
+      return;
+    }
+
+    const { nostrconnect } = event.detail || {};
+
+    if (!nostrconnect) {
+      console.warn('[NostrLoginBridge] nlNeedAuth event missing nostrconnect string');
+      return;
+    }
+
+    console.log('[NostrLoginBridge] Received nostrconnect URI:', nostrconnect);
+    console.log('[NostrLoginBridge] Forward this URI to Primal/other mobile signer for NIP-46 handshake.');
+  };
 
   /**
    * Handle authentication events from nostr-login
@@ -138,10 +161,18 @@ export class NostrLoginBridge {
 
       // Update NDK singleton with new signer (if available)
       const ndk = getNDKInstance();
-      if (ndk && typeof window !== 'undefined' && window.nostr && loginMethod !== 'readOnly') {
+      if (
+        ndk &&
+        typeof window !== 'undefined' &&
+        window.nostr &&
+        loginMethod !== 'readOnly' &&
+        loginMethod !== 'nip46'
+      ) {
         // Use NDK's built-in NIP-07 signer for window.nostr integration
         ndk.signer = new NDKNip07Signer();
         console.log('[NostrLoginBridge] NDK signer updated with NDKNip07Signer');
+      } else if (loginMethod === 'nip46') {
+        console.log('[NostrLoginBridge] Skipping NDKNip07Signer for NIP-46 connect session');
       }
 
       // Update Jotai atoms
@@ -220,6 +251,8 @@ export class NostrLoginBridge {
    * Launch nostr-login with specific screen
    * Using nostrcal's proven launch() function approach
    */
+  
+  
   static async launchNostrLogin(screen: 'welcome-login' | 'signup' | 'extension' | 'connect') {
     console.log(`[NostrLoginBridge] Launching nostr-login with screen: ${screen}`);
     
@@ -228,14 +261,38 @@ export class NostrLoginBridge {
       const { launch } = await import('nostr-login');
       
       // Map our screen types to nostr-login's expected types
-      let launchScreen: string = screen;
+      type NostrLoginLaunchScreen =
+        | 'welcome'
+        | 'welcome-login'
+        | 'welcome-signup'
+        | 'signup'
+        | 'local-signup'
+        | 'login'
+        | 'otp'
+        | 'connect'
+        | 'login-bunker-url'
+        | 'login-read-only'
+        | 'connection-string'
+        | 'switch-account'
+        | 'import';
+
+      let launchScreen: NostrLoginLaunchScreen = 'login';
+
+      if (screen === 'connect') {
+        launchScreen = 'connect';
+      } else if (screen === 'signup') {
+        launchScreen = 'signup';
+      } else if (screen === 'welcome-login') {
+        launchScreen = 'welcome-login';
+      }
+
       if (screen === 'extension') {
         // Use 'login' as fallback for extension since 'extension' isn't in StartScreens
         launchScreen = 'login';
       }
       
       // Launch with mapped screen like nostrcal does
-      launch(launchScreen as any);
+      launch(launchScreen);
       
       console.log(`[NostrLoginBridge] Successfully launched nostr-login with screen: ${launchScreen}`);
       
