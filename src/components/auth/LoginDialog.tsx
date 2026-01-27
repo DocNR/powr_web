@@ -13,7 +13,7 @@
  */
 
 import { useState, ReactNode, useEffect } from 'react';
-import { LogIn, Puzzle, Cable, RotateCw, AlertTriangle, Zap, QrCode } from 'lucide-react';
+import { LogIn, Puzzle, RotateCw, AlertTriangle, Zap, Copy, Check, ChevronDown } from 'lucide-react';
 import QRCode from 'react-qr-code';
 
 // UI Components
@@ -50,6 +50,8 @@ export function LoginDialog({ trigger, isCompact = false, onSuccess, defaultOpen
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [error, setError] = useState<AuthenticationError | null>(null);
   const [open, setOpen] = useState(defaultOpen);
+  const [copied, setCopied] = useState(false);
+  const [showMobileSigner, setShowMobileSigner] = useState(false);
 
   const nip07Login = useNip07Login();
   const nip46Login = useNip46Login();
@@ -70,8 +72,45 @@ export function LoginDialog({ trigger, isCompact = false, onSuccess, defaultOpen
     if (open) {
       setError(null);
       setConnectionUrl(null);
+      setShowMobileSigner(false);
     }
   }, [open]);
+
+  // Auto-generate QR code when mobile signer section opens
+  useEffect(() => {
+    if (showMobileSigner && open && !connectionUrl && !isLoggingIn) {
+      handleNip46Login();
+    }
+  }, [showMobileSigner, open]);
+
+  // Copy connection string handler
+  async function handleCopyConnectionString() {
+    if (!connectionUrl) return;
+    
+    try {
+      await navigator.clipboard.writeText(connectionUrl);
+      setCopied(true);
+      
+      // Haptic feedback for mobile
+      if ('vibrate' in navigator) {
+        navigator.vibrate(50);
+      }
+      
+      setTimeout(() => setCopied(false), 3000);
+    } catch (error) {
+      // Fallback for older browsers
+      const textarea = document.createElement('textarea');
+      textarea.value = connectionUrl;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 3000);
+    }
+  }
 
   async function handleNip07Login() {
     try {
@@ -243,57 +282,71 @@ export function LoginDialog({ trigger, isCompact = false, onSuccess, defaultOpen
             </Button>
           </div>
 
-          {/* Advanced Options - Collapsible NIP-46 with QR Code */}
-          <details className="group" open>
-            <summary className="flex cursor-pointer items-center justify-between py-2 text-sm font-medium text-muted-foreground hover:text-foreground">
-              Mobile Signer (Primal, Amber)
-              <Cable className="size-4 transition-transform group-open:rotate-180" />
-            </summary>
+          {/* Mobile Signer - Controlled collapsible with auto-QR generation */}
+          <div className="border-t pt-4 mt-2">
+            <button
+              type="button"
+              onClick={() => setShowMobileSigner(!showMobileSigner)}
+              className="flex items-center justify-between w-full py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <span>Mobile Signer</span>
+              <ChevronDown className={`size-4 transition-transform ${showMobileSigner ? 'rotate-180' : ''}`} />
+            </button>
             
-            <div className="mt-3 flex flex-col gap-3">
-              {!connectionUrl && !isLoggingIn && (
-                <>
-                  <div className="text-xs text-muted-foreground">
-                    Generate a QR code to connect with your mobile signer app (Primal, Amber, etc).
-                    Uses your DEFAULT_RELAYS for reliable connectivity.
+            {showMobileSigner && (
+              <div className="mt-3 flex flex-col gap-3">
+                {isLoggingIn && !connectionUrl && (
+                  <div className="flex items-center justify-center p-8">
+                    <RotateCw className="animate-spin size-8" />
                   </div>
-                  <Button
-                    variant="outline"
-                    onClick={handleNip46Login}
-                    className="w-full"
-                  >
-                    <QrCode className="size-4 mr-2" />
-                    Generate QR Code
-                  </Button>
-                </>
-              )}
+                )}
 
-              {isLoggingIn && !connectionUrl && (
-                <div className="flex items-center justify-center p-8">
-                  <RotateCw className="animate-spin size-8" />
-                </div>
-              )}
-
-              {connectionUrl && (
-                <div className="flex flex-col gap-3">
-                  <div className="text-xs text-muted-foreground text-center">
-                    Scan this QR code with your Nostr mobile signer
-                  </div>
-                  <div className="bg-white p-4 rounded-lg flex items-center justify-center">
-                    <QRCode value={connectionUrl} size={200} />
-                  </div>
-                  <div className="text-xs text-muted-foreground text-center">
-                    {isLoggingIn ? 'Waiting for connection...' : 'QR Code ready'}
-                  </div>
-                  {isLoggingIn && (
-                    <div className="flex items-center justify-center">
-                      <RotateCw className="animate-spin size-5 text-muted-foreground" />
+                {connectionUrl && (
+                  <div className="flex flex-col gap-3">
+                    <div className="text-xs text-muted-foreground text-center">
+                      Scan QR code with your mobile signer (Primal, Amber, etc.)
                     </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </details>
+                    <div className="bg-white p-4 rounded-lg flex items-center justify-center">
+                      <QRCode value={connectionUrl} size={200} />
+                    </div>
+                    
+                    {/* Copy Button */}
+                    <div className="flex flex-col gap-2">
+                      <div className="text-xs text-muted-foreground text-center">
+                        Or copy connection string:
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleCopyConnectionString}
+                        className="w-full"
+                      >
+                        {copied ? (
+                          <>
+                            <Check className="size-4 mr-2 text-green-500" />
+                            ✓ Copied! Paste in your signer app
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="size-4 mr-2" />
+                            Copy Connection String
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                    
+                    {isLoggingIn && (
+                      <div className="flex flex-col items-center gap-2 text-sm text-muted-foreground">
+                        <RotateCw className="animate-spin size-5" />
+                        <span>⏳ Approve connection in your signer app</span>
+                        <span className="text-xs">(Primal, Amber, or other NIP-46 signers)</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </DialogContent>
     </Dialog>

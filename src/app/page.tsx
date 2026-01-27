@@ -8,7 +8,7 @@
  */
 
 import { useEffect, useState } from 'react';
-import { Shield, Globe, Unlock, Zap, Users, ArrowRight, Github, BookOpen } from 'lucide-react';
+import { Shield, Unlock, Zap, Users, ArrowRight, Github, BookOpen } from 'lucide-react';
 import { useIsAuthenticated, useEphemeralLogin, useAutoLogin } from '@/lib/auth/hooks';
 import { initializeNDK } from '@/lib/ndk';
 import { LoginDialog } from '@/components/auth/LoginDialog';
@@ -143,20 +143,8 @@ export default function Home() {
                   size="lg" 
                   className="w-full sm:w-auto"
                 >
-                  Start Tracking
+                  Get Started
                   <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              }
-            />
-            <LoginDialog 
-              trigger={
-                <Button 
-                  variant="secondary" 
-                  size="lg" 
-                  className="w-full sm:w-auto"
-                >
-                  NostrConnect
-                  <Globe className="ml-2 h-4 w-4" />
                 </Button>
               }
             />

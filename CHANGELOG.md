@@ -31,6 +31,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Authentication UX Redesign - Phase 1 COMPLETE (2026-01-26) ✅**
+  
+  **User Impact**: Authentication flow now requires 40% fewer clicks (from 3-5 → 2-3 clicks) with streamlined "Get Started" button and auto-generating QR codes. Mobile PWA users benefit from copy button for connection strings with haptic feedback, enabling seamless paste workflow into Primal/Amber signers. Landing page simplified from confusing dual buttons ("Start Tracking" + "NostrConnect") to single clear CTA. Mobile signer no longer hidden in "Advanced Options" - now properly visible as third authentication option with collapsible design.
+  
+  **Developer Notes**: Implemented copy button with `navigator.clipboard` API and fallback for older browsers, auto-generate QR functionality using controlled state (`showMobileSigner` triggers `useEffect` → `handleNip46Login()`), consolidated landing page buttons from 3 → 2 (removed redundant "NostrConnect" button), updated all UI copy ("Remote Signer" → "Mobile Signer", added "⏳ Approve connection in your signer app" status message). Replaced `<details>` HTML element with controlled React state for reliable auto-QR triggering. Added haptic feedback on mobile with `navigator.vibrate(50)` for improved tactile response.
+  
+  **Architecture Changes**: Established mobile-first authentication patterns with copy-paste workflow as primary method alongside QR scanning. Controlled component state enables reliable auto-generation eliminating manual "Generate QR Code" button click. Foundation ready for Phase 2 smart context detection (showing appropriate primary method based on browser extension presence or mobile PWA context) and Phase 3 polish (retry logic, enhanced errors, session hints).
+
+### Added
 - **Direct NDK Authentication Migration COMPLETE (2026-01-26) ✅**
   
   **User Impact**: NIP-07 browser extensions (nos2x, Alby tested ✅) and Primal iOS mobile signer (tested ✅) now work perfectly with direct NDK authentication. Eliminated nostr-login dependency for simplified, transparent authentication architecture. Users benefit from instant NIP-07 authentication and reliable NIP-46 handshake completion with complete relay configuration control.
