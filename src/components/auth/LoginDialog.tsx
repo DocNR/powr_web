@@ -9,15 +9,15 @@
  * Design:
  * - Connect Extension (primary - direct NIP-07)
  * - Try Demo (secondary - direct ephemeral)
- * - Advanced Options (collapsible - direct NIP-46 with DEFAULT_RELAYS)
+ * - Advanced Options (collapsible - direct NIP-46 with QR code)
  */
 
 import { useState, ReactNode, useEffect } from 'react';
-import { LogIn, Puzzle, Cable, RotateCw, AlertTriangle, Zap } from 'lucide-react';
+import { LogIn, Puzzle, Cable, RotateCw, AlertTriangle, Zap, QrCode } from 'lucide-react';
+import QRCode from 'react-qr-code';
 
 // UI Components
 import { Button } from '@/components/powr-ui/primitives/Button';
-import { Input } from '@/components/powr-ui/primitives/Input';
 import {
   Dialog,
   DialogContent,
@@ -46,7 +46,7 @@ interface LoginDialogProps {
 }
 
 export function LoginDialog({ trigger, isCompact = false, onSuccess, defaultOpen = false }: LoginDialogProps) {
-  const [remoteSigner, setRemoteSigner] = useState('');
+  const [connectionUrl, setConnectionUrl] = useState<string | null>(null);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [error, setError] = useState<AuthenticationError | null>(null);
   const [open, setOpen] = useState(defaultOpen);
@@ -65,10 +65,11 @@ export function LoginDialog({ trigger, isCompact = false, onSuccess, defaultOpen
     }
   }, [isAuthenticated, onSuccess]);
 
-  // Clear error when dialog opens
+  // Clear error and connection URL when dialog opens
   useEffect(() => {
     if (open) {
       setError(null);
+      setConnectionUrl(null);
     }
   }, [open]);
 
@@ -105,11 +106,15 @@ export function LoginDialog({ trigger, isCompact = false, onSuccess, defaultOpen
     try {
       setIsLoggingIn(true);
       setError(null);
+      setConnectionUrl(null);
       
-      console.log('[Login Dialog] Starting NIP-46 remote signer authentication...');
+      console.log('[Login Dialog] Starting NIP-46 mobile signer authentication...');
       
-      // Direct NDK NIP-46 authentication with DEFAULT_RELAYS
-      const result = await nip46Login(remoteSigner);
+      // Direct NDK NIP-46 authentication - generates QR code with DEFAULT_RELAYS
+      const result = await nip46Login((url: string) => {
+        console.log('[Login Dialog] QR Code URL received');
+        setConnectionUrl(url);
+      });
       
       if (!result.success && result.error) {
         setError({
@@ -117,6 +122,7 @@ export function LoginDialog({ trigger, isCompact = false, onSuccess, defaultOpen
           message: result.error,
         });
         setIsLoggingIn(false);
+        setConnectionUrl(null);
       }
       // Success case: isAuthenticated will change and close dialog automatically
       
@@ -127,6 +133,7 @@ export function LoginDialog({ trigger, isCompact = false, onSuccess, defaultOpen
         message: 'An unexpected error occurred. Please try again.',
       });
       setIsLoggingIn(false);
+      setConnectionUrl(null);
     }
   }
 
@@ -161,7 +168,7 @@ export function LoginDialog({ trigger, isCompact = false, onSuccess, defaultOpen
 
   function onOpenChange(newOpen: boolean) {
     if (!newOpen) {
-      setRemoteSigner('');
+      setConnectionUrl(null);
       setIsLoggingIn(false);
       setError(null);
     }
@@ -203,7 +210,7 @@ export function LoginDialog({ trigger, isCompact = false, onSuccess, defaultOpen
             </Alert>
           )}
 
-          {/* Primary Options - Clean 3-button design */}
+          {/* Primary Options - Clean 2-button design */}
           <div className="flex flex-col gap-3">
             {/* Browser Extension - Direct NIP-07 */}
             <Button
@@ -236,43 +243,55 @@ export function LoginDialog({ trigger, isCompact = false, onSuccess, defaultOpen
             </Button>
           </div>
 
-          {/* Advanced Options - Collapsible NIP-46 with DEFAULT_RELAYS */}
-          <details className="group">
+          {/* Advanced Options - Collapsible NIP-46 with QR Code */}
+          <details className="group" open>
             <summary className="flex cursor-pointer items-center justify-between py-2 text-sm font-medium text-muted-foreground hover:text-foreground">
-              Advanced Options (Mobile Signer)
+              Mobile Signer (Primal, Amber)
               <Cable className="size-4 transition-transform group-open:rotate-180" />
             </summary>
             
-            <div className="mt-3 flex flex-col gap-2">
-              <div className="text-xs text-muted-foreground mb-1">
-                Uses your DEFAULT_RELAYS for reliable mobile signer connectivity
-              </div>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="bunker://... or user@domain.com"
-                  value={remoteSigner}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRemoteSigner(e.target.value)}
-                  disabled={isLoggingIn}
-                  className="flex-1"
-                  onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
-                    if (e.key === 'Enter' && remoteSigner.trim()) {
-                      handleNip46Login();
-                    }
-                  }}
-                />
-                <Button
-                  variant="outline"
-                  disabled={isLoggingIn || !remoteSigner.trim()}
-                  onClick={handleNip46Login}
-                  size="icon"
-                >
-                  {isLoggingIn ? (
-                    <RotateCw className="animate-spin size-4" />
-                  ) : (
-                    <Cable className="size-4" />
+            <div className="mt-3 flex flex-col gap-3">
+              {!connectionUrl && !isLoggingIn && (
+                <>
+                  <div className="text-xs text-muted-foreground">
+                    Generate a QR code to connect with your mobile signer app (Primal, Amber, etc).
+                    Uses your DEFAULT_RELAYS for reliable connectivity.
+                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={handleNip46Login}
+                    className="w-full"
+                  >
+                    <QrCode className="size-4 mr-2" />
+                    Generate QR Code
+                  </Button>
+                </>
+              )}
+
+              {isLoggingIn && !connectionUrl && (
+                <div className="flex items-center justify-center p-8">
+                  <RotateCw className="animate-spin size-8" />
+                </div>
+              )}
+
+              {connectionUrl && (
+                <div className="flex flex-col gap-3">
+                  <div className="text-xs text-muted-foreground text-center">
+                    Scan this QR code with your Nostr mobile signer
+                  </div>
+                  <div className="bg-white p-4 rounded-lg flex items-center justify-center">
+                    <QRCode value={connectionUrl} size={200} />
+                  </div>
+                  <div className="text-xs text-muted-foreground text-center">
+                    {isLoggingIn ? 'Waiting for connection...' : 'QR Code ready'}
+                  </div>
+                  {isLoggingIn && (
+                    <div className="flex items-center justify-center">
+                      <RotateCw className="animate-spin size-5 text-muted-foreground" />
+                    </div>
                   )}
-                </Button>
-              </div>
+                </div>
+              )}
             </div>
           </details>
         </div>

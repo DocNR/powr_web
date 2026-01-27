@@ -2,7 +2,7 @@
 title: POWR Workout PWA Changelog
 description: Record of all notable changes to the POWR Workout PWA project
 status: verified
-last_updated: 2026-01-25
+last_updated: 2026-01-26
 last_verified: 2025-06-29
 related_code: 
   - /src/lib/machines/workout/
@@ -29,6 +29,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+### Added
+- **Direct NDK Authentication Migration COMPLETE (2026-01-26) ✅**
+  
+  **User Impact**: NIP-07 browser extensions (nos2x, Alby tested ✅) and Primal iOS mobile signer (tested ✅) now work perfectly with direct NDK authentication. Eliminated nostr-login dependency for simplified, transparent authentication architecture. Users benefit from instant NIP-07 authentication and reliable NIP-46 handshake completion with complete relay configuration control.
+  
+  **Developer Notes**: Successfully migrated from nostr-login to direct NDK authentication eliminating black-box relay configuration issues. Implemented manual NIP-46 RPC subscription pattern (`await finalSigner.rpc.subscribe({kinds: [24133], '#p': [localUser.pubkey]})`) before `getPublicKey()` to handle Primal's response-only connect format. Enhanced NIP-07 authentication with NDKNip07Signer for Global NDK Actor publishing compatibility. Achieved 70% code reduction (~600 lines → ~200 lines). **Known Issues**: nsec.app bunker not yet working (likely different handshake format), Amber NIP-55 not yet tested.
+  
+  **Architecture Changes**: Eliminated nostr-login dependency replacing with direct NDK calls following `.clinerules/simple-solutions-first.md` principle. Established manual RPC listener patterns for NIP-46 bypassing `blockUntilReady()` when handling response-only connect formats. Enhanced service layer with proper NDK signer integration for event publishing. Foundation ready for reliable cross-platform authentication with complete relay configuration control.
+
+### Fixed
+- **NIP-46 Primal iOS Handshake Fix COMPLETE (2026-01-26) ✅**
+  
+  **User Impact**: Primal iOS mobile signer now completes full authentication handshake automatically. Fixed critical issue where mobile signer handshake would hang indefinitely after QR scan, preventing completion of the NIP-46 connection flow.
+  
+  **Developer Notes**: Root cause was bypassing `blockUntilReady()` to handle Primal's response-only connect format, which left no RPC listener active. Solution implemented manual RPC subscription (`await finalSigner.rpc.subscribe({kinds: [24133], '#p': [localUser.pubkey]})`) before calling `getPublicKey()`, ensuring the subscription is listening when the NIP-46 RPC request is sent. Enhanced connect message handling to accept both request-with-result and response-only formats. Added comprehensive logging for handshake debugging.
+  
+  **Architecture Changes**: Established manual RPC listener pattern for NIP-46 signers when bypassing `blockUntilReady()`. Enhanced connect message validation to handle Primal's response-only format alongside standard "ack" responses. Foundation ready for additional mobile signer compatibility (nsec.app and Amber testing in backlog).
 
 ### Added
 - **ExerciseDetailModal Facade Service Implementation COMPLETE (August 29, 2025) ✅**

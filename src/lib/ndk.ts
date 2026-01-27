@@ -13,7 +13,7 @@ const DEFAULT_RELAYS = [
   'wss://relay.damus.io',      // Reliable, fast
   'wss://nos.lol',             // Good performance  
   'wss://relay.primal.net',    // Nostr-native
-  'wss://relay.nostr.band',    // Good search capabilities
+  // 'wss://relay.nostr.band', // REMOVED: Consistently fails WebSocket connections
 ];
 
 // Global NDK instance - initialized immediately (official NDK pattern)
@@ -43,14 +43,11 @@ const createNDKSingleton = async (connectRelays: boolean = false): Promise<NDK> 
     
     console.log('[NDK] IndexedDB cache adapter created');
     
-    // Create NDK instance with browser-optimized settings (based on noga app)
+    // Create NDK instance with browser-optimized settings
     const ndk = new NDK({
       cacheAdapter,
       explicitRelayUrls: DEFAULT_RELAYS,
       enableOutboxModel: true,      // Enable outbox model for better relay discovery
-      // CRITICAL: These validation ratio settings from noga app fix connection issues
-      initialValidationRatio: 0.0,  // Don't wait for multiple relays to validate
-      lowestValidationRatio: 0.0,   // Accept events from first responding relay
       autoConnectUserRelays: false, // Prevent auto connections that block
       autoFetchUserMutelist: false, // Prevent auto fetches that block
       clientName: 'POWR',
@@ -83,28 +80,58 @@ const createNDKSingleton = async (connectRelays: boolean = false): Promise<NDK> 
 };
 
 /**
- * Connect to NDK with timeout to prevent hanging on slow/down relays
+ * Connect to NDK and wait for at least ONE relay to connect
+ * Uses official NDK API: pool.connectedRelays() and relay:connect event
  */
 const connectWithTimeout = async (ndk: NDK, timeoutMs: number): Promise<void> => {
-  return new Promise((resolve) => {
-    // Set up timeout
-    const timeout = setTimeout(() => {
-      console.warn(`[NDK] Connection timeout after ${timeoutMs}ms - proceeding with available relays`);
-      resolve(); // Resolve anyway - NDK can work with partial connections
-    }, timeoutMs);
-
-    // Attempt connection
+  return new Promise((resolve, reject) => {
+    let resolved = false;
+    
+    // Start connection attempt
+    console.log('[NDK] Starting relay connection...');
     ndk.connect()
       .then(() => {
-        clearTimeout(timeout);
-        console.log(`[NDK] Connected to relays in ${timeoutMs}ms or less`);
-        resolve();
+        console.log('[NDK] ndk.connect() resolved');
+        // Check if we already have connections after connect() finishes
+        if (!resolved && ndk.pool.connectedRelays().length > 0) {
+          resolved = true;
+          const connected = ndk.pool.connectedRelays();
+          console.log(`[NDK] ✅ Successfully connected to ${connected.length} relay(s):`, connected.map(r => r.url));
+          resolve();
+        }
       })
       .catch((error) => {
-        clearTimeout(timeout);
-        console.warn('[NDK] Connection error - proceeding with available relays:', error);
-        resolve(); // Resolve anyway - NDK can work with partial connections
+        console.warn('[NDK] ndk.connect() error (non-fatal):', error);
       });
+
+    // Listen for relay connections using official NDK event
+    const handleRelayConnect = () => {
+      if (!resolved) {
+        resolved = true;
+        const connected = ndk.pool.connectedRelays();
+        console.log(`[NDK] ✅ Successfully connected to ${connected.length} relay(s) via relay:connect event`);
+        ndk.pool.removeListener('relay:connect', handleRelayConnect);
+        resolve();
+      }
+    };
+    
+    ndk.pool.on('relay:connect', handleRelayConnect);
+
+    // Timeout if no relays connect
+    setTimeout(() => {
+      if (!resolved) {
+        ndk.pool.removeListener('relay:connect', handleRelayConnect);
+        const connectedRelays = ndk.pool.connectedRelays();
+        
+        if (connectedRelays.length > 0) {
+          console.log(`[NDK] Connected to ${connectedRelays.length} relay(s) after timeout`);
+          resolve();
+        } else {
+          console.error(`[NDK] ❌ Timeout: Failed to connect to ANY relays after ${timeoutMs}ms`);
+          reject(new Error('Failed to connect to any Nostr relays'));
+        }
+      }
+    }, timeoutMs);
   });
 };
 
@@ -124,12 +151,11 @@ export const ensureRelaysConnected = async (): Promise<void> => {
     return;
   }
 
-  // Check if we already have relay connections
-  const connectedRelays = Array.from(globalNDK.pool.relays.values())
-    .filter(relay => relay.connectivity.status === 1); // 1 = connected
+  // Check if we already have relay connections (using official NDK API)
+  const connectedRelays = globalNDK.pool.connectedRelays();
 
   if (connectedRelays.length > 0) {
-    console.log(`[NDK] Already connected to ${connectedRelays.length} relays`);
+    console.log(`[NDK] Already connected to ${connectedRelays.length} relay(s):`, connectedRelays.map(r => r.url));
     return;
   }
 

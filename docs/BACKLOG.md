@@ -16,6 +16,21 @@ formatting_rules:
 
 ## 🔴 Critical Priority
 
+### NIP-46 Mobile Signer Compatibility Testing
+- [ ] **Amber Mobile Signer Testing** (S)
+  - Test NIP-55 Amber external signing on Android
+  - Verify complete authentication and publishing flow
+  - Document any issues or required fixes
+  - **Status**: Not yet tested, implementation exists but untested
+
+- [ ] **nsec.app Bunker Testing & Fix** (M)
+  - Test nsec.app remote signing flow
+  - Debug why connection doesn't work (likely different NIP-46 format)
+  - Implement fixes for nsec.app compatibility
+  - **Status**: Known to not work, needs investigation
+  - **Context**: Primal iOS works, nsec.app doesn't - different handshake format?
+  - **Root Cause Theory**: NDK's `NDKNip46Signer` is primarily designed for **bunker URIs** (`bunker://`) where YOU initiate connection to a remote signer, not **nostrconnect URIs** (`nostrconnect://`) where you generate QR code and WAIT for remote signer to connect to you. Primal works because we bypassed `blockUntilReady()` and manually handled the nostrconnect flow. nsec.app may require full bunker flow implementation rather than QR code flow.
+
 ### PWA Installation Issues
 - [ ] **PWA Installation Debugging** (L)
   - Issue: PWA installation not working despite 4+ hours of troubleshooting
