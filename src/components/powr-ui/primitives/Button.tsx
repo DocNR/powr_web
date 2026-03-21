@@ -6,42 +6,34 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background",
+  "inline-flex items-center justify-center rounded-[var(--radius)] text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background border-none",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90",
-        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-        outline: "border border-input hover:bg-accent hover:text-accent-foreground",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
+        default: "text-[#0e0e0e] font-bold" ,
+        destructive: "bg-[var(--color-error)] text-white hover:bg-[var(--color-error)]/90",
+        outline: "bg-[rgba(255,145,83,0.1)] text-[var(--color-primary)] font-semibold hover:bg-[rgba(255,145,83,0.15)]",
+        secondary: "bg-[rgba(255,145,83,0.1)] text-[var(--color-primary)] font-semibold hover:bg-[rgba(255,145,83,0.15)]",
+        ghost: "bg-transparent text-[var(--color-on-surface-variant)] hover:bg-[var(--color-surface-elevated)] hover:text-[var(--color-on-surface)]",
         link: "underline-offset-4 hover:underline text-primary",
-        gradient: "bg-gradient-to-r from-primary to-primary/80 text-white hover:from-primary/90 hover:to-primary/70",
-        "primary-gradient": "bg-gradient-to-r from-primary to-primary/80 text-primary-foreground hover:from-primary/90 hover:to-primary/70 shadow-lg hover:shadow-xl transition-all duration-200",
-        "workout-primary": "bg-[var(--workout-primary)] text-white hover:bg-[var(--workout-primary)]/90",
-        "workout-success": "bg-[var(--workout-success)] text-white hover:bg-[var(--workout-success)]/90",
-        "workout-timer": "bg-[var(--workout-timer)] text-white hover:bg-[var(--workout-timer)]/90",
-        "workout-interactive": "text-[var(--workout-primary)] hover:text-[var(--workout-primary)]/80 hover:bg-[var(--workout-primary)]/10",
+        gradient: "text-[#0e0e0e] font-bold",
+        "primary-gradient": "text-[#0e0e0e] font-bold shadow-lg hover:shadow-xl transition-all duration-200",
+        "workout-primary": "text-[#0e0e0e] font-bold",
+        "workout-success": "bg-[var(--color-secondary)] text-white hover:bg-[var(--color-secondary)]/90",
+        "workout-timer": "text-[#0e0e0e] font-bold",
+        "workout-interactive": "text-[var(--color-primary)] hover:text-[var(--color-primary)]/80 hover:bg-[rgba(255,145,83,0.1)]",
       },
       size: {
         default: "h-10 py-2 px-4",
-        sm: "h-9 px-3 rounded-md",
-        lg: "h-11 px-8 rounded-md",
+        sm: "h-9 px-3",
+        lg: "h-11 px-8",
         icon: "h-10 w-10",
-        tab: "h-12 px-3 min-h-[44px]", // Touch-optimized for mobile tabs
-      },
-      gymPersonality: {
-        default: "",
-        hardcore: "font-black uppercase tracking-wide shadow-2xl border-2",
-        zen: "rounded-full font-light shadow-none",
-        corporate: "font-semibold rounded-sm",
-        boutique: "font-medium italic rounded-lg",
+        tab: "h-12 px-3 min-h-[44px]",
       },
     },
     defaultVariants: {
       variant: "default",
       size: "default",
-      gymPersonality: "default",
     },
   }
 );
@@ -52,13 +44,17 @@ export interface ButtonProps
   asChild?: boolean;
 }
 
+const GRADIENT_VARIANTS = new Set(['default', 'gradient', 'primary-gradient', 'workout-primary', 'workout-timer']);
+
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, gymPersonality, asChild = false, ...props }, ref) => {
+  ({ className, variant, size, asChild = false, style, ...props }, ref) => {
     const Comp = asChild ? Slot : "button";
+    const useGradient = GRADIENT_VARIANTS.has(variant ?? 'default');
     return (
       <Comp
-        className={cn(buttonVariants({ variant, size, gymPersonality, className }))}
+        className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
+        style={useGradient ? { background: 'linear-gradient(135deg, #ff9153 0%, #f06c0b 100%)', ...style } : style}
         {...props}
       />
     );
