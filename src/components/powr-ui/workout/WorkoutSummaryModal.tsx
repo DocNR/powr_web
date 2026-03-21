@@ -9,15 +9,16 @@
 import React, { useState, useMemo } from 'react';
 import { ArrowLeft, Share2, SkipForward } from 'lucide-react';
 import { Button, Textarea } from '@/components/powr-ui';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogDescription 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription
 } from '@/components/ui/dialog';
 import { socialSharingService } from '@/lib/services/socialSharingService';
 import { useWeightUnits } from '@/providers/WeightUnitsProvider';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import type { CompletedWorkout } from '@/lib/services/workoutEventGeneration';
 
 interface WorkoutSummaryModalProps {
@@ -26,6 +27,9 @@ interface WorkoutSummaryModalProps {
   workoutData: CompletedWorkout;
   onShare: (content: string) => void;
   onSkipSharing: () => void;
+  publishError?: string | null;
+  onRetryPublish?: () => void;
+  onDismissError?: () => void;
 }
 
 export const WorkoutSummaryModal: React.FC<WorkoutSummaryModalProps> = ({
@@ -33,10 +37,14 @@ export const WorkoutSummaryModal: React.FC<WorkoutSummaryModalProps> = ({
   onClose,
   workoutData,
   onShare,
-  onSkipSharing
+  onSkipSharing,
+  publishError,
+  onRetryPublish,
+  onDismissError
 }) => {
   const [socialContent, setSocialContent] = useState('');
   const { weightUnit } = useWeightUnits();
+  const isOnline = useOnlineStatus();
 
   // Calculate workout statistics using social sharing service
   const workoutStats = useMemo(() => {
@@ -86,144 +94,156 @@ export const WorkoutSummaryModal: React.FC<WorkoutSummaryModalProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="relative h-full bg-background overflow-hidden pb-[env(safe-area-inset-bottom)] flex flex-col">
-          {/* Header - Matches WorkoutDetailModal pattern */}
-          <div className="flex items-center justify-between p-4 bg-background/80 backdrop-blur-sm border-b border-border flex-shrink-0">
-            {/* Back Button */}
+        <div className="relative h-full bg-[var(--color-surface-base)] overflow-hidden pb-[env(safe-area-inset-bottom)] flex flex-col">
+          {/* Header */}
+          <div className="flex items-center justify-between p-4 bg-[var(--color-surface-card)] flex-shrink-0">
             <Button
               variant="ghost"
               size="icon"
               onClick={onClose}
-              className="text-foreground hover:text-foreground/80"
               title="Close summary"
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
-
-            {/* Title */}
-            <div className="flex flex-col items-center">
-              <h2 className="text-lg font-semibold">Workout Complete! 🎉</h2>
-            </div>
-
-            {/* Empty space for balance */}
+            <h2 className="text-lg font-semibold text-[var(--color-on-surface)]">Workout Complete!</h2>
             <div className="w-10"></div>
           </div>
 
           {/* Scrollable Content */}
           <div className="flex-1 overflow-y-auto">
             <div className="px-6 pt-6 pb-6 space-y-6">
+              {/* Publish Error Banner */}
+              {publishError && (
+                <div className="bg-[rgba(239,68,68,0.1)] rounded-[var(--radius)] p-6">
+                  <h4 className="text-[var(--color-error)] font-semibold mb-2">Publish Failed</h4>
+                  <p className="text-sm text-[var(--color-on-surface-variant)] mb-4">
+                    Your workout is saved locally.
+                  </p>
+                  <div className="flex gap-3">
+                    {onRetryPublish && (
+                      <Button variant="primary-gradient" size="sm" onClick={onRetryPublish}>
+                        Retry
+                      </Button>
+                    )}
+                    {onDismissError && (
+                      <Button variant="ghost" size="sm" onClick={onDismissError}>
+                        Dismiss
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Offline Queued Indicator */}
+              {!isOnline && !publishError && (
+                <div className="bg-[rgba(255,145,83,0.1)] rounded-[var(--radius)] px-5 py-3 flex items-center gap-3">
+                  <span className="h-2 w-2 rounded-full bg-[var(--color-primary)] animate-pulse" />
+                  <span className="text-sm text-[var(--color-primary)]">
+                    Queued — will publish when online
+                  </span>
+                </div>
+              )}
+
               {/* Workout Title */}
               <div className="text-center">
-                <h3 className="text-2xl font-bold text-foreground mb-2">
+                <h3 className="text-2xl font-bold text-[var(--color-on-surface)] mb-2">
                   {workoutData.title}
                 </h3>
-                <p className="text-muted-foreground">
+                <p className="text-[var(--color-on-surface-variant)]">
                   Great job completing your workout!
                 </p>
               </div>
 
               {/* Workout Summary Stats */}
               <div className="space-y-4">
-                <h4 className="text-lg font-semibold text-foreground">Workout Summary</h4>
-                
+                <h4 className="text-lg font-semibold text-[var(--color-on-surface)]">Workout Summary</h4>
+
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="text-center p-4 bg-muted/50 backdrop-blur-sm rounded-lg">
-                    <div className="text-3xl font-bold text-primary mb-1">
+                  <div className="text-center p-4 bg-[var(--color-surface-card)] rounded-[var(--radius)]">
+                    <div className="text-3xl font-bold text-[var(--color-primary)] font-[var(--font-numeric)] mb-1">
                       {formattedDuration}
                     </div>
-                    <div className="text-sm text-muted-foreground">Duration</div>
+                    <div className="text-sm text-[var(--color-on-surface-variant)]">Duration</div>
                   </div>
-                  
-                  <div className="text-center p-4 bg-muted/50 backdrop-blur-sm rounded-lg">
-                    <div className="text-3xl font-bold text-primary mb-1">
+
+                  <div className="text-center p-4 bg-[var(--color-surface-card)] rounded-[var(--radius)]">
+                    <div className="text-3xl font-bold text-[var(--color-primary)] font-[var(--font-numeric)] mb-1">
                       {workoutStats.exerciseCount}
                     </div>
-                    <div className="text-sm text-muted-foreground">Exercises</div>
+                    <div className="text-sm text-[var(--color-on-surface-variant)]">Exercises</div>
                   </div>
-                  
-                  <div className="text-center p-4 bg-muted/50 backdrop-blur-sm rounded-lg">
-                    <div className="text-3xl font-bold text-primary mb-1">
+
+                  <div className="text-center p-4 bg-[var(--color-surface-card)] rounded-[var(--radius)]">
+                    <div className="text-3xl font-bold text-[var(--color-primary)] font-[var(--font-numeric)] mb-1">
                       {workoutStats.totalSets}
                     </div>
-                    <div className="text-sm text-muted-foreground">Total Sets</div>
+                    <div className="text-sm text-[var(--color-on-surface-variant)]">Total Sets</div>
                   </div>
-                  
-                  <div className="text-center p-4 bg-muted/50 backdrop-blur-sm rounded-lg">
-                    <div className="text-3xl font-bold text-primary mb-1">
+
+                  <div className="text-center p-4 bg-[var(--color-surface-card)] rounded-[var(--radius)]">
+                    <div className="text-3xl font-bold text-[var(--color-primary)] font-[var(--font-numeric)] mb-1">
                       {workoutStats.totalReps}
                     </div>
-                    <div className="text-sm text-muted-foreground">Total Reps</div>
+                    <div className="text-sm text-[var(--color-on-surface-variant)]">Total Reps</div>
                   </div>
                 </div>
 
-                {/* Optional volume display if there's weight data */}
                 {workoutStats.totalVolume > 0 && (
-                  <div className="grid grid-cols-1 gap-4">
-                    <div className="text-center p-4 bg-muted/50 backdrop-blur-sm rounded-lg">
-                      <div className="text-3xl font-bold text-primary mb-1">
-                        {Math.round(workoutStats.totalVolume)} kg
-                      </div>
-                      <div className="text-sm text-muted-foreground">Total Volume</div>
+                  <div className="text-center p-4 bg-[var(--color-surface-card)] rounded-[var(--radius)]">
+                    <div className="text-3xl font-bold text-[var(--color-primary)] font-[var(--font-numeric)] mb-1">
+                      {Math.round(workoutStats.totalVolume)} kg
                     </div>
+                    <div className="text-sm text-[var(--color-on-surface-variant)]">Total Volume</div>
                   </div>
                 )}
 
-                {/* Optional RPE display if available */}
                 {workoutStats.averageRPE > 0 && (
-                  <div className="grid grid-cols-1 gap-4">
-                    <div className="text-center p-4 bg-muted/50 backdrop-blur-sm rounded-lg">
-                      <div className="text-3xl font-bold text-primary mb-1">
-                        {workoutStats.averageRPE.toFixed(1)}
-                      </div>
-                      <div className="text-sm text-muted-foreground">Average RPE</div>
+                  <div className="text-center p-4 bg-[var(--color-surface-card)] rounded-[var(--radius)]">
+                    <div className="text-3xl font-bold text-[var(--color-primary)] font-[var(--font-numeric)] mb-1">
+                      {workoutStats.averageRPE.toFixed(1)}
                     </div>
+                    <div className="text-sm text-[var(--color-on-surface-variant)]">Average RPE</div>
                   </div>
                 )}
               </div>
 
               {/* Social Sharing Section */}
               <div className="space-y-4">
-                <h4 className="text-lg font-semibold text-foreground">Share Your Achievement</h4>
-                
+                <h4 className="text-lg font-semibold text-[var(--color-on-surface)]">Share Your Achievement</h4>
+
                 <div className="space-y-4">
-                  {/* Editable Social Content - Always editable, no edit button needed */}
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">
+                    <label className="text-sm font-medium text-[var(--color-on-surface)]">
                       Social Post Content
                     </label>
                     <Textarea
                       value={socialContent}
                       onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setSocialContent(e.target.value)}
                       placeholder="Share your workout achievement..."
-                      className="min-h-[120px] bg-muted/50 backdrop-blur-sm"
+                      className="min-h-[120px] bg-[var(--color-surface-card)]"
                     />
                     <div className="flex justify-between items-center">
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-[var(--color-on-surface-variant)]">
                         Tap to edit your message
                       </p>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleReset}
-                        className="text-xs"
-                      >
+                      <Button variant="ghost" size="sm" onClick={handleReset} className="text-xs">
                         Reset to Default
                       </Button>
                     </div>
                   </div>
 
-                  {/* Action Buttons */}
                   <div className="flex gap-3 pt-2">
                     <Button
+                      variant="primary-gradient"
                       onClick={handleShare}
-                      className="flex-1 h-12 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white font-semibold text-base rounded-xl flex items-center justify-center gap-2"
+                      className="flex-1 h-12 font-semibold text-base flex items-center justify-center gap-2"
                     >
                       <Share2 className="h-5 w-5" />
                       Share to Nostr
                     </Button>
-                    
+
                     <Button
-                      variant="outline"
+                      variant="secondary"
                       onClick={handleSkip}
                       className="h-12 px-6 flex items-center gap-2"
                     >
@@ -232,7 +252,7 @@ export const WorkoutSummaryModal: React.FC<WorkoutSummaryModalProps> = ({
                     </Button>
                   </div>
 
-                  <p className="text-xs text-muted-foreground text-center leading-relaxed">
+                  <p className="text-xs text-[var(--color-on-surface-variant)] text-center leading-relaxed">
                     Your workout data is already saved securely. Sharing is optional and posts to the Nostr network for the community to see.
                   </p>
                 </div>

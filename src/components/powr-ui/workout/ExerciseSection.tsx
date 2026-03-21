@@ -164,7 +164,7 @@ export const ExerciseSection: React.FC<ExerciseSectionProps> = ({
               className={cn(
                 "w-full h-10 border-dashed transition-all duration-200 text-sm",
                 shouldHighlightAddSet 
-                  ? "border-[var(--workout-active-border)] bg-[var(--workout-active-bg)] text-[var(--workout-active)] ring-1 ring-[var(--workout-active-border)] animate-pulse" 
+                  ? "border-[var(--color-primary)] bg-[rgba(255,145,83,0.1)] text-[var(--color-primary)] ring-1 ring-[var(--color-primary)] animate-pulse"
                   : "border-border text-muted-foreground hover:text-foreground hover:border-border bg-transparent hover:bg-muted/20"
               )}
             >

@@ -172,9 +172,9 @@ export const WorkoutCard = memo(function WorkoutCard({
       <Card 
         className={cn(
           "relative overflow-hidden cursor-pointer transition-all duration-300",
-          "hover:shadow-lg hover:scale-[1.02] hover:ring-2 hover:ring-workout-active-border",
-          "active:scale-[0.98] active:ring-2 active:ring-workout-active-border",
-          "focus:ring-2 focus:ring-workout-active-border focus:outline-none",
+          "hover:shadow-lg hover:scale-[1.02] hover:ring-2 hover:ring-[var(--color-primary)]",
+          "active:scale-[0.98] active:ring-2 active:ring-[var(--color-primary)]",
+          "focus:ring-2 focus:ring-[var(--color-primary)] focus:outline-none",
           "w-full",
           className
         )}
