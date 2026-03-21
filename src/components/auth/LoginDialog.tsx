@@ -393,7 +393,7 @@ export function LoginDialog({ trigger, isCompact = false, onSuccess, defaultOpen
             <button
               type="button"
               onClick={() => setShowMobileSigner(!showMobileSigner)}
-              className="flex items-center justify-between w-full py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              className="flex items-center justify-between w-full py-2 text-sm font-medium text-[var(--color-on-surface-variant)] hover:text-[var(--color-on-surface)] transition-colors"
             >
               <span>Mobile Signer</span>
               <ChevronDown className={`size-4 transition-transform ${showMobileSigner ? 'rotate-180' : ''}`} />
@@ -409,7 +409,7 @@ export function LoginDialog({ trigger, isCompact = false, onSuccess, defaultOpen
 
                 {connectionUrl && (
                   <div className="flex flex-col gap-3">
-                    <div className="text-xs text-muted-foreground text-center">
+                    <div className="text-xs text-[var(--color-on-surface-variant)] text-center">
                       Scan QR code with your mobile signer (Primal, Amber, etc.)
                     </div>
                     <div className="bg-[var(--color-surface-elevated)] p-4 rounded-[var(--radius)] flex items-center justify-center">
@@ -418,18 +418,18 @@ export function LoginDialog({ trigger, isCompact = false, onSuccess, defaultOpen
                     
                     {/* Copy Button */}
                     <div className="flex flex-col gap-2">
-                      <div className="text-xs text-muted-foreground text-center">
+                      <div className="text-xs text-[var(--color-on-surface-variant)] text-center">
                         Or copy connection string:
                       </div>
                       <Button
-                        variant="outline"
+                        variant="secondary"
                         size="sm"
                         onClick={handleCopyConnectionString}
                         className="w-full"
                       >
                         {copied ? (
                           <>
-                            <Check className="size-4 mr-2 text-green-500" />
+                            <Check className="size-4 mr-2 text-[var(--color-secondary)]" />
                             ✓ Copied! Paste in your signer app
                           </>
                         ) : (
@@ -442,7 +442,7 @@ export function LoginDialog({ trigger, isCompact = false, onSuccess, defaultOpen
                     </div>
                     
                     {isLoggingIn && (
-                      <div className="flex flex-col items-center gap-2 text-sm text-muted-foreground">
+                      <div className="flex flex-col items-center gap-2 text-sm text-[var(--color-on-surface-variant)]">
                         <RotateCw className="animate-spin size-5" />
                         <span>⏳ Approve connection in your signer app</span>
                         <span className="text-xs">(Primal, Amber, or other NIP-46 signers)</span>
