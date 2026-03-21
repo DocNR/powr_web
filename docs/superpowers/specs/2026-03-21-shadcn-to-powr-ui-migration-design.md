@@ -8,9 +8,9 @@
 
 24 files in `src/` import from `@/components/ui/` (legacy shadcn/ui). 52+ files already import from `@/components/powr-ui/` (the POWR design system). This split causes:
 
-1. **Font inconsistency** — The `<body>` element sets CSS custom properties (`--font-inter`, `--font-space-grotesk`) but never applies them as `font-family`. All components (both systems) inherit the browser's default sans-serif instead of Inter/Space Grotesk.
-2. **Maintenance burden** — Two parallel component libraries with overlapping primitives.
-3. **Inconsistent patterns** — Developers must remember which import path to use.
+1. **Maintenance burden** — Two parallel component libraries with overlapping primitives.
+2. **Inconsistent patterns** — Developers must remember which import path to use.
+3. **API drift** — The shadcn Dialog has gained a `showCloseButton` prop that the powr-ui Dialog lacks, creating a compatibility gap that grows over time.
 
 ## Scope
 
@@ -19,29 +19,17 @@
 - **2 new primitives** — Alert, DropdownMenu (port from shadcn with minimal changes)
 - **1 component relocation** — Logo moves from `ui/` to `powr-ui/primitives/`
 - **1 deletion** — `dashboard-header-DEPRECATED.tsx`
-- **1 font fix** — Apply `font-[var(--font-body)]` to `<body>` in layout.tsx
+- **1 Dialog enhancement** — Add `showCloseButton` prop to powr-ui Dialog (6 consumers need it)
 
 ### Out of Scope
-- **10 test/dev files** — `src/components/test/*` and `src/components/tabs/TestTab.tsx` remain on shadcn
+- **9 test/dev files** — 8 files in `src/components/test/*` plus `src/components/tabs/TestTab.tsx` remain on shadcn
 - **shadcn files still referenced by test code** — button.tsx, card.tsx, badge.tsx, alert.tsx, separator.tsx stay in `ui/`
 - **API changes** — This is a path migration, not a component refactor
 - **globals.css compatibility layer** — Still needed for test files using shadcn semantic colors
 
-## Font Root Cause Analysis
+## Font Note
 
-The body element in `src/app/layout.tsx`:
-```tsx
-<body className={`${inter.variable} ${spaceGrotesk.variable} antialiased`}>
-```
-
-This sets CSS custom properties but does **not** apply font-family. The `globals.css` defines:
-```css
---font-body: 'Inter', var(--font-inter), system-ui, sans-serif;
-```
-
-But this token is never applied to the body. Neither shadcn nor powr-ui components explicitly set fonts — they inherit from the body.
-
-**Fix:** Add `font-[var(--font-body)]` to the body className. This ensures all components inherit Inter regardless of import path.
+The `globals.css` already applies `font-family: var(--font-body)` to `html, body` (line 71). If font inconsistencies persist after this migration, the root cause is elsewhere (CSS specificity, loading order, or component-level overrides) — not a missing body font-family declaration.
 
 ## Gap Analysis
 
@@ -53,7 +41,7 @@ But this token is never applied to the body. Neither shadcn nor powr-ui componen
 | card.tsx | Card.tsx | Yes (same compound components + accent prop) |
 | input.tsx | Input.tsx | Yes |
 | label.tsx | Label.tsx | Yes |
-| dialog.tsx | Dialog.tsx | Yes (same 10 exports, minor style diffs) |
+| dialog.tsx | Dialog.tsx | Partial — same 10 exports but powr-ui lacks `showCloseButton` prop (see Dialog Enhancement below) |
 | badge.tsx | Badge.tsx | Yes (same variants + success) |
 | tabs.tsx | Tabs.tsx | Yes |
 | sheet.tsx | Sheet.tsx | Yes |
@@ -85,7 +73,7 @@ But this token is never applied to the body. Neither shadcn nor powr-ui componen
 ### DropdownMenu.tsx
 
 - **Source:** Port from `src/components/ui/dropdown-menu.tsx` with minimal changes
-- **Exports:** All 15 sub-components (DropdownMenu, Portal, Trigger, Content, Group, Label, Item, CheckboxItem, RadioGroup, RadioItem, Separator, Shortcut, Sub, SubTrigger, SubContent)
+- **Exports:** All 15 sub-components: `DropdownMenu`, `DropdownMenuPortal`, `DropdownMenuTrigger`, `DropdownMenuContent`, `DropdownMenuGroup`, `DropdownMenuLabel`, `DropdownMenuItem`, `DropdownMenuCheckboxItem`, `DropdownMenuRadioGroup`, `DropdownMenuRadioItem`, `DropdownMenuSeparator`, `DropdownMenuShortcut`, `DropdownMenuSub`, `DropdownMenuSubTrigger`, `DropdownMenuSubContent`
 - **Dependencies:** `@radix-ui/react-dropdown-menu`, `lucide-react`, `@/lib/utils`
 - **Style approach:** Keep shadcn semantic class names — compatibility layer handles token mapping
 - **Consumer usage:** Both consumers use 5 sub-components: DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger
@@ -98,21 +86,19 @@ But this token is never applied to the body. Neither shadcn nor powr-ui componen
 
 ## Implementation Phases
 
-### Phase 0: Font Fix
+### Phase 1: Build Primitives & Enhance Dialog
 
-**File:** `src/app/layout.tsx`
-
-Add `font-[var(--font-body)]` to the body className:
-```tsx
-<body className={`${inter.variable} ${spaceGrotesk.variable} font-[var(--font-body)] antialiased`}>
-```
-
-### Phase 1: Build Primitives
-
-1. Create `src/components/powr-ui/primitives/Alert.tsx` — port from shadcn
-2. Create `src/components/powr-ui/primitives/DropdownMenu.tsx` — port from shadcn
-3. Move `src/components/ui/logo.tsx` → `src/components/powr-ui/primitives/Logo.tsx`
-4. Update barrel exports in `src/components/powr-ui/index.ts`:
+1. **Enhance powr-ui Dialog** — Add `showCloseButton` prop (default `true`) to `DialogContent` in `src/components/powr-ui/primitives/Dialog.tsx`. Port the pattern from the shadcn Dialog: wrap the close button in `{showCloseButton && (...)}`. This is required because 6 of 8 Dialog consumers pass `showCloseButton={false}`:
+   - `WorkoutHistoryDetailModal.tsx`
+   - `WorkoutDetailModal.tsx`
+   - `WorkoutSummaryModal.tsx`
+   - `ActiveWorkoutInterface.tsx`
+   - `ExerciseDetailModal.tsx`
+   - `GlobalWorkoutSearch.tsx`
+2. Create `src/components/powr-ui/primitives/Alert.tsx` — port from shadcn
+3. Create `src/components/powr-ui/primitives/DropdownMenu.tsx` — port from shadcn
+4. Move `src/components/ui/logo.tsx` → `src/components/powr-ui/primitives/Logo.tsx`
+5. Update barrel exports in `src/components/powr-ui/index.ts`:
    - Add Alert, AlertTitle, AlertDescription
    - Add all DropdownMenu sub-components
    - Add Logo
@@ -159,8 +145,8 @@ Each file changes `from '@/components/ui/X'` → `from '@/components/powr-ui/pri
 ### Phase 4: Verify
 
 1. Run `next build` — confirm no build errors
-2. Grep for `@/components/ui/` in non-test production files — should return zero
-3. Verify remaining `ui/` files are only imported by test files
+2. Grep for `@/components/ui/` excluding `src/components/test/*` and `src/components/tabs/TestTab.tsx` — should return zero
+3. Verify remaining `ui/` files are only imported by the 9 excluded test/dev files
 
 ## Risk Assessment
 
@@ -171,12 +157,12 @@ Each file changes `from '@/components/ui/X'` → `from '@/components/powr-ui/pri
 - Compatibility layer in globals.css ensures color tokens work identically
 
 **Watch for:**
-- The shadcn Dialog's `showCloseButton` prop (added in newer shadcn) is not present in the powr-ui Dialog. If any consumer passes `showCloseButton={false}`, it will need handling. (Quick check: none of the 8 Dialog consumers use this prop.)
 - The powr-ui Dialog has `bg-black/80` overlay vs shadcn's `bg-black/50`. This is an intentional design choice, not a bug.
+- After the `showCloseButton` enhancement, verify TypeScript compilation passes — the prop type must be added to the DialogContent type signature.
 
 ## Success Criteria
 
 1. Zero `@/components/ui/` imports in production code (test files excluded)
 2. `next build` succeeds with no errors
-3. All fonts render as Inter (body text) / Space Grotesk (numeric) across the app
+3. Fonts continue rendering as Inter (body) / Space Grotesk (numeric) — no regression from migration
 4. No visual regressions in workout modals, dashboard cards, dropdowns, or auth flows
