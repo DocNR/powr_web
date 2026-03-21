@@ -496,7 +496,8 @@ export const PublicWorkoutDisplay: React.FC<PublicWorkoutDisplayProps> = ({
             </p>
             <Button 
               onClick={handleJoinPOWR}
-              className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-semibold"
+              variant="primary-gradient"
+              className="w-full font-semibold"
               size="lg"
             >
               <ExternalLink className="h-5 w-5 mr-2" />

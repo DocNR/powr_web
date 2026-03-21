@@ -40,10 +40,10 @@ export const WorkoutMiniBar: React.FC<WorkoutMiniBarProps> = ({
       isMobile ? "left-0" : "left-64", // left-64 = 256px sidebar width
       // Responsive bottom positioning: above tabs on mobile, at bottom on desktop
       isMobile ? "bottom-[64px]" : "bottom-0", // Mobile: above 64px tabs, Desktop: at bottom
-      // Background with proper backdrop blur and theme support
-      "bg-card/95 backdrop-blur-md supports-[backdrop-filter]:bg-card/90",
-      // Border and shadow with theme support
-      "border-t border-border shadow-lg",
+      // Background
+      "bg-[var(--color-surface-card)]",
+      // Shadow (no border per no-line rule)
+      "shadow-lg",
       // Ensure it works with safe area
       "safe-area-inset-x",
       className
@@ -76,7 +76,7 @@ export const WorkoutMiniBar: React.FC<WorkoutMiniBarProps> = ({
           {/* Timer with icon */}
           <Timer className="h-4 w-4 flex-shrink-0 text-primary" />
           
-          <div className="font-mono text-lg font-bold tabular-nums text-foreground">
+          <div className="font-[var(--font-numeric)] text-lg font-bold tabular-nums text-[var(--color-on-surface)]">
             {formatTime(elapsedTime)}
           </div>
         </div>

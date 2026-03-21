@@ -475,7 +475,8 @@ export const WorkoutHistoryDetailModal: React.FC<WorkoutHistoryDetailModalProps>
                   
                   <Button
                     onClick={handleShareWorkout}
-                    className="w-full h-12 bg-gradient-to-r from-orange-400 via-orange-500 to-red-500 hover:from-orange-500 hover:via-orange-600 hover:to-red-600 text-white font-semibold text-base rounded-xl flex items-center justify-center gap-2"
+                    variant="primary-gradient"
+                    className="w-full h-12 font-semibold text-base rounded-[var(--radius)] flex items-center justify-center gap-2"
                   >
                     <Copy className="h-5 w-5" />
                     Share Workout
