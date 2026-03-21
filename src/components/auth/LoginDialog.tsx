@@ -230,10 +230,10 @@ export function LoginDialog({ trigger, isCompact = false, onSuccess, defaultOpen
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md bg-[var(--color-surface-card)] rounded-[var(--radius)]">
         <DialogHeader>
-          <DialogTitle>Connect to POWR</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-[var(--color-on-surface)]">Connect to POWR</DialogTitle>
+          <DialogDescription className="text-[var(--color-on-surface-variant)]">
             Choose your preferred authentication method
           </DialogDescription>
         </DialogHeader>
@@ -253,7 +253,7 @@ export function LoginDialog({ trigger, isCompact = false, onSuccess, defaultOpen
           <div className="flex flex-col gap-3">
             {/* Browser Extension - Direct NIP-07 */}
             <Button
-              variant={nip07Available ? "primary-gradient" : "outline"}
+              variant={nip07Available ? "primary-gradient" : "secondary"}
               disabled={isLoggingIn || !nip07Available}
               onClick={handleNip07Login}
               className="w-full h-12"
@@ -268,7 +268,7 @@ export function LoginDialog({ trigger, isCompact = false, onSuccess, defaultOpen
 
             {/* Demo Mode - Direct Ephemeral */}
             <Button
-              variant="outline"
+              variant="ghost"
               disabled={isLoggingIn}
               onClick={handleEphemeralLogin}
               className="w-full h-12"
@@ -283,7 +283,7 @@ export function LoginDialog({ trigger, isCompact = false, onSuccess, defaultOpen
           </div>
 
           {/* Mobile Signer - Controlled collapsible with auto-QR generation */}
-          <div className="border-t pt-4 mt-2">
+          <div className="pt-4 mt-2">
             <button
               type="button"
               onClick={() => setShowMobileSigner(!showMobileSigner)}
@@ -306,7 +306,7 @@ export function LoginDialog({ trigger, isCompact = false, onSuccess, defaultOpen
                     <div className="text-xs text-muted-foreground text-center">
                       Scan QR code with your mobile signer (Primal, Amber, etc.)
                     </div>
-                    <div className="bg-white p-4 rounded-lg flex items-center justify-center">
+                    <div className="bg-[var(--color-surface-elevated)] p-4 rounded-[var(--radius)] flex items-center justify-center">
                       <QRCode value={connectionUrl} size={200} />
                     </div>
                     
