@@ -19,7 +19,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Search, Dumbbell, Plus, Filter } from 'lucide-react';
+import { Search, Plus, Filter } from 'lucide-react';
 import { Input } from '@/components/powr-ui/primitives/Input';
 import { Button } from '@/components/powr-ui/primitives/Button';
 import { useLibraryData } from '@/providers/LibraryDataProvider';
@@ -31,6 +31,8 @@ import { WorkoutCard } from '@/components/powr-ui/workout/WorkoutCard';
 import { WorkoutListView } from './WorkoutListView';
 import { ConfirmationDialog } from '@/components/powr-ui/primitives/ConfirmationDialog';
 import { socialSharingService } from '@/lib/services/socialSharingService';
+import { SkeletonCard } from '@/components/powr-ui/primitives/SkeletonCard';
+import { EmptyState } from '@/components/powr-ui/primitives/EmptyState';
 
 interface WorkoutLibraryProps {
   onShowOnboarding?: () => void;
@@ -219,16 +221,7 @@ export function WorkoutLibrary({ onShowOnboarding, onStartWorkout }: WorkoutLibr
 
   // Loading state
   if (workoutLibrary.isLoading || workoutLibrary.isResolving || isCreatingCollection) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-center space-y-3">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="text-sm text-muted-foreground">
-            {isCreatingCollection ? 'Setting up your workout library...' : 'Loading workouts...'}
-          </p>
-        </div>
-      </div>
-    );
+    return <SkeletonCard count={3} />;
   }
 
   // Error state
@@ -247,20 +240,13 @@ export function WorkoutLibrary({ onShowOnboarding, onStartWorkout }: WorkoutLibr
   // Empty state
   if (!workoutLibrary.content || workoutLibrary.content.length === 0) {
     return (
-      <div className="text-center space-y-6 py-16">
-        <Dumbbell className="h-16 w-16 text-muted-foreground/50 mx-auto" />
-        <div className="space-y-2">
-          <h2 className="text-2xl font-semibold">No Workouts Yet</h2>
-          <p className="text-muted-foreground max-w-md mx-auto">
-            Your workout library is ready! Save workout templates from the Workouts tab or get started with our curated collection.
-          </p>
-        </div>
-        {onShowOnboarding && (
-          <Button onClick={onShowOnboarding} className="mt-4">
-            Get Started with Workouts
-          </Button>
-        )}
-      </div>
+      <EmptyState
+        icon="📋"
+        heading="No templates yet"
+        description="Add starter templates to your library to get started."
+        actionLabel={onShowOnboarding ? "Load Starter Templates" : undefined}
+        onAction={onShowOnboarding}
+      />
     );
   }
 

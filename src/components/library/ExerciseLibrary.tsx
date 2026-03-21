@@ -17,7 +17,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Search, Dumbbell, Plus, Filter } from 'lucide-react';
+import { Search, Plus, Filter } from 'lucide-react';
 import { Input } from '@/components/powr-ui/primitives/Input';
 import { Button } from '@/components/powr-ui/primitives/Button';
 import { useLibraryData } from '@/providers/LibraryDataProvider';
@@ -30,6 +30,8 @@ import { ExerciseListView } from './ExerciseListView';
 import { ExerciseDetailModal } from './ExerciseDetailModal';
 import { ConfirmationDialog } from '@/components/powr-ui/primitives/ConfirmationDialog';
 import { socialSharingService } from '@/lib/services/socialSharingService';
+import { SkeletonCard } from '@/components/powr-ui/primitives/SkeletonCard';
+import { EmptyState } from '@/components/powr-ui/primitives/EmptyState';
 import { exerciseModalResolutionService } from '@/lib/services/exerciseModalResolution';
 import type { ExerciseLibraryItem } from '@/hooks/useLibraryDataWithCollections';
 
@@ -267,16 +269,7 @@ export function ExerciseLibrary({ onShowOnboarding }: ExerciseLibraryProps) {
 
   // Loading state
   if (exerciseLibrary.isLoading || exerciseLibrary.isResolving || isCreatingCollection) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-center space-y-3">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="text-sm text-muted-foreground">
-            {isCreatingCollection ? 'Setting up your exercise library...' : 'Loading exercises...'}
-          </p>
-        </div>
-      </div>
-    );
+    return <SkeletonCard count={3} />;
   }
 
   // Error state
@@ -295,20 +288,13 @@ export function ExerciseLibrary({ onShowOnboarding }: ExerciseLibraryProps) {
   // Empty state
   if (!exerciseLibrary.content || exerciseLibrary.content.length === 0) {
     return (
-      <div className="text-center space-y-6 py-16">
-        <Dumbbell className="h-16 w-16 text-muted-foreground/50 mx-auto" />
-        <div className="space-y-2">
-          <h2 className="text-2xl font-semibold">No Exercises Yet</h2>
-          <p className="text-muted-foreground max-w-md mx-auto">
-            Your exercise library is ready! Add exercises from the Workouts tab or get started with our curated collection.
-          </p>
-        </div>
-        {onShowOnboarding && (
-          <Button onClick={onShowOnboarding} className="mt-4">
-            Get Started with Exercises
-          </Button>
-        )}
-      </div>
+      <EmptyState
+        icon="🏋️"
+        heading="No exercises yet"
+        description="Add exercises from collections or get started with our curated set."
+        actionLabel={onShowOnboarding ? "Load Starter Exercises" : undefined}
+        onAction={onShowOnboarding}
+      />
     );
   }
 

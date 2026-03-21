@@ -79,7 +79,7 @@ export const ExerciseSection: React.FC<ExerciseSectionProps> = ({
   };
 
   return (
-    <div className={cn("py-4", className)}>
+    <div className={cn("py-4 border-l-[3px] border-l-[var(--color-primary)] pl-3", className)}>
       {/* Exercise Header - Compact */}
       <div className="flex items-center justify-between mb-3">
         <button
