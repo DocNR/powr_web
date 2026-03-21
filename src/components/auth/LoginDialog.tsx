@@ -43,9 +43,10 @@ interface LoginDialogProps {
   isCompact?: boolean;
   onSuccess?: () => void;
   defaultOpen?: boolean;
+  mode?: 'modal' | 'inline';
 }
 
-export function LoginDialog({ trigger, isCompact = false, onSuccess, defaultOpen = false }: LoginDialogProps) {
+export function LoginDialog({ trigger, isCompact = false, onSuccess, defaultOpen = false, mode = 'modal' }: LoginDialogProps) {
   const [connectionUrl, setConnectionUrl] = useState<string | null>(null);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [error, setError] = useState<AuthenticationError | null>(null);
@@ -212,6 +213,111 @@ export function LoginDialog({ trigger, isCompact = false, onSuccess, defaultOpen
       setError(null);
     }
     setOpen(newOpen);
+  }
+
+  const loginFormContent = (
+    <div className="flex flex-col gap-4">
+      {error && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>{error.message}</AlertDescription>
+        </Alert>
+      )}
+
+      <div className="flex flex-col gap-3">
+        <Button
+          variant={nip07Available ? "primary-gradient" : "secondary"}
+          disabled={isLoggingIn || !nip07Available}
+          onClick={handleNip07Login}
+          className="w-full h-12"
+        >
+          {isLoggingIn ? (
+            <RotateCw className="animate-spin size-4 mr-2" />
+          ) : (
+            <Puzzle className="size-4 mr-2" />
+          )}
+          {nip07Available ? 'Connect Extension' : 'Install Extension'}
+        </Button>
+
+        <Button
+          variant="secondary"
+          disabled={isLoggingIn}
+          onClick={() => setShowMobileSigner(!showMobileSigner)}
+          className="w-full h-12"
+        >
+          <ChevronDown className={`size-4 mr-2 transition-transform ${showMobileSigner ? 'rotate-180' : ''}`} />
+          Mobile Signer
+        </Button>
+
+        <Button
+          variant="ghost"
+          disabled={isLoggingIn}
+          onClick={handleEphemeralLogin}
+          className="w-full h-12"
+        >
+          {isLoggingIn ? (
+            <RotateCw className="animate-spin size-4 mr-2" />
+          ) : (
+            <Zap className="size-4 mr-2" />
+          )}
+          Try Demo
+        </Button>
+      </div>
+
+      {showMobileSigner && (
+        <div className="flex flex-col gap-3">
+          {isLoggingIn && !connectionUrl && (
+            <div className="flex items-center justify-center p-8">
+              <RotateCw className="animate-spin size-8 text-[var(--color-primary)]" />
+            </div>
+          )}
+          {connectionUrl && (
+            <div className="flex flex-col gap-3">
+              <div className="text-xs text-[var(--color-on-surface-variant)] text-center">
+                Scan QR code with your mobile signer (Primal, Amber, etc.)
+              </div>
+              <div className="bg-[var(--color-surface-elevated)] p-4 rounded-[var(--radius)] flex items-center justify-center">
+                <QRCode value={connectionUrl} size={200} />
+              </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleCopyConnectionString}
+                className="w-full"
+              >
+                {copied ? (
+                  <>
+                    <Check className="size-4 mr-2 text-[var(--color-secondary)]" />
+                    Copied! Paste in your signer app
+                  </>
+                ) : (
+                  <>
+                    <Copy className="size-4 mr-2" />
+                    Copy Connection String
+                  </>
+                )}
+              </Button>
+              {isLoggingIn && (
+                <div className="flex flex-col items-center gap-2 text-sm text-[var(--color-on-surface-variant)]">
+                  <RotateCw className="animate-spin size-5 text-[var(--color-primary)]" />
+                  <span>Approve connection in your signer app</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
+  if (mode === 'inline') {
+    return (
+      <div className="bg-[var(--color-surface-card)] rounded-[var(--radius)] border-l-[3px] border-l-[var(--color-primary)] p-6 w-full max-w-sm">
+        <h2 className="text-lg font-semibold text-[var(--color-on-surface)] mb-1">Connect to POWR</h2>
+        <p className="text-sm text-[var(--color-on-surface-variant)] mb-4">Choose your preferred authentication method</p>
+        {loginFormContent}
+      </div>
+    );
   }
 
   return (

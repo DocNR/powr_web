@@ -21,6 +21,7 @@ import { usePubkey, useIsAuthenticated } from '@/lib/auth/hooks';
 import { WorkoutDetailModal, SaveTemplateModal } from '@/components/powr-ui/workout';
 import { ExerciseDetailModal } from '@/components/library/ExerciseDetailModal';
 import { libraryManagementService } from '@/lib/services/libraryManagement';
+import { LoginWall } from '@/components/auth/LoginWall';
 
 export function AppLayout() {
   const isMobile = useMediaQuery('(max-width: 640px)');
@@ -31,7 +32,7 @@ export function AppLayout() {
   // Authentication hooks
   const pubkey = usePubkey();
   const isAuthenticated = useIsAuthenticated();
-  
+
   const subNavItems = getSubNavigation(activeTab);
   const activeSubTab = getActiveSubTab(activeTab);
 
@@ -79,6 +80,11 @@ export function AppLayout() {
       displayName: pubkey.slice(0, 8) + '...'
     };
   }, [pubkey, isAuthenticated]);
+
+  // Auth gate: show login wall for unauthenticated users
+  if (!isAuthenticated) {
+    return <LoginWall />;
+  }
 
   // Calculate header heights for proper spacing
   const headerHeight = isMobile ? 48 : 64; // Reduced mobile header height from 64px to 48px
