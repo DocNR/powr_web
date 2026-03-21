@@ -64,13 +64,13 @@ export const ExerciseCard = memo(function ExerciseCard({
   const authorDisplayName = getDisplayName(authorProfile, author?.pubkey);
   const authorAvatar = getAvatarUrl(authorProfile, author?.pubkey);
 
-  // Get difficulty color - using semantic colors for dark mode compatibility
+  // Get difficulty color - dark-only Kinetic Precision compatible
   const getDifficultyColor = (difficulty?: string) => {
     switch (difficulty) {
-      case 'beginner': return 'bg-[var(--color-secondary)]/10 text-[var(--color-secondary)]';
-      case 'intermediate': return 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]';
-      case 'advanced': return 'bg-[var(--color-error)]/10 text-[var(--color-error)]';
-      default: return 'bg-muted text-muted-foreground';
+      case 'beginner': return 'bg-green-900/30 text-green-400';
+      case 'intermediate': return 'bg-yellow-900/30 text-yellow-400';
+      case 'advanced': return 'bg-red-900/30 text-red-400';
+      default: return 'bg-[var(--color-surface-elevated)] text-[var(--color-on-surface-variant)]';
     }
   };
 
@@ -92,7 +92,8 @@ export const ExerciseCard = memo(function ExerciseCard({
 
     return (
       <div className="relative group">
-        <Card 
+        <Card
+          accent
           className={cn(
             "cursor-pointer transition-all duration-200",
             "hover:shadow-lg hover:ring-2 hover:ring-ring",
@@ -113,13 +114,13 @@ export const ExerciseCard = memo(function ExerciseCard({
             <div className="space-y-3">
               {/* Header with exercise name and menu button */}
               <div className="flex items-start justify-between">
-                <h3 className="font-semibold text-lg line-clamp-1 group-hover:text-primary transition-colors flex-1 pr-2">
+                <h3 className="font-semibold text-lg line-clamp-1 group-hover:text-primary transition-colors flex-1 pr-2 text-[var(--color-on-surface)]">
                   {exercise.name}
                 </h3>
-                
+
                 <div className="flex items-center gap-2 flex-shrink-0">
                   {showEquipment && (
-                    <div className="text-sm text-muted-foreground">
+                    <div className="text-sm text-[var(--color-on-surface-variant)]">
                       {exercise.equipment}
                     </div>
                   )}
@@ -140,7 +141,7 @@ export const ExerciseCard = memo(function ExerciseCard({
               
               {/* Description */}
               {exercise.description && (
-                <p className="text-sm text-muted-foreground line-clamp-2">
+                <p className="text-sm text-[var(--color-on-surface-variant)] line-clamp-2">
                   {exercise.description}
                 </p>
               )}
@@ -148,24 +149,24 @@ export const ExerciseCard = memo(function ExerciseCard({
               {/* Muscle groups */}
               <div className="flex flex-wrap gap-1">
                 {exercise.muscleGroups.slice(0, 3).map((muscle) => (
-                  <span key={muscle} className="px-2 py-1 bg-muted rounded text-xs">
+                  <span key={muscle} className="px-2 py-1 bg-[var(--color-surface-elevated)] rounded-[var(--radius)] text-xs text-[var(--color-on-surface-variant)]">
                     {muscle}
                   </span>
                 ))}
                 {exercise.muscleGroups.length > 3 && (
-                  <span className="px-2 py-1 bg-muted rounded text-xs text-muted-foreground">
+                  <span className="px-2 py-1 bg-[var(--color-surface-elevated)] rounded-[var(--radius)] text-xs text-[var(--color-on-surface-variant)]">
                     +{exercise.muscleGroups.length - 3} more
                   </span>
                 )}
               </div>
 
               {/* Footer with author and difficulty */}
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <div className="flex items-center justify-between text-xs text-[var(--color-on-surface-variant)]">
                 {showAuthor && author && (
                   <div className="flex items-center gap-2">
                     <Avatar className="h-4 w-4">
                       <AvatarImage src={authorAvatar} alt={authorDisplayName} />
-                      <AvatarFallback className="bg-muted text-muted-foreground text-xs">
+                      <AvatarFallback className="bg-[var(--color-surface-elevated)] text-[var(--color-on-surface-variant)] text-xs">
                         {authorDisplayName[0]?.toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
@@ -196,24 +197,24 @@ export const ExerciseCard = memo(function ExerciseCard({
             />
             
             {/* Menu */}
-            <div className="absolute right-0 top-12 z-50 w-48 bg-background border border-border rounded-md shadow-lg">
+            <div className="absolute right-0 top-12 z-50 w-48 bg-[var(--color-surface-elevated)] rounded-[var(--radius)] shadow-lg">
               <div className="py-1">
                 <button
-                  className="w-full px-3 py-2 text-left text-sm hover:bg-muted transition-colors flex items-center gap-2"
+                  className="w-full px-3 py-2 text-left text-sm hover:bg-[var(--color-surface-card)] transition-colors flex items-center gap-2"
                   onClick={() => handleMenuAction('details')}
                 >
                   <Eye className="h-4 w-4" />
                   View Details
                 </button>
                 <button
-                  className="w-full px-3 py-2 text-left text-sm hover:bg-muted transition-colors flex items-center gap-2"
+                  className="w-full px-3 py-2 text-left text-sm hover:bg-[var(--color-surface-card)] transition-colors flex items-center gap-2 text-[var(--color-error)]"
                   onClick={() => handleMenuAction('remove')}
                 >
                   <Trash2 className="h-4 w-4" />
                   Remove from Library
                 </button>
                 <button
-                  className="w-full px-3 py-2 text-left text-sm hover:bg-muted transition-colors flex items-center gap-2"
+                  className="w-full px-3 py-2 text-left text-sm hover:bg-[var(--color-surface-card)] transition-colors flex items-center gap-2"
                   onClick={() => handleMenuAction('copy')}
                 >
                   <Copy className="h-4 w-4" />
@@ -230,10 +231,10 @@ export const ExerciseCard = memo(function ExerciseCard({
   // List variant - compact horizontal layout
   if (variant === 'list') {
     return (
-      <Card 
+      <Card
         className={cn(
           "cursor-pointer transition-all duration-200",
-          "hover:bg-muted hover:ring-2 hover:ring-ring",
+          "hover:bg-[var(--color-surface-elevated)] hover:ring-2 hover:ring-ring",
           "active:ring-2 active:ring-ring",
           "focus:ring-2 focus:ring-ring focus:outline-none",
           className
@@ -250,11 +251,11 @@ export const ExerciseCard = memo(function ExerciseCard({
         <CardContent className="p-3">
           <div className="flex items-center gap-3">
             <div className="flex-1 min-w-0">
-              <h4 className="font-medium text-sm line-clamp-1 mb-1">
+              <h4 className="font-medium text-sm line-clamp-1 mb-1 text-[var(--color-on-surface)]">
                 {exercise.name}
               </h4>
-              
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+
+              <div className="flex items-center gap-2 text-xs text-[var(--color-on-surface-variant)]">
                 {showEquipment && (
                   <>
                     <span>{exercise.equipment}</span>
@@ -284,7 +285,7 @@ export const ExerciseCard = memo(function ExerciseCard({
                 </span>
               )}
               
-              <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 text-[var(--color-on-surface-variant)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </div>
@@ -331,10 +332,10 @@ export const ExerciseCard = memo(function ExerciseCard({
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between">
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-medium text-sm text-foreground truncate">
+                  <h3 className="font-semibold text-sm text-[var(--color-on-surface)] truncate">
                     {exercise.name}
                   </h3>
-                  <p className="text-xs text-muted-foreground mt-0.5">
+                  <p className="text-xs text-[var(--color-on-surface-variant)] mt-0.5">
                     {exercise.equipment} • {exercise.muscleGroups.slice(0, 2).join(', ')}
                     {exercise.muscleGroups.length > 2 && ` +${exercise.muscleGroups.length - 2}`}
                   </p>
@@ -348,7 +349,7 @@ export const ExerciseCard = memo(function ExerciseCard({
                     className="h-8 w-8 p-0 ml-2 flex-shrink-0"
                     onClick={handleMenuClick}
                   >
-                    <span className="text-muted-foreground">⋯</span>
+                    <span className="text-[var(--color-on-surface-variant)]">⋯</span>
                   </Button>
                 )}
               </div>
@@ -358,11 +359,11 @@ export const ExerciseCard = memo(function ExerciseCard({
                 <div className="flex items-center gap-2 mt-2">
                   <Avatar className="h-4 w-4">
                     <AvatarImage src={authorAvatar} alt={authorDisplayName} />
-                    <AvatarFallback className="bg-muted text-muted-foreground text-xs">
+                    <AvatarFallback className="bg-[var(--color-surface-elevated)] text-[var(--color-on-surface-variant)] text-xs">
                       {authorDisplayName[0]?.toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
-                  <span className="text-xs text-muted-foreground">by {authorDisplayName}</span>
+                  <span className="text-xs text-[var(--color-on-surface-variant)]">by {authorDisplayName}</span>
                 </div>
               )}
             </div>
@@ -379,25 +380,25 @@ export const ExerciseCard = memo(function ExerciseCard({
             />
             
             {/* Menu */}
-            <div className="absolute right-0 bottom-full mb-1 z-50 w-48 bg-background border border-border rounded-md shadow-lg">
+            <div className="absolute right-0 bottom-full mb-1 z-50 w-48 bg-[var(--color-surface-elevated)] rounded-[var(--radius)] shadow-lg">
               <div className="py-1">
                 <button
-                  className="w-full px-3 py-2 text-left text-sm hover:bg-muted transition-colors"
+                  className="w-full px-3 py-2 text-left text-sm hover:bg-[var(--color-surface-card)] transition-colors"
                   onClick={() => handleMenuAction('details')}
                 >
-                  📋 View Details
+                  View Details
                 </button>
                 <button
-                  className="w-full px-3 py-2 text-left text-sm hover:bg-muted transition-colors"
+                  className="w-full px-3 py-2 text-left text-sm hover:bg-[var(--color-surface-card)] transition-colors"
                   onClick={() => handleMenuAction('library')}
                 >
-                  📚 Add to Library
+                  Add to Library
                 </button>
                 <button
-                  className="w-full px-3 py-2 text-left text-sm hover:bg-muted transition-colors"
+                  className="w-full px-3 py-2 text-left text-sm hover:bg-[var(--color-surface-card)] transition-colors"
                   onClick={() => handleMenuAction('copy')}
                 >
-                  🔗 Copy naddr
+                  Copy naddr
                 </button>
               </div>
             </div>

@@ -196,7 +196,7 @@ export const WorkoutCard = memo(function WorkoutCard({
 
         {/* Heart Icon */}
         <div className="absolute top-3 right-3 z-20">
-          <div className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-md">
+          <div className="w-8 h-8 bg-[var(--color-surface-elevated)]/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-md">
             <svg className="w-5 h-5 text-primary" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
             </svg>
@@ -433,12 +433,12 @@ export const WorkoutCard = memo(function WorkoutCard({
             {showStats && (
               <div className="flex justify-between text-sm text-[var(--color-on-surface-variant)] mb-3">
                 <div className="flex items-center gap-2">
-                  <span>{exerciseCount} exercises</span>
+                  <span><span className="font-[var(--font-numeric)]">{exerciseCount}</span> exercises</span>
                   <span>•</span>
-                  <span>{workout.exercises.reduce((total, ex) => {
+                  <span><span className="font-[var(--font-numeric)]">{workout.exercises.reduce((total, ex) => {
                     const setCount = Array.isArray(ex.sets) ? ex.sets.length : (ex.sets || 0);
                     return total + setCount;
-                  }, 0)} sets</span>
+                  }, 0)}</span> sets</span>
                 </div>
                 <div className="flex items-center gap-2">
                   {isTemplate && (
@@ -471,31 +471,31 @@ export const WorkoutCard = memo(function WorkoutCard({
             />
             
             {/* Menu */}
-            <div className="absolute right-0 top-12 z-50 w-48 bg-background border border-border rounded-md shadow-lg">
+            <div className="absolute right-0 top-12 z-50 w-48 bg-[var(--color-surface-elevated)] rounded-[var(--radius)] shadow-lg">
               <div className="py-1">
                 <button
-                  className="w-full px-3 py-2 text-left text-sm hover:bg-muted transition-colors flex items-center gap-2"
+                  className="w-full px-3 py-2 text-left text-sm hover:bg-[var(--color-surface-card)] transition-colors flex items-center gap-2"
                   onClick={() => handleMenuAction('start')}
                 >
                   <Play className="h-4 w-4" />
                   Start Workout
                 </button>
                 <button
-                  className="w-full px-3 py-2 text-left text-sm hover:bg-muted transition-colors flex items-center gap-2"
+                  className="w-full px-3 py-2 text-left text-sm hover:bg-[var(--color-surface-card)] transition-colors flex items-center gap-2"
                   onClick={() => handleMenuAction('details')}
                 >
                   <Eye className="h-4 w-4" />
                   View Details
                 </button>
                 <button
-                  className="w-full px-3 py-2 text-left text-sm hover:bg-muted transition-colors flex items-center gap-2 text-destructive"
+                  className="w-full px-3 py-2 text-left text-sm hover:bg-[var(--color-surface-card)] transition-colors flex items-center gap-2 text-[var(--color-error)]"
                   onClick={() => handleMenuAction('remove')}
                 >
                   <Trash2 className="h-4 w-4" />
                   Remove from Library
                 </button>
                 <button
-                  className="w-full px-3 py-2 text-left text-sm hover:bg-muted transition-colors flex items-center gap-2"
+                  className="w-full px-3 py-2 text-left text-sm hover:bg-[var(--color-surface-card)] transition-colors flex items-center gap-2"
                   onClick={() => handleMenuAction('copy')}
                 >
                   <Copy className="h-4 w-4" />
@@ -542,25 +542,25 @@ export const WorkoutCard = memo(function WorkoutCard({
                   height={64}
                   className="w-full h-full rounded-lg object-cover"
                 />
-                <div className="absolute bottom-1 right-1 w-4 h-4 bg-white rounded-sm flex items-center justify-center">
+                <div className="absolute bottom-1 right-1 w-4 h-4 bg-[var(--color-surface-elevated)] rounded-sm flex items-center justify-center">
                   <div className="w-2 h-2 bg-primary rounded-full" />
                 </div>
               </div>
             )}
 
             <div className="flex-1 min-w-0">
-              <h4 className="font-semibold text-base line-clamp-1 mb-1">
+              <h4 className="font-semibold text-base line-clamp-1 mb-1 text-[var(--color-on-surface)]">
                 {workout.title}
               </h4>
               
               {showStats && (
                 <div className="flex items-center gap-3 text-sm text-[var(--color-on-surface-variant)] mb-1">
-                  <span>{exerciseCount} exercises</span>
+                  <span><span className="font-[var(--font-numeric)]">{exerciseCount}</span> exercises</span>
                   <span>•</span>
-                  <span>{workout.exercises.reduce((total, ex) => {
+                  <span><span className="font-[var(--font-numeric)]">{workout.exercises.reduce((total, ex) => {
                     const setCount = Array.isArray(ex.sets) ? ex.sets.length : (ex.sets || 0);
                     return total + setCount;
-                  }, 0)} sets</span>
+                  }, 0)}</span> sets</span>
                 </div>
               )}
 
@@ -636,18 +636,18 @@ export const WorkoutCard = memo(function WorkoutCard({
             )}
 
             <div className="flex-1 min-w-0">
-              <h4 className="font-medium text-sm line-clamp-1 mb-0.5">
+              <h4 className="font-medium text-sm line-clamp-1 mb-0.5 text-[var(--color-on-surface)]">
                 {workout.title}
               </h4>
               
               {showStats && (
                 <div className="flex items-center gap-2 text-xs text-[var(--color-on-surface-variant)]">
-                  <span>{exerciseCount} exercises</span>
+                  <span><span className="font-[var(--font-numeric)]">{exerciseCount}</span> exercises</span>
                   <span>•</span>
-                  <span>{workout.exercises.reduce((total, ex) => {
+                  <span><span className="font-[var(--font-numeric)]">{workout.exercises.reduce((total, ex) => {
                     const setCount = Array.isArray(ex.sets) ? ex.sets.length : (ex.sets || 0);
                     return total + setCount;
-                  }, 0)} sets</span>
+                  }, 0)}</span> sets</span>
                   {isTemplate && (
                     <>
                       <span>•</span>
@@ -733,14 +733,14 @@ export const WorkoutCard = memo(function WorkoutCard({
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between">
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-medium text-sm text-foreground truncate">
+                  <h3 className="font-semibold text-sm text-[var(--color-on-surface)] truncate">
                     {workout.title}
                   </h3>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {exerciseCount} exercises • {workout.exercises.reduce((total, ex) => {
+                  <p className="text-xs text-[var(--color-on-surface-variant)] mt-0.5">
+                    <span className="font-[var(--font-numeric)]">{exerciseCount}</span> exercises • <span className="font-[var(--font-numeric)]">{workout.exercises.reduce((total, ex) => {
                       const setCount = Array.isArray(ex.sets) ? ex.sets.length : (ex.sets || 0);
                       return total + setCount;
-                    }, 0)} sets • {formatDuration(duration)}
+                    }, 0)}</span> sets • <span className="font-[var(--font-numeric)]">{formatDuration(duration)}</span>
                   </p>
                 </div>
 
@@ -762,11 +762,11 @@ export const WorkoutCard = memo(function WorkoutCard({
                 <div className="flex items-center gap-2 mt-2">
                   <Avatar className="h-4 w-4">
                     <AvatarImage src={authorAvatar} alt={authorDisplayName} />
-                    <AvatarFallback className="bg-muted text-muted-foreground text-xs">
+                    <AvatarFallback className="bg-[var(--color-surface-elevated)] text-[var(--color-on-surface-variant)] text-xs">
                       {authorDisplayName[0]?.toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
-                  <span className="text-xs text-muted-foreground">by {authorDisplayName}</span>
+                  <span className="text-xs text-[var(--color-on-surface-variant)]">by {authorDisplayName}</span>
                 </div>
               )}
             </div>
@@ -783,25 +783,25 @@ export const WorkoutCard = memo(function WorkoutCard({
             />
             
             {/* Menu */}
-            <div className="absolute right-0 bottom-full mb-1 z-50 w-48 bg-background border border-border rounded-md shadow-lg">
+            <div className="absolute right-0 bottom-full mb-1 z-50 w-48 bg-[var(--color-surface-elevated)] rounded-[var(--radius)] shadow-lg">
               <div className="py-1">
                 <button
-                  className="w-full px-3 py-2 text-left text-sm hover:bg-muted transition-colors"
+                  className="w-full px-3 py-2 text-left text-sm hover:bg-[var(--color-surface-card)] transition-colors"
                   onClick={() => handleMenuAction('details')}
                 >
-                  📋 View Details
+                  View Details
                 </button>
                 <button
-                  className="w-full px-3 py-2 text-left text-sm hover:bg-muted transition-colors"
+                  className="w-full px-3 py-2 text-left text-sm hover:bg-[var(--color-surface-card)] transition-colors"
                   onClick={() => handleMenuAction('library')}
                 >
-                  📚 Add to Library
+                  Add to Library
                 </button>
                 <button
-                  className="w-full px-3 py-2 text-left text-sm hover:bg-muted transition-colors"
+                  className="w-full px-3 py-2 text-left text-sm hover:bg-[var(--color-surface-card)] transition-colors"
                   onClick={() => handleMenuAction('copy')}
                 >
-                  🔗 Copy naddr
+                  Copy naddr
                 </button>
               </div>
             </div>

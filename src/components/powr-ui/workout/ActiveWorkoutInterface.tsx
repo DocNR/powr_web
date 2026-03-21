@@ -748,7 +748,7 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
 
                 {/* Finish Button */}
                 <Button
-                  variant="primary-gradient"
+                  variant="workout-success"
                   onClick={() => setShowFinishDialog(true)}
                   className="flex-1"
                 >
@@ -819,7 +819,7 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
               Keep Going
             </Button>
             <Button
-              variant="primary-gradient"
+              variant="workout-success"
               onClick={handleFinishConfirm}
             >
               Finish Workout
