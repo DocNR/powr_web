@@ -39,6 +39,17 @@ const nextConfig: NextConfig = {
     ];
   },
   
+  async redirects() {
+    return [
+      {
+        // Old app.powr.build/workout/[nevent] links → canonical powr.build/record/[nevent]
+        source: '/workout/:nevent',
+        destination: 'https://powr.build/record/:nevent',
+        permanent: true,
+      },
+    ];
+  },
+
   async rewrites() {
     return [
       {
