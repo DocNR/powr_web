@@ -22,7 +22,7 @@ export function MobileBottomTabs({ activeTab, onTabChange, tabs }: MobileBottomT
   const { isIOSPWA } = usePWA();
 
   return (
-    <div className="fixed left-0 right-0 bottom-0 z-50 bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60 border-t border-border">
+    <div className="fixed left-0 right-0 bottom-0 z-50 bg-[var(--color-surface-card)]">
       <div 
         className="flex items-center justify-around px-2"
         style={{ 
@@ -51,9 +51,9 @@ export function MobileBottomTabs({ activeTab, onTabChange, tabs }: MobileBottomT
                 "touch-manipulation", // Optimize for touch on mobile
                 "select-none", // Prevent text selection on buttons
                 "gap-0.5", // Smaller gap between icon and text for compact layout
-                isActive 
-                  ? "text-primary" // Color-only highlighting - no background
-                  : "text-muted-foreground hover:text-primary" // Simple color transitions
+                isActive
+                  ? "text-[var(--color-primary)]"
+                  : "text-[var(--color-on-surface-variant)] hover:text-[var(--color-primary)]"
               )}
               onClick={() => onTabChange(tab.id)}
               aria-label={tab.label}

@@ -34,10 +34,10 @@ export function DesktopSidebar({
   onSubTabChange 
 }: DesktopSidebarProps) {
   return (
-    <div className="fixed left-0 top-0 z-40 h-full w-64 bg-background border-r border-border">
+    <div className="fixed left-0 top-0 z-40 h-full w-64 bg-[var(--color-surface-card)]">
       <div className="flex flex-col h-full">
         {/* Logo */}
-        <div className="flex items-center gap-2 p-6 border-b border-border">
+        <div className="flex items-center gap-2 p-6">
           <Logo width={32} height={32} className="rounded-md" />
           <span className="text-xl font-semibold">POWR</span>
         </div>
@@ -56,9 +56,9 @@ export function DesktopSidebar({
                   className={cn(
                     "w-full justify-start h-12 px-4",
                     "transition-colors duration-200",
-                    isActive 
-                      ? "bg-secondary text-secondary-foreground" 
-                      : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                    isActive
+                      ? "bg-[var(--color-surface-elevated)] text-[var(--color-primary)]"
+                      : "text-[var(--color-on-surface-variant)] hover:text-[var(--color-on-surface)] hover:bg-[var(--color-surface-elevated)]"
                   )}
                   onClick={() => onTabChange(tab.id)}
                 >
@@ -106,8 +106,8 @@ export function DesktopSidebar({
                             "w-full justify-start h-8 px-3 text-xs",
                             "transition-colors duration-200",
                             isSubActive
-                              ? "bg-secondary text-secondary-foreground"
-                              : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                              ? "bg-[var(--color-surface-elevated)] text-[var(--color-primary)]"
+                              : "text-[var(--color-on-surface-variant)] hover:text-[var(--color-on-surface)] hover:bg-[var(--color-surface-elevated)]"
                           )}
                           onClick={() => onSubTabChange?.(subTab.id)}
                         >
@@ -128,8 +128,8 @@ export function DesktopSidebar({
         </nav>
 
         {/* Footer */}
-        <div className="p-4 border-t border-border">
-          <div className="text-xs text-muted-foreground text-center">
+        <div className="p-4">
+          <div className="text-xs text-[var(--color-on-surface-variant)] text-center">
             POWR Workout PWA
           </div>
         </div>
