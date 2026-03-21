@@ -2,14 +2,12 @@
 
 import React, { lazy, Suspense } from 'react';
 import { useNavigation } from '@/providers/NavigationProvider';
-import HomeTab from '@/components/tabs/HomeTab';
 import { LibraryTab } from '@/components/tabs/LibraryTab';
 import WorkoutsTab from '@/components/tabs/WorkoutsTab';
-import { SocialTab } from '@/components/tabs/SocialTab';
 import { LogTab } from '@/components/tabs/LogTab';
 
 // Conditionally import TestTab only in development
-const TestTab = process.env.NODE_ENV !== 'production' 
+const TestTab = process.env.NODE_ENV !== 'production'
   ? lazy(() => import('@/components/tabs/TestTab'))
   : null;
 
@@ -18,14 +16,10 @@ export function TabRouter() {
 
   const renderTab = () => {
     switch (activeTab) {
-      case 'home':
-        return <HomeTab />;
       case 'library':
         return <LibraryTab />;
       case 'workout':
         return <WorkoutsTab />;
-      case 'social':
-        return <SocialTab />;
       case 'log':
         return <LogTab />;
       case 'test':
@@ -34,9 +28,9 @@ export function TabRouter() {
           <Suspense fallback={<div>Loading...</div>}>
             <TestTab />
           </Suspense>
-        ) : <HomeTab />;
+        ) : <LibraryTab />;
       default:
-        return <HomeTab />;
+        return <LibraryTab />;
     }
   };
 
