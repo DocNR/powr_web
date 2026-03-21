@@ -1,209 +1,125 @@
 @import "tailwindcss";
 
-@layer base {
-  :root {
-    --radius: 0.65rem;
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.141 0.005 285.823);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.141 0.005 285.823);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.141 0.005 285.823);
-    --primary: oklch(0.45 0.18 220);
-    --primary-foreground: oklch(0.98 0.01 220);
-    --secondary: oklch(0.967 0.001 286.375);
-    --secondary-foreground: oklch(0.21 0.006 285.885);
-    --muted: oklch(0.967 0.001 286.375);
-    --muted-foreground: oklch(0.552 0.016 285.938);
-    --accent: oklch(0.967 0.001 286.375);
-    --accent-foreground: oklch(0.21 0.006 285.885);
-    --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.92 0.004 286.32);
-    --input: oklch(0.92 0.004 286.32);
-    --ring: oklch(0.45 0.18 220);
-    --chart-1: oklch(0.646 0.222 41.116);
-    --chart-2: oklch(0.6 0.118 184.704);
-    --chart-3: oklch(0.398 0.07 227.392);
-    --chart-4: oklch(0.828 0.189 84.429);
-    --chart-5: oklch(0.769 0.188 70.08);
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.141 0.005 285.823);
-    --sidebar-primary: oklch(0.606 0.25 292.717);
-    --sidebar-primary-foreground: oklch(0.969 0.016 293.756);
-    --sidebar-accent: oklch(0.967 0.001 286.375);
-    --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
-    --sidebar-border: oklch(0.92 0.004 286.32);
-    --sidebar-ring: oklch(0.606 0.25 292.717);
-    
-    /* Workout-specific semantic variables - Light Mode */
-    --workout-success: oklch(0.45 0.18 220);
-    --workout-success-bg: oklch(0.97 0.02 220);
-    --workout-success-border: oklch(0.65 0.15 220);
-    --workout-active: oklch(0.45 0.18 220);
-    --workout-active-bg: transparent;
-    --workout-active-border: oklch(0.45 0.18 220);
-    --workout-surface: oklch(0.95 0.004 286.32);
-    --workout-surface-hover: oklch(0.88 0.008 286.32);
-    --workout-text: oklch(0.45 0.01 286);
-    --workout-primary: oklch(0.45 0.18 220);
-    --workout-timer: oklch(0.45 0.18 220);
-  }
-
-  .dark {
-    --background: oklch(0.141 0.005 285.823);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.21 0.006 285.885);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.21 0.006 285.885);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.65 0.18 220);
-    --primary-foreground: oklch(0.98 0.01 220);
-    --secondary: oklch(0.274 0.006 286.033);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.274 0.006 286.033);
-    --muted-foreground: oklch(0.705 0.015 286.067);
-    --accent: oklch(0.274 0.006 286.033);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.65 0.18 220);
-    --chart-1: oklch(0.488 0.243 264.376);
-    --chart-2: oklch(0.696 0.17 162.48);
-    --chart-3: oklch(0.769 0.188 70.08);
-    --chart-4: oklch(0.627 0.265 303.9);
-    --chart-5: oklch(0.645 0.246 16.439);
-    --sidebar: oklch(0.21 0.006 285.885);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.541 0.281 293.009);
-    --sidebar-primary-foreground: oklch(0.969 0.016 293.756);
-    --sidebar-accent: oklch(0.274 0.006 286.033);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.541 0.281 293.009);
-    
-    /* Workout-specific semantic variables - Dark Mode */
-    --workout-success: oklch(0.65 0.18 220);
-    --workout-success-bg: oklch(0.18 0.04 220);
-    --workout-success-border: oklch(0.45 0.15 220);
-    --workout-active: oklch(0.65 0.18 220);
-    --workout-active-bg: transparent;
-    --workout-active-border: oklch(0.65 0.18 220);
-    --workout-surface: oklch(0.274 0.006 286.033);
-    --workout-surface-hover: oklch(0.35 0.01 286.033);
-    --workout-text: oklch(0.85 0.005 286);
-    --workout-primary: oklch(0.65 0.18 220);
-    --workout-timer: oklch(0.65 0.18 220);
-  }
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
-  
-  /* Workout-specific semantic colors for Tailwind */
-  --color-workout-success: var(--workout-success);
-  --color-workout-success-bg: var(--workout-success-bg);
-  --color-workout-success-border: var(--workout-success-border);
-  --color-workout-active: var(--workout-active);
-  --color-workout-active-bg: var(--workout-active-bg);
-  --color-workout-active-border: var(--workout-active-border);
-  --color-workout-surface: var(--workout-surface);
-  --color-workout-surface-hover: var(--workout-surface-hover);
-  --color-workout-text: var(--workout-text);
-  --color-workout-primary: var(--workout-primary);
-  --color-workout-timer: var(--workout-timer);
+  /* Kinetic Precision Design System */
+  --color-primary: #ff9153;
+  --color-primary-dark: #ff7a23;
+  --color-secondary: #419092;
+  --color-surface-base: #0e0e0e;
+  --color-surface-card: #131313;
+  --color-surface-elevated: #262626;
+  --color-on-surface: #e8e8e8;
+  --color-on-surface-variant: #a0a0a0;
+  --color-error: #ef4444;
+  --color-success: var(--color-secondary);
+  --color-accent: var(--color-primary);
+
+  /* Structural tokens */
+  --radius: 0.75rem;
+  --accent-bar-width: 3px;
+  --font-numeric: 'Space Grotesk', var(--font-space-grotesk), monospace;
+  --font-body: 'Inter', var(--font-inter), system-ui, sans-serif;
+
+  /* shadcn/ui compatibility mappings */
+  --color-background: var(--color-surface-base);
+  --color-foreground: var(--color-on-surface);
+  --color-card: var(--color-surface-card);
+  --color-card-foreground: var(--color-on-surface);
+  --color-popover: var(--color-surface-card);
+  --color-popover-foreground: var(--color-on-surface);
+  --color-primary-foreground: #0e0e0e;
+  --color-secondary-foreground: var(--color-on-surface);
+  --color-muted: var(--color-surface-elevated);
+  --color-muted-foreground: var(--color-on-surface-variant);
+  --color-accent-foreground: var(--color-on-surface);
+  --color-destructive: var(--color-error);
+  --color-border: var(--color-surface-elevated);
+  --color-input: var(--color-surface-elevated);
+  --color-ring: var(--color-primary);
+
+  /* Sidebar mappings */
+  --color-sidebar: var(--color-surface-card);
+  --color-sidebar-foreground: var(--color-on-surface);
+  --color-sidebar-primary: var(--color-primary);
+  --color-sidebar-primary-foreground: #0e0e0e;
+  --color-sidebar-accent: var(--color-surface-elevated);
+  --color-sidebar-accent-foreground: var(--color-on-surface);
+  --color-sidebar-border: var(--color-surface-elevated);
+  --color-sidebar-ring: var(--color-primary);
+
+  /* Workout-specific semantic tokens */
+  --color-workout-success: var(--color-secondary);
+  --color-workout-active: var(--color-primary);
+  --color-workout-surface: var(--color-surface-card);
+  --color-workout-text: var(--color-on-surface);
+  --color-workout-primary: var(--color-primary);
+  --color-workout-timer: var(--color-primary);
+
+  /* Gradient (not a Tailwind utility — use directly in components) */
+  --gradient-cta: linear-gradient(135deg, #ff9153 0%, #f06c0b 100%);
 }
 
 @layer base {
   * {
     @apply border-border;
   }
-  
+
   /* Enhanced PWA zoom prevention and mobile optimization */
   html, body {
-    @apply bg-background text-foreground;
-    
+    background: var(--color-surface-base);
+    color: var(--color-on-surface);
+    font-family: var(--font-body);
+
     /* CRITICAL: Aggressive zoom prevention for iOS */
     touch-action: manipulation !important;
     -webkit-text-size-adjust: 100% !important;
     -ms-text-size-adjust: 100% !important;
-    
+
     /* Prevent double-tap zoom */
     -webkit-touch-callout: none !important;
     -webkit-user-select: none !important;
     user-select: none !important;
-    
+
     /* Disable tap highlight */
     -webkit-tap-highlight-color: transparent !important;
-    
+
     /* Prevent bounce scrolling */
     overscroll-behavior: none !important;
-    
+
     /* Smooth scrolling */
     scroll-behavior: smooth;
-    
+
     /* Additional zoom prevention */
     -webkit-user-zoom: fixed !important;
     -moz-user-zoom: fixed !important;
     -ms-user-zoom: fixed !important;
     user-zoom: fixed !important;
   }
-  
+
   /* Apply zoom prevention to all elements */
   *, *::before, *::after {
     touch-action: manipulation !important;
     -webkit-touch-callout: none !important;
     -webkit-tap-highlight-color: transparent !important;
   }
-  
+
   /* Allow text selection on content areas */
   .content-area, .text-selectable {
     -webkit-user-select: text;
     user-select: text;
   }
-  
+
   /* Critical: Prevent zoom on input focus (iOS) */
   input, textarea, select, button {
     font-size: 16px !important; /* Prevents iOS zoom on focus */
     touch-action: manipulation; /* Prevents gesture zoom */
   }
-  
+
   /* Monospace utility class for techy elements */
   .font-mono-tech {
     font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Source Code Pro', 'Menlo', 'Consolas', monospace;
   }
-  
+
   /* Background image with blur and darkening effect */
   .hero-background {
     background-image: url('/assets/workout-template-fallback.jpg');
@@ -212,7 +128,7 @@
     background-repeat: no-repeat;
     position: relative;
   }
-  
+
   /* Mobile optimization - use portrait image for better mobile experience */
   @media (max-width: 768px) {
     .hero-background {
@@ -221,7 +137,7 @@
       background-position: center top;
     }
   }
-  
+
   .hero-background::before {
     content: '';
     position: absolute;
@@ -234,17 +150,7 @@
     -webkit-backdrop-filter: blur(12px);
     z-index: 1;
   }
-  
-  /* Light mode - use the same dark overlay to maintain consistent appearance */
-  :root .hero-background::before {
-    background: rgba(0, 0, 0, 0.8);
-  }
-  
-  /* Dark mode - keep the same dark overlay for consistency */
-  .dark .hero-background::before {
-    background: rgba(0, 0, 0, 0.8);
-  }
-  
+
   .hero-background > * {
     position: relative;
     z-index: 2;
@@ -263,52 +169,52 @@
   .pb-safe {
     padding-bottom: env(safe-area-inset-bottom);
   }
-  
+
   .pl-safe {
     padding-left: env(safe-area-inset-left);
   }
-  
+
   .pr-safe {
     padding-right: env(safe-area-inset-right);
   }
-  
+
   /* Mobile PWA specific styles */
   .pwa-mobile {
     /* Prevent text size adjustment on iOS */
     -webkit-text-size-adjust: 100%;
-    
+
     /* Disable callouts and selection on iOS */
     -webkit-touch-callout: none;
     -webkit-user-select: none;
     user-select: none;
-    
+
     /* Disable tap highlight */
     -webkit-tap-highlight-color: transparent;
-    
+
     /* Prevent bounce scrolling */
     overscroll-behavior: none;
-    
+
     /* Smooth scrolling */
     scroll-behavior: smooth;
   }
-  
+
   /* Allow text selection on specific elements */
   .text-selectable {
     -webkit-user-select: text;
     user-select: text;
   }
-  
+
   /* Prevent zoom on input focus (iOS) */
   input, textarea, select {
     font-size: 16px; /* Prevents zoom on iOS */
   }
-  
+
   /* Hide scrollbars but keep functionality */
   .hide-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
-  
+
   .hide-scrollbar::-webkit-scrollbar {
     display: none;
   }
@@ -372,21 +278,21 @@
     overscroll-behavior: contain !important;
     -webkit-overflow-scrolling: touch;
   }
-  
+
   /* Sheet content scrolling fixes */
   [data-radix-sheet-content] {
     /* Allow scrolling within sheet, but contain it */
     overscroll-behavior: contain !important;
     -webkit-overflow-scrolling: touch;
   }
-  
+
   /* Modal scrollable content areas */
   .modal-scrollable-content {
     overscroll-behavior-y: contain;
     overscroll-behavior-x: none;
     -webkit-overflow-scrolling: touch;
   }
-  
+
   /* Tab content scrolling within modals */
   [data-radix-tabs-content] {
     overscroll-behavior-y: contain;
@@ -397,27 +303,13 @@
 /* Frosted Glass Effects */
 @layer utilities {
   .frosted-glass-gradient {
-    /* Light mode gradient - MUCH more transparent at top, gradual transition */
     background: linear-gradient(
-      to bottom, 
-      rgba(255, 255, 255, 0.05) 0%, 
-      rgba(255, 255, 255, 0.15) 15%, 
-      rgba(255, 255, 255, 0.35) 35%, 
-      rgba(255, 255, 255, 0.65) 55%, 
-      rgba(255, 255, 255, 0.85) 75%, 
-      rgba(255, 255, 255, 0.95) 100%
-    );
-  }
-  
-  .dark .frosted-glass-gradient {
-    /* Dark mode gradient - MUCH more transparent at top, gradual transition */
-    background: linear-gradient(
-      to bottom, 
-      rgba(0, 0, 0, 0.05) 0%, 
-      rgba(0, 0, 0, 0.15) 15%, 
-      rgba(0, 0, 0, 0.35) 35%, 
-      rgba(0, 0, 0, 0.65) 55%, 
-      rgba(0, 0, 0, 0.85) 75%, 
+      to bottom,
+      rgba(0, 0, 0, 0.05) 0%,
+      rgba(0, 0, 0, 0.15) 15%,
+      rgba(0, 0, 0, 0.35) 35%,
+      rgba(0, 0, 0, 0.65) 55%,
+      rgba(0, 0, 0, 0.85) 75%,
       rgba(0, 0, 0, 0.95) 100%
     );
   }
@@ -431,7 +323,7 @@
     -webkit-user-select: none;
     user-select: none;
   }
-  
+
   /* Allow selection on content areas */
   .content-area {
     -webkit-user-select: text;
@@ -445,7 +337,7 @@
   body {
     font-size: 14px; /* Smaller text for landscape */
   }
-  
+
   /* Show subtle landscape notice */
   body::after {
     content: "📱 Rotate for best experience";
@@ -461,12 +353,12 @@
     pointer-events: none;
     opacity: 0.8;
   }
-  
+
   /* Adjust mobile bottom tabs for landscape */
   .mobile-bottom-tabs {
     height: 50px; /* Smaller in landscape */
   }
-  
+
   /* Adjust header for landscape */
   .app-header {
     height: 50px; /* Smaller in landscape */
@@ -485,19 +377,19 @@
     display: inline-flex;
     align-items: center;
   }
-  
+
   .clickable-text:hover {
     @apply text-primary/80;
     text-decoration-color: currentColor;
     transform: translateY(-1px);
   }
-  
+
   .clickable-text:active {
     @apply text-primary;
     transform: translateY(0);
     text-decoration-color: currentColor;
   }
-  
+
   /* Variant for subtle clickable text (less prominent) */
   .clickable-text-subtle {
     @apply text-foreground cursor-pointer transition-all duration-200;
@@ -507,14 +399,14 @@
     display: inline-flex;
     align-items: center;
   }
-  
+
   .clickable-text-subtle:hover {
     @apply text-primary;
     text-decoration: underline;
     text-decoration-color: currentColor;
     text-underline-offset: 2px;
   }
-  
+
   .clickable-text-subtle:active {
     @apply text-primary/80;
     transform: translateY(1px);
@@ -527,30 +419,22 @@
     -webkit-user-select: none !important;
     user-select: none !important;
   }
-  
+
   /* Prevent zoom on double-tap for specific elements */
   .prevent-double-tap-zoom {
     touch-action: manipulation;
     -webkit-touch-callout: none;
   }
 
-  /* Dropdown Menu Styles - Reusable across the app with enhanced visibility */
+  /* Dropdown Menu Styles */
   .dropdown-menu {
-    @apply bg-popover text-popover-foreground border border-border rounded-md shadow-xl z-50;
-    /* Subtle backdrop blur with fallback */
+    @apply bg-popover text-popover-foreground rounded-md shadow-xl z-50;
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
-    /* Fallback for browsers that don't support backdrop-filter */
-    background: rgba(255, 255, 255, 0.98);
-    /* Add subtle animation */
+    background: rgba(38, 38, 38, 0.98);
     animation: dropdown-appear 0.15s ease-out;
   }
-  
-  /* Dark mode dropdown background */
-  .dark .dropdown-menu {
-    background: rgba(33, 39, 55, 0.98);
-  }
-  
+
   /* Dropdown animation */
   @keyframes dropdown-appear {
     from {
@@ -562,34 +446,29 @@
       transform: translateY(0) scale(1);
     }
   }
-  
+
   .dropdown-item {
     @apply w-full px-3 py-2 text-left text-sm transition-all duration-150 flex items-center gap-2 hover:bg-muted;
-    /* Enhanced hover effect */
     border-radius: 4px;
     margin: 1px 4px;
   }
-  
+
   .dropdown-item:hover {
     transform: translateX(2px);
   }
-  
+
   .dropdown-item-active {
     @apply bg-muted font-medium;
-    /* More visible active state */
-    background: rgba(var(--primary), 0.1);
-    color: rgb(var(--primary));
   }
-  
+
   .dropdown-backdrop {
     @apply fixed inset-0 z-40;
-    /* More visible backdrop */
     background: rgba(0, 0, 0, 0.1);
     backdrop-filter: blur(2px);
     -webkit-backdrop-filter: blur(2px);
     animation: backdrop-appear 0.15s ease-out;
   }
-  
+
   /* Backdrop animation */
   @keyframes backdrop-appear {
     from {
@@ -599,17 +478,16 @@
       opacity: 1;
     }
   }
-  
+
   .dropdown-separator {
     @apply h-px bg-border mx-2 my-1;
   }
-  
+
   .dropdown-indicator {
     @apply ml-auto w-2 h-2 bg-primary rounded-full;
-    /* Add subtle pulse animation */
     animation: indicator-pulse 2s infinite;
   }
-  
+
   /* Indicator pulse animation */
   @keyframes indicator-pulse {
     0%, 100% {
