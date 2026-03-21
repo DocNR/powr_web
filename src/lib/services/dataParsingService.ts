@@ -231,9 +231,14 @@ export class DataParsingService {
       const description = event.content || 'No description';
       const workoutType = (tagMap.get('type')?.[1] || 'strength') as 'strength' | 'circuit' | 'emom' | 'amrap';
       
-      const startTime = parseInt(tagMap.get('start')?.[1] || '0') * 1000;
-      const endTime = parseInt(tagMap.get('end')?.[1] || '0') * 1000;
-      const duration = endTime - startTime;
+      // iOS app stores start/end as Unix milliseconds (13 digits), not seconds
+      const startTime = parseInt(tagMap.get('start')?.[1] || '0');
+      const endTime = parseInt(tagMap.get('end')?.[1] || '0');
+      // Prefer explicit duration tag (seconds → ms), fallback to end-start (both already ms)
+      const durationTag = tagMap.get('duration')?.[1];
+      const duration = durationTag
+        ? parseInt(durationTag) * 1000
+        : endTime - startTime;
       const completed = tagMap.get('completed')?.[1] === 'true';
       
       // Parse template reference
