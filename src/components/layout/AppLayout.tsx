@@ -22,6 +22,7 @@ import { WorkoutDetailModal, SaveTemplateModal } from '@/components/powr-ui/work
 import { ExerciseDetailModal } from '@/components/library/ExerciseDetailModal';
 import { libraryManagementService } from '@/lib/services/libraryManagement';
 import { LoginWall } from '@/components/auth/LoginWall';
+import { OfflineBanner } from '@/components/powr-ui/primitives/OfflineBanner';
 
 export function AppLayout() {
   const isMobile = useMediaQuery('(max-width: 640px)');
@@ -431,6 +432,9 @@ export function AppLayout() {
               />
             </div>
           )}
+
+          {/* Offline Banner */}
+          <OfflineBanner />
 
           {/* Main Content - Scrollable Container */}
           <main 
