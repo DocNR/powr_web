@@ -1,0 +1,64 @@
+<h2>Design System Architecture: How should Kinetic Precision live in code?</h2>
+<p class="subtitle">Three approaches to replacing the current OKLCH theme with Kinetic Precision tokens</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>CSS Custom Properties (Recommended)</h3>
+      <p>Replace the OKLCH variables in <code>globals.css</code> with Kinetic Precision hex values. Add new semantic variables for accent bars, gradients, surfaces. Components consume via <code>var(--primary)</code> — most existing component code stays unchanged.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4><ul>
+          <li>Smallest diff — swap values, not structure</li>
+          <li>shadcn/ui components auto-inherit new colors</li>
+          <li>Easy to add dark-only theme (no light mode needed for v1)</li>
+          <li>Space Grotesk added as a CSS variable, applied via utility class</li>
+        </ul></div>
+        <div class="cons"><h4>Cons</h4><ul>
+          <li>Some components may need manual class updates for accent bars, no-border rule</li>
+          <li>OKLCH → hex means losing perceptual uniformity (acceptable for a defined palette)</li>
+        </ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Tailwind Theme Extension</h3>
+      <p>Define Kinetic Precision as a full Tailwind theme with custom colors (<code>text-kinetic-orange</code>), spacing, and component classes. Remove OKLCH entirely. Components updated to use new Tailwind classes.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4><ul>
+          <li>Tailwind-native — classes are self-documenting</li>
+          <li>Easy to enforce design rules via custom utilities</li>
+          <li>Good IDE autocomplete for design tokens</li>
+        </ul></div>
+        <div class="cons"><h4>Cons</h4><ul>
+          <li>Larger diff — need to update class names across all components</li>
+          <li>shadcn/ui components need class overrides or re-theming</li>
+          <li>Custom utility classes add Tailwind config complexity</li>
+        </ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Hybrid: CSS Variables + Tailwind Utilities</h3>
+      <p>Keep CSS custom properties as the source of truth (like now), but add Tailwind utility classes that reference them. E.g., <code>bg-surface-card</code> maps to <code>var(--surface-card)</code>. Best of both worlds.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4><ul>
+          <li>CSS variables for theming, Tailwind for ergonomics</li>
+          <li>shadcn/ui inherits via CSS variables automatically</li>
+          <li>Semantic class names like <code>bg-surface-base</code>, <code>text-primary</code></li>
+          <li>Tailwind v4 @theme inline makes this clean</li>
+        </ul></div>
+        <div class="cons"><h4>Cons</h4><ul>
+          <li>Slightly more setup than pure CSS variables</li>
+          <li>Two layers to understand (CSS vars + Tailwind mapping)</li>
+        </ul></div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs ls:*)",
+      "Bash(xargs cat:*)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "mcp__nostr-explorer__nip_lookup",
+      "mcp__nostr-explorer__nip_search",
+      "mcp__nostr-explorer__event_explain",
+      "Bash(gh pr:*)",
+      "Bash(gh api:*)",
+      "Bash(wc -l /Users/danielwyler/raid.golf/ios/RAID/RAID/**/*.swift)",
+      "Bash(xcodebuild build:*)",
+      "Bash(xcodebuild -list)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(grep -E \"\\\\.\\(tsx|ts\\)$\")",
+      "Bash(wc -l /Users/danielwyler/powr_web/src/lib/machines/workout/*.ts)",
+      "Bash(/Users/danielwyler/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.5/scripts/start-server.sh --project-dir /Users/danielwyler/powr_web)",
+      "Bash(/Users/danielwyler/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.5/skills/brainstorming/scripts/start-server.sh --project-dir /Users/danielwyler/powr_web)"
+    ]
+  },
+  "enabledPlugins": {
+    "superpowers@claude-plugins-official": true
+  }
+}

@@ -1,0 +1,109 @@
+<h2>Section 3: Functional Gap States</h2>
+<p class="subtitle">Empty, loading, error, and offline states — the polish that makes it shippable</p>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; margin-top: 1.5rem;">
+
+  <!-- Empty Library -->
+  <div class="mockup">
+    <div class="mockup-header">Empty State — Library (New User)</div>
+    <div class="mockup-body" style="background: #0e0e0e; padding: 2rem; min-height: 300px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; font-family: Inter, system-ui, sans-serif;">
+      <div style="font-size: 2.5rem; margin-bottom: 1rem; opacity: 0.3;">📋</div>
+      <div style="font-size: 1.1rem; font-weight: 600; color: white; margin-bottom: 0.5rem;">No templates yet</div>
+      <div style="font-size: 0.85rem; color: #a0a0a0; max-width: 240px; margin-bottom: 1.5rem;">Add starter templates to your library to get started.</div>
+      <button style="background: linear-gradient(135deg, #ff9153 0%, #f06c0b 100%); border: none; border-radius: 12px; padding: 12px 24px; color: #0e0e0e; font-weight: 700; font-size: 0.85rem; cursor: pointer;">
+        Load Starter Templates
+      </button>
+    </div>
+  </div>
+
+  <!-- Empty Log -->
+  <div class="mockup">
+    <div class="mockup-header">Empty State — Workout Log</div>
+    <div class="mockup-body" style="background: #0e0e0e; padding: 2rem; min-height: 300px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; font-family: Inter, system-ui, sans-serif;">
+      <div style="font-size: 2.5rem; margin-bottom: 1rem; opacity: 0.3;">🏋️</div>
+      <div style="font-size: 1.1rem; font-weight: 600; color: white; margin-bottom: 0.5rem;">No workouts recorded</div>
+      <div style="font-size: 0.85rem; color: #a0a0a0; max-width: 240px; margin-bottom: 1.5rem;">Complete your first workout and it'll show up here.</div>
+      <button style="background: rgba(255,145,83,0.1); border: none; border-radius: 12px; padding: 12px 24px; color: #ff9153; font-weight: 600; font-size: 0.85rem; cursor: pointer;">
+        Browse Templates
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div class="mockup">
+    <div class="mockup-header">Loading State — Template List</div>
+    <div class="mockup-body" style="background: #0e0e0e; padding: 1.25rem; min-height: 300px; font-family: Inter, system-ui, sans-serif;">
+      <!-- Skeleton cards -->
+      <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+        <div style="background: #131313; border-radius: 12px; padding: 1.25rem; border-left: 3px solid #262626;">
+          <div style="background: #262626; border-radius: 8px; height: 16px; width: 60%; margin-bottom: 0.75rem; animation: pulse 1.5s ease-in-out infinite;"></div>
+          <div style="background: #1a1a1a; border-radius: 6px; height: 12px; width: 40%;"></div>
+        </div>
+        <div style="background: #131313; border-radius: 12px; padding: 1.25rem; border-left: 3px solid #262626; opacity: 0.7;">
+          <div style="background: #262626; border-radius: 8px; height: 16px; width: 50%; margin-bottom: 0.75rem;"></div>
+          <div style="background: #1a1a1a; border-radius: 6px; height: 12px; width: 35%;"></div>
+        </div>
+        <div style="background: #131313; border-radius: 12px; padding: 1.25rem; border-left: 3px solid #262626; opacity: 0.4;">
+          <div style="background: #262626; border-radius: 8px; height: 16px; width: 55%; margin-bottom: 0.75rem;"></div>
+          <div style="background: #1a1a1a; border-radius: 6px; height: 12px; width: 45%;"></div>
+        </div>
+      </div>
+      <style>
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+      </style>
+    </div>
+  </div>
+
+  <!-- Error -->
+  <div class="mockup">
+    <div class="mockup-header">Error State — Publish Failed</div>
+    <div class="mockup-body" style="background: #0e0e0e; padding: 2rem; min-height: 300px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; font-family: Inter, system-ui, sans-serif;">
+      <div style="background: rgba(239,68,68,0.1); border-radius: 12px; padding: 1.5rem; width: 280px;">
+        <div style="font-size: 1rem; font-weight: 600; color: #ef4444; margin-bottom: 0.5rem;">Publish failed</div>
+        <div style="font-size: 0.8rem; color: #a0a0a0; margin-bottom: 1.25rem;">Couldn't reach relays. Your workout is saved locally.</div>
+        <div style="display: flex; gap: 0.75rem; justify-content: center;">
+          <button style="background: linear-gradient(135deg, #ff9153 0%, #f06c0b 100%); border: none; border-radius: 12px; padding: 10px 20px; color: #0e0e0e; font-weight: 700; font-size: 0.8rem; cursor: pointer;">
+            Retry
+          </button>
+          <button style="background: transparent; border: none; border-radius: 12px; padding: 10px 20px; color: #a0a0a0; font-size: 0.8rem; cursor: pointer;">
+            Dismiss
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Offline Banner -->
+  <div class="mockup">
+    <div class="mockup-header">Offline — Inline Banner</div>
+    <div class="mockup-body" style="background: #0e0e0e; padding: 0; min-height: 300px; font-family: Inter, system-ui, sans-serif;">
+      <!-- Offline banner -->
+      <div style="background: rgba(255,145,83,0.1); padding: 0.75rem 1.25rem; display: flex; align-items: center; gap: 0.5rem;">
+        <div style="font-size: 0.8rem; color: #ff9153;">⚡ Offline — workouts will publish when you're back online</div>
+      </div>
+      <!-- Content continues normally -->
+      <div style="padding: 1rem 1.25rem;">
+        <div style="font-size: 1.25rem; font-weight: 700; color: white; margin-bottom: 1rem;">Library</div>
+        <div style="background: #131313; border-radius: 12px; padding: 1.25rem; border-left: 3px solid #ff9153;">
+          <div style="font-size: 1rem; font-weight: 600; color: white;">Push Day</div>
+          <div style="font-size: 0.8rem; color: #a0a0a0; margin-top: 0.25rem;">Cached · 5 exercises</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Publishing Queue -->
+  <div class="mockup">
+    <div class="mockup-header">Queued Publish — Workout Complete</div>
+    <div class="mockup-body" style="background: #0e0e0e; padding: 2rem; min-height: 300px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; font-family: Inter, system-ui, sans-serif;">
+      <div style="font-size: 2.5rem; margin-bottom: 1rem;">💪</div>
+      <div style="font-size: 1.25rem; font-weight: 700; color: white; margin-bottom: 0.5rem;">Workout Complete!</div>
+      <div style="font-family: 'Space Grotesk', monospace; font-size: 0.85rem; color: #a0a0a0; margin-bottom: 1.5rem;">12 sets · 45 min · 8,420 lbs total</div>
+      <div style="background: rgba(255,145,83,0.1); border-radius: 12px; padding: 0.75rem 1.25rem; display: flex; align-items: center; gap: 0.5rem;">
+        <div style="width: 8px; height: 8px; background: #ff9153; border-radius: 50%; animation: pulse 1.5s ease-in-out infinite;"></div>
+        <div style="font-size: 0.8rem; color: #ff9153;">Queued — will publish when online</div>
+      </div>
+    </div>
+  </div>
+
+</div>
