@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { BookOpen, Search, Calendar, Dumbbell, Clock } from 'lucide-react';
+import { Search, Calendar, Dumbbell, Clock } from 'lucide-react';
 import { useWorkoutHistory } from '@/providers/WorkoutHistoryProvider';
 import { Input } from '@/components/powr-ui/primitives/Input';
 import { Button } from '@/components/powr-ui/primitives/Button';
@@ -10,8 +10,13 @@ import { WorkoutHistoryDetailModal } from '@/components/powr-ui/workout/WorkoutH
 import { workoutAnalyticsService } from '@/lib/services/workoutAnalytics';
 import type { ParsedWorkoutEvent } from '@/lib/services/dataParsingService';
 import type { ProcessedWorkoutData } from '@/lib/services/workoutAnalytics';
+import { EmptyState } from '@/components/powr-ui/primitives/EmptyState';
+import { SkeletonCard } from '@/components/powr-ui/primitives/SkeletonCard';
+import { useNavigation } from '@/providers/NavigationProvider';
 
 export function LogTab() {
+  const { setActiveTab } = useNavigation();
+
   // Use WorkoutHistoryProvider for data management (following WorkoutsTab pattern)
   const {
     workoutRecords,
@@ -193,23 +198,14 @@ export function LogTab() {
   // If no workout records and not loading, show empty state
   if (!isLoading && workoutRecords.length === 0) {
     return (
-      <div className="text-center space-y-6 py-16">
-        <BookOpen className="h-16 w-16 text-muted-foreground/50 mx-auto" />
-        <div className="space-y-2">
-          <h2 className="text-2xl font-semibold">Workout Log</h2>
-          <p className="text-muted-foreground">
-            Complete your first workout to start building your history
-          </p>
-        </div>
-        <Button 
-          onClick={() => {
-            console.log('Navigate to workouts tab');
-          }}
-          className="mt-4"
-        >
-          Browse Workouts
-        </Button>
-      </div>
+      <EmptyState
+        icon="🏋️"
+        heading="No workouts recorded"
+        description="Complete your first workout and it'll show up here."
+        actionLabel="Browse Templates"
+        actionVariant="secondary"
+        onAction={() => setActiveTab('library')}
+      />
     );
   }
 
@@ -229,47 +225,70 @@ export function LogTab() {
           />
         </div>
 
+        {/* Stats Grid */}
+        {!isLoading && filteredWorkouts.length > 0 && (
+          <div className="grid grid-cols-3 gap-3">
+            <div className="bg-[var(--color-surface-card)] rounded-[var(--radius)] p-4 text-center">
+              <div className="text-2xl font-bold text-[var(--color-primary)] font-[var(--font-numeric)]">
+                {workoutRecords.filter(w => {
+                  const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+                  return w.createdAt > weekAgo;
+                }).length}
+              </div>
+              <div className="text-xs uppercase tracking-wide text-[var(--color-on-surface-variant)]">This Week</div>
+            </div>
+            <div className="bg-[var(--color-surface-card)] rounded-[var(--radius)] p-4 text-center">
+              <div className="text-2xl font-bold text-[var(--color-primary)] font-[var(--font-numeric)]">
+                {workoutRecords.reduce((sum, w) => sum + w.exercises.reduce((s, e) => s + (e.sets || 1), 0), 0)}
+              </div>
+              <div className="text-xs uppercase tracking-wide text-[var(--color-on-surface-variant)]">Total Sets</div>
+            </div>
+            <div className="bg-[var(--color-surface-card)] rounded-[var(--radius)] p-4 text-center">
+              <div className="text-2xl font-bold text-[var(--color-secondary)] font-[var(--font-numeric)]">
+                {(() => {
+                  const days = new Set(workoutRecords.map(w => new Date(w.createdAt).toDateString()));
+                  return days.size;
+                })()}
+              </div>
+              <div className="text-xs uppercase tracking-wide text-[var(--color-on-surface-variant)]">Days Active</div>
+            </div>
+          </div>
+        )}
+
         {/* Refresh indicator */}
         {isRefreshing && (
           <div className="text-center">
-            <p className="text-sm text-muted-foreground">
-              🔄 Refreshing workout history...
+            <p className="text-sm text-[var(--color-on-surface-variant)]">
+              Refreshing workout history...
             </p>
           </div>
         )}
 
         {/* Status Text */}
         {getStatusText() && (
-          <div className="text-sm text-muted-foreground text-center">
+          <div className="text-sm text-[var(--color-on-surface-variant)] text-center">
             {getStatusText()}
           </div>
         )}
 
         {/* Error State */}
         {error && (
-          <div className="p-4 bg-destructive/10 rounded border border-destructive/20">
-            <h3 className="font-medium mb-2 text-destructive">⚠️ Error Loading Data</h3>
-            <p className="text-sm text-destructive/80">{error}</p>
+          <div className="p-4 bg-[rgba(239,68,68,0.1)] rounded-[var(--radius)]">
+            <h3 className="font-medium mb-2 text-[var(--color-error)]">Error Loading Data</h3>
+            <p className="text-sm text-[var(--color-on-surface-variant)]">{error}</p>
           </div>
         )}
 
         {/* Loading State */}
-        {isLoading && (
-          <div className="flex items-center justify-center py-8">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-              <p className="text-sm text-muted-foreground">Loading workout history from Nostr...</p>
-            </div>
-          </div>
-        )}
+        {isLoading && <SkeletonCard count={3} />}
 
         {/* Workout History List */}
         {!isLoading && filteredWorkouts.length === 0 && debouncedSearchTerm ? (
           <div className="flex flex-col items-center justify-center py-16 px-8 text-center space-y-6">
-            <Search className="h-16 w-16 text-muted-foreground/20" />
+            <Search className="h-16 w-16 text-[var(--color-on-surface-variant)] opacity-20" />
             <div className="space-y-2">
-              <h3 className="text-xl font-semibold">No workouts found</h3>
-              <p className="text-muted-foreground">
+              <h3 className="text-xl font-semibold text-[var(--color-on-surface)]">No workouts found</h3>
+              <p className="text-[var(--color-on-surface-variant)]">
                 Try adjusting your search terms
               </p>
             </div>
@@ -286,26 +305,26 @@ export function LogTab() {
                   <div className="flex items-start justify-between">
                     <div className="space-y-1">
                       <CardTitle className="text-lg">{workout.title}</CardTitle>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-4 text-sm text-[var(--color-on-surface-variant)]">
                         <div className="flex items-center gap-1">
                           <Calendar className="h-4 w-4" />
                           {formatDate(workout.createdAt)}
                         </div>
                         <div className="flex items-center gap-1">
                           <Clock className="h-4 w-4" />
-                          {formatDuration(workout.duration)}
+                          <span className="font-[var(--font-numeric)]">{formatDuration(workout.duration)}</span>
                         </div>
                         <div className="flex items-center gap-1">
                           <Dumbbell className="h-4 w-4" />
-                          {workout.exercises.length} exercises
+                          <span className="font-[var(--font-numeric)]">{workout.exercises.length}</span> exercises
                         </div>
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="text-lg font-semibold text-[color:var(--workout-primary)]">
+                      <div className="text-lg font-semibold text-[var(--color-primary)] font-[var(--font-numeric)]">
                         {calculateWorkoutVolume(workout).toLocaleString()} kg
                       </div>
-                      <div className="text-xs text-muted-foreground">total volume</div>
+                      <div className="text-xs text-[var(--color-on-surface-variant)]">total volume</div>
                     </div>
                   </div>
                 </CardHeader>
@@ -314,16 +333,16 @@ export function LogTab() {
                     {workout.exercises.slice(0, 3).map((exercise, index) => {
                       const exerciseTemplate = resolvedExercises.get(exercise.exerciseRef);
                       return (
-                        <div 
+                        <div
                           key={index}
-                          className="px-2 py-1 bg-muted rounded text-xs"
+                          className="px-2 py-1 bg-[var(--color-surface-elevated)] rounded text-xs text-[var(--color-on-surface-variant)]"
                         >
-                          {exerciseTemplate?.name || 'Unknown Exercise'} - {exercise.reps} reps
+                          {exerciseTemplate?.name || 'Unknown Exercise'} - <span className="font-[var(--font-numeric)]">{exercise.reps}</span> reps
                         </div>
                       );
                     })}
                     {workout.exercises.length > 3 && (
-                      <div className="px-2 py-1 bg-muted rounded text-xs text-muted-foreground">
+                      <div className="px-2 py-1 bg-[var(--color-surface-elevated)] rounded text-xs text-[var(--color-on-surface-variant)]">
                         +{workout.exercises.length - 3} more
                       </div>
                     )}
