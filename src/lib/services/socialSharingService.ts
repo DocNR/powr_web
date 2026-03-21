@@ -511,12 +511,8 @@ Total: ${stats.exerciseCount} exercises, ${stats.totalSets} sets, ${stats.totalR
         relays: ['wss://nos.lol', 'wss://relay.damus.io', 'wss://relay.primal.net']
       });
 
-      // Generate public URL
-      const baseUrl = typeof window !== 'undefined' 
-        ? window.location.origin 
-        : 'https://powr-kappa.vercel.app'; // Fallback for server-side
-
-      return `${baseUrl}/workout/${nevent}`;
+      // Always use powr.build/record as the canonical public workout URL
+      return `https://powr.build/record/${nevent}`;
     } catch (error) {
       console.error('[SocialSharingService] Failed to generate workout URL:', error);
       return '';
