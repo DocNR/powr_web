@@ -67,9 +67,9 @@ export const ExerciseCard = memo(function ExerciseCard({
   // Get difficulty color - using semantic colors for dark mode compatibility
   const getDifficultyColor = (difficulty?: string) => {
     switch (difficulty) {
-      case 'beginner': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
-      case 'intermediate': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300';
-      case 'advanced': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
+      case 'beginner': return 'bg-[var(--color-secondary)]/10 text-[var(--color-secondary)]';
+      case 'intermediate': return 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]';
+      case 'advanced': return 'bg-[var(--color-error)]/10 text-[var(--color-error)]';
       default: return 'bg-muted text-muted-foreground';
     }
   };
@@ -308,13 +308,13 @@ export const ExerciseCard = memo(function ExerciseCard({
 
     return (
       <div className="relative">
-        <Card 
+        <Card
+          accent
           className={cn(
             "p-3 cursor-pointer transition-all duration-200",
-            "border border-border",
-            "hover:shadow-lg hover:shadow-ring/20 hover:border-ring",
-            "active:scale-[0.98] active:shadow-lg active:shadow-ring/20 active:border-ring",
-            "focus:shadow-lg focus:shadow-ring/20 focus:border-ring focus:outline-none",
+            "hover:shadow-lg hover:shadow-ring/20",
+            "active:scale-[0.98]",
+            "focus:ring-2 focus:ring-ring focus:outline-none",
             className
           )}
           onClick={handleCardClick}

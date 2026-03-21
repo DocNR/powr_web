@@ -132,13 +132,13 @@ export const WorkoutCard = memo(function WorkoutCard({
   
   const duration = isRecord ? workout.duration : workout.estimatedDuration;
 
-  // Get difficulty color - handle undefined
+  // Get difficulty color - dark-only Kinetic Precision compatible
   const getDifficultyColor = (difficulty?: string) => {
     switch (difficulty) {
-      case 'beginner': return 'bg-green-100 text-green-800';
-      case 'intermediate': return 'bg-yellow-100 text-yellow-800';
-      case 'advanced': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'beginner': return 'bg-green-900/30 text-green-400';
+      case 'intermediate': return 'bg-yellow-900/30 text-yellow-400';
+      case 'advanced': return 'bg-red-900/30 text-red-400';
+      default: return 'bg-[var(--color-surface-elevated)] text-[var(--color-on-surface-variant)]';
     }
   };
 
@@ -229,12 +229,12 @@ export const WorkoutCard = memo(function WorkoutCard({
 
           {showStats && (
             <div className="flex items-center gap-3 text-sm mb-2">
-              <span>{exerciseCount} exercises</span>
+              <span><span className="font-[var(--font-numeric)]">{exerciseCount}</span> exercises</span>
               <span>•</span>
-              <span>{workout.exercises.reduce((total, ex) => {
+              <span><span className="font-[var(--font-numeric)]">{workout.exercises.reduce((total, ex) => {
                 const setCount = Array.isArray(ex.sets) ? ex.sets.length : (ex.sets || 0);
                 return total + setCount;
-              }, 0)} sets</span>
+              }, 0)}</span> sets</span>
             </div>
           )}
 
@@ -321,16 +321,16 @@ export const WorkoutCard = memo(function WorkoutCard({
         {/* Content below image - flex-1 to fill remaining space with uniform height */}
         <CardContent className="p-4 flex-1 flex flex-col min-h-[140px]">
           {/* Title with wrapping - no fixed height to prevent gaps */}
-          <h3 className="font-bold text-xl mb-1 line-clamp-2 leading-tight">
+          <h3 className="font-semibold text-xl mb-1 line-clamp-2 leading-tight text-[var(--color-on-surface)]">
             {workout.title}
           </h3>
 
           {/* Author info with avatar - show template creator with real profile data */}
           {author && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1.5">
+            <div className="flex items-center gap-2 text-sm text-[var(--color-on-surface-variant)] mb-1.5">
               <Avatar className="h-4 w-4">
                 <AvatarImage src={authorAvatar} alt={authorDisplayName} />
-                <AvatarFallback className="bg-muted text-muted-foreground text-xs">
+                <AvatarFallback className="bg-[var(--color-surface-elevated)] text-[var(--color-on-surface-variant)] text-xs">
                   {authorDisplayName[0]?.toUpperCase()}
                 </AvatarFallback>
               </Avatar>
@@ -340,19 +340,19 @@ export const WorkoutCard = memo(function WorkoutCard({
 
           {/* Real metrics instead of hardcoded stats */}
           {showStats && (
-            <div className="flex items-center gap-3 text-sm text-muted-foreground mb-1.5">
-              <span>{exerciseCount} exercises</span>
+            <div className="flex items-center gap-3 text-sm text-[var(--color-on-surface-variant)] mb-1.5">
+              <span><span className="font-[var(--font-numeric)]">{exerciseCount}</span> exercises</span>
               <span>•</span>
-              <span>{workout.exercises.reduce((total, ex) => {
+              <span><span className="font-[var(--font-numeric)]">{workout.exercises.reduce((total, ex) => {
                 const setCount = Array.isArray(ex.sets) ? ex.sets.length : (ex.sets || 0);
                 return total + setCount;
-              }, 0)} sets</span>
+              }, 0)}</span> sets</span>
             </div>
           )}
 
           {/* Keep the social proof completion date - push to bottom */}
           {socialProof && (
-            <div className="text-xs text-muted-foreground mt-auto flex items-center gap-1">
+            <div className="text-xs text-[var(--color-on-surface-variant)] mt-auto flex items-center gap-1">
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
@@ -379,7 +379,8 @@ export const WorkoutCard = memo(function WorkoutCard({
 
     return (
       <div className="relative group">
-        <Card 
+        <Card
+          accent
           className={cn(
             "cursor-pointer transition-all duration-200",
             "hover:shadow-lg hover:ring-2 hover:ring-ring",
@@ -412,7 +413,7 @@ export const WorkoutCard = memo(function WorkoutCard({
 
           <CardContent className="p-4">
             <div className="flex items-start justify-between mb-2">
-              <h3 className="font-semibold text-lg line-clamp-1 flex-1 pr-2">
+              <h3 className="font-semibold text-lg line-clamp-1 flex-1 pr-2 text-[var(--color-on-surface)]">
                 {workout.title}
               </h3>
               
@@ -430,7 +431,7 @@ export const WorkoutCard = memo(function WorkoutCard({
             </div>
 
             {showStats && (
-              <div className="flex justify-between text-sm text-gray-600 mb-3">
+              <div className="flex justify-between text-sm text-[var(--color-on-surface-variant)] mb-3">
                 <div className="flex items-center gap-2">
                   <span>{exerciseCount} exercises</span>
                   <span>•</span>
@@ -453,7 +454,7 @@ export const WorkoutCard = memo(function WorkoutCard({
             )}
 
             {isTemplate && workout.description && (
-              <p className="text-sm text-gray-600 line-clamp-2">
+              <p className="text-sm text-[var(--color-on-surface-variant)] line-clamp-2">
                 {workout.description}
               </p>
             )}
@@ -514,7 +515,7 @@ export const WorkoutCard = memo(function WorkoutCard({
       <Card 
         className={cn(
           "cursor-pointer transition-all duration-200",
-          "hover:bg-gray-50 hover:border-primary/20 hover:ring-2 hover:ring-ring",
+          "hover:bg-[var(--color-surface-elevated)] hover:ring-2 hover:ring-ring",
           "active:ring-2 active:ring-ring",
           "focus:ring-2 focus:ring-ring focus:outline-none",
           className
@@ -553,7 +554,7 @@ export const WorkoutCard = memo(function WorkoutCard({
               </h4>
               
               {showStats && (
-                <div className="flex items-center gap-3 text-sm text-gray-600 mb-1">
+                <div className="flex items-center gap-3 text-sm text-[var(--color-on-surface-variant)] mb-1">
                   <span>{exerciseCount} exercises</span>
                   <span>•</span>
                   <span>{workout.exercises.reduce((total, ex) => {
@@ -564,7 +565,7 @@ export const WorkoutCard = memo(function WorkoutCard({
               )}
 
               {isTemplate && (
-                <div className="flex items-center gap-3 text-sm text-gray-600">
+                <div className="flex items-center gap-3 text-sm text-[var(--color-on-surface-variant)]">
                   <div className="flex items-center gap-1">
                     <span>Level:</span>
                     <div className="flex gap-1">
@@ -575,7 +576,7 @@ export const WorkoutCard = memo(function WorkoutCard({
                             "w-1.5 h-1.5 rounded-full",
                             i <= getDifficultyLevel(workout.difficulty)
                               ? "bg-primary"
-                              : "bg-gray-300"
+                              : "bg-[var(--color-surface-elevated)]"
                           )}
                         />
                       ))}
@@ -587,7 +588,7 @@ export const WorkoutCard = memo(function WorkoutCard({
             </div>
 
             <div className="flex-shrink-0">
-              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-[var(--color-on-surface-variant)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </div>
@@ -603,7 +604,7 @@ export const WorkoutCard = memo(function WorkoutCard({
       <Card 
         className={cn(
           "cursor-pointer transition-all duration-200",
-          "hover:bg-gray-50 hover:border-primary/20 hover:ring-2 hover:ring-ring",
+          "hover:bg-[var(--color-surface-elevated)] hover:ring-2 hover:ring-ring",
           "active:ring-2 active:ring-ring",
           "focus:ring-2 focus:ring-ring focus:outline-none",
           "h-16",
@@ -640,7 +641,7 @@ export const WorkoutCard = memo(function WorkoutCard({
               </h4>
               
               {showStats && (
-                <div className="flex items-center gap-2 text-xs text-gray-500">
+                <div className="flex items-center gap-2 text-xs text-[var(--color-on-surface-variant)]">
                   <span>{exerciseCount} exercises</span>
                   <span>•</span>
                   <span>{workout.exercises.reduce((total, ex) => {
@@ -694,13 +695,13 @@ export const WorkoutCard = memo(function WorkoutCard({
 
     return (
       <div className="relative">
-        <Card 
+        <Card
+          accent
           className={cn(
             "p-3 cursor-pointer transition-all duration-200",
-            "border border-border",
-            "hover:shadow-lg hover:shadow-ring/20 hover:border-ring",
-            "active:scale-[0.98] active:shadow-lg active:shadow-ring/20 active:border-ring",
-            "focus:shadow-lg focus:shadow-ring/20 focus:border-ring focus:outline-none",
+            "hover:shadow-lg hover:shadow-ring/20",
+            "active:scale-[0.98]",
+            "focus:ring-2 focus:ring-ring focus:outline-none",
             className
           )}
           onClick={handleCardClick}

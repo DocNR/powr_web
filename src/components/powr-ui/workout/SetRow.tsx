@@ -205,48 +205,47 @@ export const SetRow: React.FC<SetRowProps> = ({
   // Display mode for completed sets - Compact mobile-optimized layout
   if (completed) {
     return (
-      <div 
+      <div
         className={cn(
-          "flex items-center gap-2 py-2 px-1 bg-workout-success-bg/50 transition-colors cursor-pointer",
-          isActive && "ring-1 ring-workout-success",
+          "flex items-center gap-2 py-2 px-1 bg-[var(--color-surface-card)] transition-colors cursor-pointer rounded-[var(--radius)]",
           className
         )}
-        onClick={handleComplete} // Allow clicking to uncomplete
+        onClick={handleComplete}
       >
-        {/* Set Number - Smaller circle */}
-        <div className="flex items-center justify-center w-8 h-8 bg-workout-success text-white rounded-full text-sm font-medium flex-shrink-0">
+        {/* Set Number */}
+        <div className="flex items-center justify-center w-8 h-8 bg-[var(--color-secondary)] text-white rounded-full text-sm font-[var(--font-numeric)] font-medium flex-shrink-0">
           {setNumber}
         </div>
 
-        {/* Previous Set Reference - Compact */}
-        <div className="w-16 flex items-center justify-center text-xs text-workout-text flex-shrink-0">
+        {/* Previous Set Reference */}
+        <div className="w-16 flex items-center justify-center text-xs text-[var(--color-on-surface-variant)] font-[var(--font-numeric)] flex-shrink-0">
           {formatPreviousSetData(previousSetData)}
         </div>
 
-        {/* Completed Weight - Display Only */}
+        {/* Completed Weight */}
         <div className="flex-1 min-w-0 flex items-center justify-center">
-          <span className="text-base font-medium text-workout-text">
+          <span className="text-base font-medium text-[var(--color-on-surface)] font-[var(--font-numeric)]">
             {formatWeightDisplay(weightInKg, weightUnit)}
           </span>
         </div>
 
-        {/* Completed Reps - Display Only */}
+        {/* Completed Reps */}
         <div className="flex-1 min-w-0 flex items-center justify-center">
-          <span className="text-base font-medium text-workout-text">
+          <span className="text-base font-medium text-[var(--color-on-surface)] font-[var(--font-numeric)]">
             {reps}
           </span>
         </div>
 
-        {/* Completed RPE - Display Only */}
+        {/* Completed RPE */}
         <div className="w-12 flex-shrink-0 flex items-center justify-center">
-          <span className="text-base font-medium text-workout-text">
+          <span className="text-base font-medium text-[var(--color-on-surface)] font-[var(--font-numeric)]">
             {rpe}
           </span>
         </div>
 
-        {/* Completed Checkbox - Clickable to uncomplete */}
+        {/* Completed Checkbox */}
         <div className="flex-shrink-0">
-          <div className="h-10 w-10 flex items-center justify-center rounded border border-workout-success bg-workout-success text-white cursor-pointer hover:bg-workout-success/80 transition-colors">
+          <div className="h-10 w-10 flex items-center justify-center rounded-[var(--radius)] bg-[var(--color-secondary)] text-white cursor-pointer hover:bg-[var(--color-secondary)]/80 transition-colors">
             <Check className="h-4 w-4" />
           </div>
         </div>
@@ -256,25 +255,32 @@ export const SetRow: React.FC<SetRowProps> = ({
 
   // Input mode for incomplete sets - Compact mobile-optimized layout
   return (
-    <div 
+    <div
       className={cn(
-        "flex items-center gap-2 py-2 px-1 transition-all duration-200 cursor-pointer",
-        "hover:bg-muted/20",
+        "flex items-center gap-2 py-2 px-1 transition-all duration-200 cursor-pointer rounded-[var(--radius)]",
+        isActive
+          ? "bg-[var(--color-surface-elevated)] shadow-[0_0_0_1px_rgba(255,145,83,0.3)]"
+          : "bg-[var(--color-surface-card)] opacity-40",
         className
       )}
       onClick={handleSetClick}
     >
-      {/* Set Number - Smaller circle */}
-      <div className="flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium bg-muted text-muted-foreground flex-shrink-0">
+      {/* Set Number */}
+      <div className={cn(
+        "flex items-center justify-center w-8 h-8 rounded-full text-sm font-[var(--font-numeric)] font-medium flex-shrink-0",
+        isActive
+          ? "bg-[var(--color-primary)] text-[#0e0e0e]"
+          : "bg-[var(--color-surface-elevated)] text-[var(--color-on-surface-variant)]"
+      )}>
         {setNumber}
       </div>
 
-      {/* Previous Set Reference - Compact */}
-      <div className="w-16 flex items-center justify-center text-xs text-muted-foreground flex-shrink-0">
+      {/* Previous Set Reference */}
+      <div className="w-16 flex items-center justify-center text-xs text-[var(--color-on-surface-variant)] font-[var(--font-numeric)] flex-shrink-0">
         {formatPreviousSetData(previousSetData)}
       </div>
 
-      {/* Weight Input - Compact */}
+      {/* Weight Input */}
       <div className="flex-1 min-w-0">
         <Input
           id={`weight-${setNumber}`}
@@ -282,16 +288,17 @@ export const SetRow: React.FC<SetRowProps> = ({
           inputMode="decimal"
           placeholder={weightInKg === 0 ? 'BW' : '0'}
           value={weightInputValue}
-          onChange={handleWeightChange}  // Use enhanced handler with weight conversion
+          onChange={handleWeightChange}
           onFocus={handleSetClick}
           className={cn(
-            "h-10 text-base font-medium text-center bg-transparent border-0 focus:ring-1 focus:ring-ring rounded",
-            !isWeightValid() && "ring-1 ring-red-300" // Visual feedback for invalid weight
+            "h-10 text-base font-medium text-center bg-[var(--color-surface-elevated)] rounded-[var(--radius)] font-[var(--font-numeric)]",
+            isActive && "text-[var(--color-primary)]",
+            !isWeightValid() && "ring-1 ring-[var(--color-error)]"
           )}
         />
       </div>
 
-      {/* Reps Input - Compact */}
+      {/* Reps Input */}
       <div className="flex-1 min-w-0">
         <Input
           id={`reps-${setNumber}`}
@@ -299,16 +306,17 @@ export const SetRow: React.FC<SetRowProps> = ({
           inputMode="numeric"
           placeholder="0"
           value={reps}
-          onChange={handleRepsChange}  // Use enhanced handler
+          onChange={handleRepsChange}
           onFocus={handleSetClick}
           className={cn(
-            "h-10 text-base font-medium text-center bg-transparent border-0 focus:ring-1 focus:ring-ring rounded",
-            !isRepsValid() && reps !== '' && "ring-1 ring-red-300" // Visual feedback for invalid reps
+            "h-10 text-base font-medium text-center bg-[var(--color-surface-elevated)] rounded-[var(--radius)] font-[var(--font-numeric)]",
+            isActive && "text-[var(--color-primary)]",
+            !isRepsValid() && reps !== '' && "ring-1 ring-[var(--color-error)]"
           )}
         />
       </div>
 
-      {/* RPE Input - Compact */}
+      {/* RPE Input */}
       <div className="w-12 flex-shrink-0">
         <Input
           id={`rpe-${setNumber}`}
@@ -316,33 +324,34 @@ export const SetRow: React.FC<SetRowProps> = ({
           inputMode="decimal"
           placeholder="7"
           value={rpe}
-          onChange={handleRpeChange}  // Use enhanced handler
+          onChange={handleRpeChange}
           onFocus={handleSetClick}
           min="1"
           max="10"
           step="0.5"
           className={cn(
-            "h-10 text-base font-medium text-center bg-transparent border-0 focus:ring-1 focus:ring-ring rounded",
-            !isRpeValid() && rpe !== '' && "ring-1 ring-red-300" // Visual feedback for invalid RPE
+            "h-10 text-base font-medium text-center bg-[var(--color-surface-elevated)] rounded-[var(--radius)] font-[var(--font-numeric)]",
+            isActive && "text-[var(--color-primary)]",
+            !isRpeValid() && rpe !== '' && "ring-1 ring-[var(--color-error)]"
           )}
         />
       </div>
 
-      {/* Checkbox - Compact */}
+      {/* Checkbox */}
       <div className="flex-shrink-0">
         <button
           onClick={canComplete ? handleComplete : undefined}
           disabled={!canComplete}
           className={cn(
-            "h-10 w-10 flex items-center justify-center rounded border transition-all duration-200",
-            canComplete 
-              ? "border-ring bg-transparent text-ring hover:bg-ring/10 cursor-pointer" 
-              : "border-border bg-transparent text-muted-foreground cursor-not-allowed opacity-50"
+            "h-10 w-10 flex items-center justify-center rounded-[var(--radius)] transition-all duration-200",
+            canComplete
+              ? "bg-[rgba(255,145,83,0.1)] text-[var(--color-primary)] hover:bg-[rgba(255,145,83,0.2)] cursor-pointer"
+              : "bg-[var(--color-surface-elevated)] text-[var(--color-on-surface-variant)] cursor-not-allowed opacity-50"
           )}
           title={
-            canComplete 
-              ? "Complete set" 
-              : reps === '' 
+            canComplete
+              ? "Complete set"
+              : reps === ''
                 ? "Enter reps to complete"
                 : !isWeightValid()
                   ? "Enter valid weight"

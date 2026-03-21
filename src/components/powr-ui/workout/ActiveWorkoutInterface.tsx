@@ -619,12 +619,12 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
           </DialogHeader>
           
           <div className={cn(
-            "relative h-full bg-background/90 backdrop-blur-md overflow-hidden pb-[env(safe-area-inset-bottom)] flex flex-col",
-            "md:bg-background/80 md:backdrop-blur-lg", // More transparency on desktop with backdrop
+            "relative h-full bg-[var(--color-surface-base)]/90 backdrop-blur-md overflow-hidden pb-[env(safe-area-inset-bottom)] flex flex-col",
+            "md:bg-[var(--color-surface-base)]/80 md:backdrop-blur-lg",
             className
           )}>
-            {/* Enhanced Header with Workout Menu */}
-            <div className="flex items-center justify-between p-4 bg-background border-b border-border flex-shrink-0">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 bg-[var(--color-surface-card)] flex-shrink-0">
               {/* Minimize Button */}
               <Button
                 variant="ghost"
@@ -641,11 +641,11 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
 
               {/* Central Timer */}
               <div className="flex flex-col items-center">
-                <WorkoutTimer 
+                <WorkoutTimer
                   elapsedTime={elapsedTime}
-                  className="text-2xl font-bold"
+                  className="text-2xl font-bold font-[var(--font-numeric)] text-[var(--color-primary)]"
                 />
-                <div className="text-sm text-muted-foreground mt-1">
+                <div className="text-sm text-[var(--color-on-surface-variant)] font-[var(--font-numeric)] mt-1">
                   {completedSets}/{totalSets} sets
                 </div>
               </div>
@@ -666,8 +666,8 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
 
             {/* Workout Title and Description Section */}
             {(workoutData?.title || templateData?.description) && (
-              <div className="px-4 py-3 border-b border-border bg-muted/30">
-                <h2 className="text-lg font-semibold text-foreground mb-2">
+              <div className="px-4 py-3 bg-[var(--color-surface-card)]">
+                <h2 className="text-lg font-semibold text-[var(--color-on-surface)] mb-2">
                   {workoutData?.title || 'Active Workout'}
                 </h2>
                 {templateData?.description && (
@@ -713,9 +713,9 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
               {/* Add Exercise Button - Enhanced with semantic styling */}
               <div className="pt-4">
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   onClick={() => setShowAddExercisePicker(true)}
-                  className="w-full h-14 border-2 border-dashed border-workout-active-border bg-workout-active-bg hover:bg-workout-active-border/10 text-workout-active hover:text-workout-active transition-all duration-200 hover:scale-[1.02] hover:shadow-lg group"
+                  className="w-full h-14 border-2 border-dashed border-[var(--color-primary)]/30 text-[var(--color-primary)] hover:bg-[rgba(255,145,83,0.1)] transition-all duration-200 group"
                 >
                   <Plus className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform duration-200" />
                   <span className="font-medium">Add Exercise</span>
@@ -724,8 +724,8 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
             </div>
 
             {/* Bottom Action Bar with iOS PWA Safe Area */}
-            <div 
-              className="border-t border-border bg-background flex-shrink-0"
+            <div
+              className="bg-[var(--color-surface-card)] flex-shrink-0"
               style={{ 
                 paddingTop: '1rem', // 16px - standard top padding
                 paddingLeft: '1rem', // 16px - standard left padding
@@ -736,11 +736,11 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
               }}
             >
               <div className="flex items-center justify-between gap-4">
-                {/* Cancel Button - Fixed for dark mode with semantic styling */}
+                {/* Cancel Button */}
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   onClick={() => setShowCancelDialog(true)}
-                  className="flex-1 text-destructive border-destructive/20 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-colors"
+                  className="flex-1 text-[var(--color-error)] hover:bg-[rgba(239,68,68,0.1)] transition-colors"
                 >
                   <Square className="h-4 w-4 mr-2" />
                   Cancel
@@ -748,7 +748,7 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
 
                 {/* Finish Button */}
                 <Button
-                  variant="workout-success"
+                  variant="primary-gradient"
                   onClick={() => setShowFinishDialog(true)}
                   className="flex-1"
                 >
@@ -819,7 +819,7 @@ export const ActiveWorkoutInterface: React.FC<ActiveWorkoutInterfaceProps> = ({
               Keep Going
             </Button>
             <Button
-              variant="workout-success"
+              variant="primary-gradient"
               onClick={handleFinishConfirm}
             >
               Finish Workout
