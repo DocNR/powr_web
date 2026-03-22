@@ -2,7 +2,7 @@
 title: POWR Workout PWA Changelog
 description: Record of all notable changes to the POWR Workout PWA project
 status: verified
-last_updated: 2026-01-26
+last_updated: 2026-03-22
 last_verified: 2025-06-29
 related_code: 
   - /src/lib/machines/workout/
@@ -31,6 +31,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **POWR iOS Native App Planning (2026-03-21)**
+
+  Added design spec, Phase 1 implementation plan, and local-first architecture research for the native SwiftUI iOS app migration. Includes GRDB persistence strategy, NIP-101e compatibility plan, and staged strangler migration approach from the existing Next.js PWA.
+
+- **Documentation Housekeeping (2026-03-22)**
+
+  Added authentication UX redesign task docs, web template audit, and updated .gitignore to exclude Syncthing and Superpowers local data directories.
+
 - **Authentication UX Redesign - Phase 1 COMPLETE (2026-01-26) ✅**
   
   **User Impact**: Authentication flow now requires 40% fewer clicks (from 3-5 → 2-3 clicks) with streamlined "Get Started" button and auto-generating QR codes. Mobile PWA users benefit from copy button for connection strings with haptic feedback, enabling seamless paste workflow into Primal/Amber signers. Landing page simplified from confusing dual buttons ("Start Tracking" + "NostrConnect") to single clear CTA. Mobile signer no longer hidden in "Advanced Options" - now properly visible as third authentication option with collapsible design.

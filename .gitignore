@@ -49,3 +49,9 @@ docs/white-label-implementation-plan.md
 
 # Personal development environment paths
 .clinerules/research-before-implementation.md
+
+# Syncthing
+.stfolder/
+
+# Superpowers local data
+.superpowers/
