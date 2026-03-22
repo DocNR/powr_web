@@ -36,6 +36,25 @@ export { Input } from './primitives/Input';
 export { Label } from './primitives/Label';
 export { Textarea } from './primitives/Textarea';
 export { Tabs, TabsContent, TabsList, TabsTrigger } from './primitives/Tabs';
+export { Alert, AlertTitle, AlertDescription } from './primitives/Alert';
+export {
+  DropdownMenu,
+  DropdownMenuPortal,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuLabel,
+  DropdownMenuItem,
+  DropdownMenuCheckboxItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuShortcut,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+} from './primitives/DropdownMenu';
+export { Logo } from './primitives/Logo';
 
 // Layout Components
 export { AppHeader } from './layout/AppHeader';

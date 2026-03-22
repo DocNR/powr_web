@@ -6,13 +6,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/powr-ui/p
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/powr-ui/primitives/Avatar';
 import { Badge } from '@/components/powr-ui/primitives/Badge';
 import { ArrowLeft, TrendingUp, Calendar, Target, Plus, Check, Play } from 'lucide-react';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogDescription 
-} from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription
+} from '@/components/powr-ui/primitives/Dialog';
 import { WorkoutImageHandler } from '@/components/powr-ui/workout/WorkoutImageHandler';
 import { useProfile, getDisplayName, getAvatarUrl } from '@/hooks/useProfile';
 import { usePubkey } from '@/lib/auth/hooks';

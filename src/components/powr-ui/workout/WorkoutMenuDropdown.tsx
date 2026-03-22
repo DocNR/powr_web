@@ -16,7 +16,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from '@/components/powr-ui/primitives/DropdownMenu';
 import { useWeightUnits } from '@/providers/WeightUnitsProvider';
 
 interface WorkoutMenuDropdownProps {

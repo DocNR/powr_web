@@ -16,7 +16,7 @@ import { WorkoutDescription } from './WorkoutDescription';
 import { useWeightUnits } from '@/providers/WeightUnitsProvider';
 import { usePWA } from '@/hooks/usePWA';
 import { ArrowLeft, Square, Plus } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/powr-ui/primitives/Dialog';
 import { ConfirmationDialog } from '@/components/powr-ui/primitives/ConfirmationDialog';
 import { cn } from '@/lib/utils';
 import { exerciseModalResolutionService } from '@/lib/services/exerciseModalResolution';

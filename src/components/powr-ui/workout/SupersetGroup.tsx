@@ -9,7 +9,7 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/powr-ui/primitives/Button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/powr-ui/primitives/Dialog';
 import { Link, Unlink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 

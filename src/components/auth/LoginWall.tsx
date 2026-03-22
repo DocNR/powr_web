@@ -1,6 +1,6 @@
 'use client';
 
-import { Logo } from '@/components/ui/logo';
+import { Logo } from '@/components/powr-ui/primitives/Logo';
 import { LoginDialog } from './LoginDialog';
 
 export function LoginWall() {

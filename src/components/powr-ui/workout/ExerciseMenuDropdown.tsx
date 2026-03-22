@@ -18,7 +18,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from '@/components/powr-ui/primitives/DropdownMenu';
 
 interface ExerciseMenuDropdownProps {
   exerciseIndex: number;

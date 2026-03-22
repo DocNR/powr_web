@@ -3,13 +3,13 @@ import { Button } from '@/components/powr-ui/primitives/Button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/powr-ui/primitives/Tabs';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/powr-ui/primitives/Avatar';
 import { Play, ArrowLeft, AlertCircle, Plus, Check } from 'lucide-react';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogDescription 
-} from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription
+} from '@/components/powr-ui/primitives/Dialog';
 import { WorkoutImageHandler } from './WorkoutImageHandler';
 import { ExpandableExerciseCard } from './ExpandableExerciseCard';
 import { useProfile, getDisplayName, getAvatarUrl } from '@/hooks/useProfile';

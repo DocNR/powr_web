@@ -16,8 +16,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams, useParams } from 'next/navigation';
 import Link from 'next/link';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/powr-ui/primitives/Card';
+import { Button } from '@/components/powr-ui/primitives/Button';
 import { Loader2, CheckCircle, XCircle, Copy, Smartphone, Globe } from 'lucide-react';
 import { useLoginWithAmber } from '@/lib/auth/hooks';
 

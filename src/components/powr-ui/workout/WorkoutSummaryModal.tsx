@@ -15,7 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription
-} from '@/components/ui/dialog';
+} from '@/components/powr-ui/primitives/Dialog';
 import { socialSharingService } from '@/lib/services/socialSharingService';
 import { useWeightUnits } from '@/providers/WeightUnitsProvider';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';

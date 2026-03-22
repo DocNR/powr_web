@@ -15,13 +15,13 @@ import React, { useMemo, useState } from 'react';
 import { ArrowLeft, Copy, Calendar, Clock } from 'lucide-react';
 import { Button } from '@/components/powr-ui/primitives/Button';
 import { Badge } from '@/components/powr-ui/primitives/Badge';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogDescription 
-} from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription
+} from '@/components/powr-ui/primitives/Dialog';
 import { WorkoutCard } from '@/components/powr-ui/workout/WorkoutCard';
 import { socialSharingService } from '@/lib/services/socialSharingService';
 import { workoutAnalyticsService } from '@/lib/services/workoutAnalytics';

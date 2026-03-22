@@ -13,13 +13,13 @@ import { exerciseModalResolutionService } from '@/lib/services/exerciseModalReso
 import { WORKOUT_EVENT_KINDS } from '@/lib/ndk';
 import { Button } from '@/components/powr-ui/primitives/Button';
 import { Input } from '@/components/powr-ui/primitives/Input';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogDescription 
-} from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription
+} from '@/components/powr-ui/primitives/Dialog';
 import { cn } from '@/lib/utils';
 
 interface GlobalWorkoutSearchProps {

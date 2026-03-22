@@ -3,7 +3,7 @@
 import React from 'react';
 import { Button } from '@/components/powr-ui/primitives/Button';
 import { cn } from '@/lib/utils';
-import { Logo } from '@/components/ui/logo';
+import { Logo } from '@/components/powr-ui/primitives/Logo';
 
 interface DesktopSidebarProps {
   activeTab: string;

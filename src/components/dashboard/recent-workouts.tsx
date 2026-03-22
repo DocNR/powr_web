@@ -1,7 +1,7 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/powr-ui/primitives/Card';
+import { Button } from '@/components/powr-ui/primitives/Button';
 import { Clock, Calendar, Play } from 'lucide-react';
 
 interface Workout {

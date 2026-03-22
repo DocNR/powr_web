@@ -25,8 +25,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+} from '@/components/powr-ui/primitives/Dialog';
+import { Alert, AlertDescription } from '@/components/powr-ui/primitives/Alert';
 
 // Authentication hooks - Direct NDK implementation
 import { 
